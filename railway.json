@@ -5,7 +5,7 @@
     "buildCommand": "npm ci && npm run build:api"
   },
   "deploy": {
-    "startCommand": "node apps/api/dist/server-minimal.js",
+    "startCommand": "node apps/api/dist/server-pure.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
