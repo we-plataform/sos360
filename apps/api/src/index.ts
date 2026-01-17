@@ -1,6 +1,17 @@
 // IMPORTANT: Load .env FIRST before any other imports
 import './load-env.js';
 
+// Handle uncaught errors early
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,16 +25,23 @@ import { errorHandler } from './middleware/error-handler.js';
 import { setupRoutes } from './routes/index.js';
 import { setupSocket } from './socket/index.js';
 
+// Initialize Express app and HTTP server
 const app = express();
 const httpServer = createServer(app);
 
 // Socket.io
-const io = new Server(httpServer, {
-  cors: {
-    origin: env.CORS_ORIGINS,
-    credentials: true,
-  },
-});
+let io: Server;
+try {
+  io = new Server(httpServer, {
+    cors: {
+      origin: env.CORS_ORIGINS,
+      credentials: true,
+    },
+  });
+} catch (error) {
+  logger.error({ err: error }, 'Failed to initialize Socket.io');
+  process.exit(1);
+}
 
 // Middleware - Helmet with relaxed settings for Chrome extensions
 app.use(helmet({
@@ -92,10 +110,36 @@ app.set('io', io);
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-httpServer.listen(env.PORT, () => {
-  logger.info(`Server running on port ${env.PORT}`);
+// Additional error handlers (logger is now available)
+process.on('uncaughtException', (error) => {
+  logger.error({ err: error }, 'Uncaught Exception');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ reason, promise }, 'Unhandled Rejection');
+  process.exit(1);
+});
+
+// Start server - listen on 0.0.0.0 to accept external connections
+const HOST = process.env.HOST || '0.0.0.0';
+
+httpServer.listen(env.PORT, HOST, () => {
+  logger.info(`Server running on ${HOST}:${env.PORT}`);
   logger.info(`Environment: ${env.NODE_ENV}`);
+  logger.info(`CORS origins: ${env.CORS_ORIGINS.join(', ')}`);
+});
+
+httpServer.on('error', (error: NodeJS.ErrnoException) => {
+  logger.error({ err: error }, 'Server error');
+  
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${env.PORT} is already in use`);
+    process.exit(1);
+  } else {
+    logger.error('Failed to start server');
+    process.exit(1);
+  }
 });
 
 export { app, io };
