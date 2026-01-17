@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 
@@ -40,6 +41,67 @@ export function errorHandler(
     return;
   }
 
+  // Prisma database errors
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    logger.error({ code: err.code, meta: err.meta }, 'Prisma database error');
+    
+    // Handle specific Prisma errors
+    if (err.code === 'P2002') {
+      res.status(409).json({
+        success: false,
+        error: {
+          type: 'conflict',
+          title: 'Conflict',
+          status: 409,
+          detail: 'A record with this value already exists',
+        },
+      });
+      return;
+    }
+    
+    if (err.code === 'P2025') {
+      res.status(404).json({
+        success: false,
+        error: {
+          type: 'not_found',
+          title: 'Not Found',
+          status: 404,
+          detail: 'Record not found',
+        },
+      });
+      return;
+    }
+    
+    // Generic Prisma error
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'database_error',
+        title: 'Database Error',
+        status: 500,
+        detail: process.env.NODE_ENV === 'development' ? err.message : 'A database error occurred',
+      },
+    });
+    return;
+  }
+
+  // Prisma connection errors
+  if (err instanceof Prisma.PrismaClientInitializationError || 
+      err instanceof Prisma.PrismaClientRustPanicError ||
+      err instanceof Prisma.PrismaClientUnknownRequestError) {
+    logger.error({ err }, 'Prisma client error');
+    res.status(503).json({
+      success: false,
+      error: {
+        type: 'database_unavailable',
+        title: 'Database Unavailable',
+        status: 503,
+        detail: 'Database connection failed. Please try again later.',
+      },
+    });
+    return;
+  }
+
   // Custom app errors
   if (err instanceof AppError) {
     const errorResponse: Record<string, unknown> = {
@@ -61,14 +123,16 @@ export function errorHandler(
     return;
   }
 
-  // Unknown errors
-  res.status(500).json({
-    success: false,
-    error: {
-      type: 'internal_error',
-      title: 'Internal Server Error',
-      status: 500,
-      detail: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
-    },
-  });
+  // Unknown errors - ensure response hasn't been sent
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'internal_error',
+        title: 'Internal Server Error',
+        status: 500,
+        detail: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
+      },
+    });
+  }
 }
