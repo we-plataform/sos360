@@ -8,4 +8,4 @@ cmds = ["npm ci"]
 cmds = ["npm run build:api"]
 
 [start]
-cmd = "node apps/api/dist/server-pure.js"
+cmd = "node apps/api/dist/index.js"

@@ -1,1 +1,1 @@
-web: node apps/api/dist/server-pure.js
+web: node apps/api/dist/index.js
