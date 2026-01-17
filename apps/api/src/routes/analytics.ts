@@ -64,7 +64,7 @@ analyticsRouter.get('/overview', async (req, res, next) => {
     });
 
     const platformCounts = leadsByPlatform.reduce(
-      (acc, item) => {
+      (acc: Record<string, number>, item: { platform: string; _count: { id: number } }) => {
         acc[item.platform] = item._count.id;
         return acc;
       },
@@ -79,7 +79,7 @@ analyticsRouter.get('/overview', async (req, res, next) => {
     });
 
     const statusCounts = leadsByStatus.reduce(
-      (acc, item) => {
+      (acc: Record<string, number>, item: { status: string; _count: { id: number } }) => {
         acc[item.status] = item._count.id;
         return acc;
       },
@@ -125,10 +125,10 @@ analyticsRouter.get('/funnel', async (req, res, next) => {
       _count: { id: true },
     });
 
-    const totalLeads = leadsByStatus.reduce((sum, item) => sum + item._count.id, 0);
+    const totalLeads = leadsByStatus.reduce((sum: number, item: { _count: { id: number } }) => sum + item._count.id, 0);
 
     const stages = statusOrder.map((status) => {
-      const found = leadsByStatus.find((item) => item.status === status);
+      const found = leadsByStatus.find((item: { status: string }) => item.status === status);
       const count = found?._count.id || 0;
       return {
         name: status.charAt(0).toUpperCase() + status.slice(1),

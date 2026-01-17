@@ -37,7 +37,7 @@ if (shouldUseRedis && !redisDisabled) {
       logger.info('✓ Redis ready');
     });
 
-    redis.on('error', (err: Error) => {
+    redis.on('error', (_err: Error) => {
       // Only log once, then disable Redis
       if (!connectionAttempted) {
         connectionAttempted = true;

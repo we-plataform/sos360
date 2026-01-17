@@ -1,12 +1,22 @@
 import { config } from 'dotenv';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 
 // Load .env from project root BEFORE anything else
 // When running via npm workspace, process.cwd() is apps/api, so we need to go up 2 levels
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = resolve(__filename, '..');
+
+// Get __dirname equivalent that works in both ESM and CommonJS
+let __dirname: string;
+// @ts-expect-error - import.meta may not be available in all build contexts
+const importMetaUrl = typeof import.meta !== 'undefined' && import.meta.url;
+if (importMetaUrl) {
+  // ESM way
+  __dirname = dirname(fileURLToPath(importMetaUrl));
+} else {
+  // Fallback: use process.cwd() if we can't determine __dirname
+  __dirname = process.cwd();
+}
 
 // Determine project root: if cwd contains 'apps/api', go up 2 levels, otherwise use cwd
 let projectRoot = process.cwd();

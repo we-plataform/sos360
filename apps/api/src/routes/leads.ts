@@ -14,7 +14,6 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
-import { logger } from '../lib/logger.js';
 import { z } from 'zod';
 
 export const leadsRouter = Router();

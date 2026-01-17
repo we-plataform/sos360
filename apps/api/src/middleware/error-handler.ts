@@ -42,15 +42,21 @@ export function errorHandler(
 
   // Custom app errors
   if (err instanceof AppError) {
+    const errorResponse: Record<string, unknown> = {
+      type: err.type,
+      title: err.name,
+      status: err.statusCode,
+      detail: err.message,
+    };
+    
+    // Only add errors if details exists and is an object or array
+    if (err.details && (typeof err.details === 'object' || Array.isArray(err.details))) {
+      errorResponse.errors = err.details;
+    }
+    
     res.status(err.statusCode).json({
       success: false,
-      error: {
-        type: err.type,
-        title: err.name,
-        status: err.statusCode,
-        detail: err.message,
-        ...(err.details && { errors: err.details }),
-      },
+      error: errorResponse,
     });
     return;
   }

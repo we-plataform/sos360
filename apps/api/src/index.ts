@@ -34,7 +34,7 @@ app.use(helmet({
 
 // CORS configuration - allow Chrome extensions and configured origins
 const corsOptions = {
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps, Postman, curl, or Chrome extensions in some cases)
     if (!origin) {
       return callback(null, true);

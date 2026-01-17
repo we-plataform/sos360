@@ -1,17 +1,20 @@
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
+import type { StringValue } from 'ms';
 import { env } from '../config/env.js';
 import type { JwtPayload } from '@sos360/shared';
 
 export function signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
-  });
+  const options: SignOptions = {
+    expiresIn: env.JWT_EXPIRES_IN as StringValue,
+  };
+  return jwt.sign(payload as object, env.JWT_SECRET as string, options);
 }
 
 export function signRefreshToken(userId: string): string {
-  return jwt.sign({ sub: userId, type: 'refresh' }, env.JWT_SECRET, {
-    expiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
-  });
+  const options: SignOptions = {
+    expiresIn: env.REFRESH_TOKEN_EXPIRES_IN as StringValue,
+  };
+  return jwt.sign({ sub: userId, type: 'refresh' } as object, env.JWT_SECRET as string, options);
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
