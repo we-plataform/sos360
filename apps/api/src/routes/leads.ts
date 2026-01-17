@@ -92,7 +92,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
     // Format response
     const formattedLeads = leads.map((lead) => ({
       ...lead,
-      tags: lead.tags.map((lt) => lt.tag),
+      tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
     }));
 
     res.json({
@@ -151,7 +151,7 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
       success: true,
       data: {
         ...lead,
-        tags: lead.tags.map((lt) => lt.tag),
+        tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
       },
     });
   } catch (error) {
@@ -310,7 +310,7 @@ leadsRouter.get('/:id', async (req, res, next) => {
       success: true,
       data: {
         ...lead,
-        tags: lead.tags.map((lt) => lt.tag),
+        tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
       },
     });
   } catch (error) {
@@ -370,7 +370,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
       success: true,
       data: {
         ...lead,
-        tags: lead.tags.map((lt) => lt.tag),
+        tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
       },
     });
   } catch (error) {
@@ -439,7 +439,7 @@ leadsRouter.post('/:id/tags', authorize('owner', 'admin', 'manager', 'agent'), a
       success: true,
       data: {
         id: updatedLead!.id,
-        tags: updatedLead!.tags.map((lt) => lt.tag),
+        tags: updatedLead!.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
       },
     });
   } catch (error) {
