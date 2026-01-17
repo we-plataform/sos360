@@ -1,0 +1,462 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// WORKSPACE & USERS
+// ============================================
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  plan      Plan     @default(trial)
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  leads       Lead[]
+  tags        Tag[]
+  templates   Template[]
+  automations Automation[]
+  webhooks    Webhook[]
+  invitations Invitation[]
+  importJobs  ImportJob[]
+
+  @@map("workspaces")
+}
+
+enum Plan {
+  trial
+  starter
+  professional
+  business
+  enterprise
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  avatarUrl    String?
+  role         Role      @default(agent)
+  settings     Json      @default("{}")
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  assignedLeads         Lead[]         @relation("AssignedLeads")
+  assignedConversations Conversation[] @relation("AssignedConversations")
+  sentMessages          Message[]      @relation("SentMessages")
+  createdTemplates      Template[]     @relation("CreatedTemplates")
+  createdAutomations    Automation[]   @relation("CreatedAutomations")
+  activities            Activity[]     @relation("UserActivities")
+
+  @@index([workspaceId])
+  @@index([email])
+  @@map("users")
+}
+
+enum Role {
+  owner
+  admin
+  manager
+  agent
+  viewer
+}
+
+model Invitation {
+  id        String           @id @default(cuid())
+  email     String
+  role      Role             @default(agent)
+  token     String           @unique @default(cuid())
+  status    InvitationStatus @default(pending)
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([token])
+  @@map("invitations")
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// LEADS
+// ============================================
+
+model Lead {
+  id                String     @id @default(cuid())
+  platform          Platform
+  username          String?
+  fullName          String?
+  profileUrl        String?
+  avatarUrl         String?
+  bio               String?
+  email             String?
+  phone             String?
+  website           String?
+  location          String?
+  followersCount    Int?
+  followingCount    Int?
+  postsCount        Int?
+  verified          Boolean    @default(false)
+  score             Int        @default(0)
+  status            LeadStatus @default(new)
+  notes             String?
+  sourceUrl         String?
+  customFields      Json       @default("{}")
+  lastInteractionAt DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  tags           LeadTag[]
+  conversation   Conversation?
+  activities     Activity[]
+  automationLogs AutomationLog[]
+
+  @@unique([workspaceId, platform, profileUrl])
+  @@index([workspaceId, status])
+  @@index([workspaceId, platform])
+  @@index([workspaceId, score])
+  @@index([workspaceId, createdAt])
+  @@index([assignedToId])
+  @@map("leads")
+}
+
+enum Platform {
+  instagram
+  facebook
+  linkedin
+  twitter
+  tiktok
+  whatsapp
+  telegram
+  discord
+  reddit
+  skool
+  slack
+  pinterest
+  youtube
+  nextdoor
+  gohighlevel
+  other
+}
+
+enum LeadStatus {
+  new
+  contacted
+  responded
+  qualified
+  scheduled
+  closed
+  lost
+}
+
+// ============================================
+// TAGS
+// ============================================
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366F1")
+  createdAt DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  leads LeadTag[]
+
+  @@unique([workspaceId, name])
+  @@map("tags")
+}
+
+model LeadTag {
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([leadId, tagId])
+  @@map("lead_tags")
+}
+
+// ============================================
+// CONVERSATIONS & MESSAGES
+// ============================================
+
+model Conversation {
+  id            String             @id @default(cuid())
+  platform      Platform
+  status        ConversationStatus @default(active)
+  unreadCount   Int                @default(0)
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  leadId String @unique
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedConversations", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  messages Message[]
+
+  @@index([leadId])
+  @@index([assignedToId])
+  @@index([status, lastMessageAt])
+  @@map("conversations")
+}
+
+enum ConversationStatus {
+  active
+  archived
+}
+
+model Message {
+  id          String        @id @default(cuid())
+  content     String
+  senderType  SenderType
+  messageType MessageType   @default(text)
+  status      MessageStatus @default(pending)
+  metadata    Json          @default("{}")
+  readAt      DateTime?
+  sentAt      DateTime      @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String?
+  sender   User?   @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, sentAt])
+  @@map("messages")
+}
+
+enum SenderType {
+  agent
+  lead
+  system
+}
+
+enum MessageType {
+  text
+  image
+  video
+  audio
+  document
+  template
+}
+
+enum MessageStatus {
+  pending
+  sent
+  delivered
+  read
+  failed
+}
+
+// ============================================
+// TEMPLATES
+// ============================================
+
+model Template {
+  id        String    @id @default(cuid())
+  name      String
+  content   String
+  platform  Platform?
+  category  String?
+  variables Json      @default("[]")
+  stats     Json      @default("{\"sent\": 0, \"responseRate\": 0}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("CreatedTemplates", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("templates")
+}
+
+// ============================================
+// AUTOMATIONS
+// ============================================
+
+model Automation {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  triggerType   String
+  triggerConfig Json
+  actions       Json
+  conditions    Json    @default("[]")
+  enabled       Boolean @default(true)
+  stats         Json    @default("{\"runs\": 0, \"success\": 0, \"failed\": 0}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("CreatedAutomations", fields: [createdById], references: [id], onDelete: Cascade)
+
+  logs AutomationLog[]
+
+  @@index([workspaceId, enabled])
+  @@map("automations")
+}
+
+model AutomationLog {
+  id              String              @id @default(cuid())
+  status          AutomationLogStatus
+  actionsExecuted Int                 @default(0)
+  errorMessage    String?
+  metadata        Json                @default("{}")
+  executedAt      DateTime            @default(now())
+
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([automationId, executedAt])
+  @@map("automation_logs")
+}
+
+enum AutomationLogStatus {
+  success
+  failed
+  skipped
+}
+
+// ============================================
+// ACTIVITIES (Audit Trail)
+// ============================================
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  description String?
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now())
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation("UserActivities", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@index([userId, createdAt])
+  @@map("activities")
+}
+
+enum ActivityType {
+  lead_created
+  lead_updated
+  lead_imported
+  status_changed
+  tag_added
+  tag_removed
+  assigned
+  message_sent
+  message_received
+  score_updated
+  automation_triggered
+  note_added
+}
+
+// ============================================
+// WEBHOOKS
+// ============================================
+
+model Webhook {
+  id              String    @id @default(cuid())
+  url             String
+  events          String[]
+  secret          String?
+  enabled         Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("webhooks")
+}
+
+// ============================================
+// IMPORT JOBS
+// ============================================
+
+model ImportJob {
+  id          String          @id @default(cuid())
+  platform    Platform
+  sourceUrl   String?
+  status      ImportJobStatus @default(queued)
+  progress    Int             @default(0)
+  totalLeads  Int             @default(0)
+  result      Json?
+  error       String?
+  createdAt   DateTime        @default(now())
+  completedAt DateTime?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("import_jobs")
+}
+
+enum ImportJobStatus {
+  queued
+  processing
+  completed
+  failed
+}

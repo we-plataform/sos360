@@ -1,0 +1,44 @@
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env.js';
+import type { JwtPayload } from '@sos360/shared';
+
+export function signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
+  return jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN,
+  });
+}
+
+export function signRefreshToken(userId: string): string {
+  return jwt.sign({ sub: userId, type: 'refresh' }, env.JWT_SECRET, {
+    expiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
+  });
+}
+
+export function verifyAccessToken(token: string): JwtPayload {
+  return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+}
+
+export function verifyRefreshToken(token: string): { sub: string; type: string } {
+  return jwt.verify(token, env.JWT_SECRET) as { sub: string; type: string };
+}
+
+export function getTokenExpiresIn(): number {
+  const match = env.JWT_EXPIRES_IN.match(/^(\d+)([smhd])$/);
+  if (!match) return 900; // default 15 minutes
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 3600;
+    case 'd':
+      return value * 86400;
+    default:
+      return 900;
+  }
+}

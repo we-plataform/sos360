@@ -1,0 +1,26 @@
+{
+  "name": "@sos360/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:push": "dotenv -e ../../.env -- prisma db push",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "studio": "dotenv -e ../../.env -- prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.9.1",
+    "@supabase/supabase-js": "^2.39.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "dotenv-cli": "^7.4.2",
+    "prisma": "^5.9.1",
+    "typescript": "^5.3.3"
+  }
+}

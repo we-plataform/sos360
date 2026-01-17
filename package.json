@@ -1,0 +1,34 @@
+{
+  "name": "sos360",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:generate": "turbo db:generate",
+    "db:push": "turbo db:push",
+    "db:migrate": "turbo db:migrate",
+    "db:studio": "npm run studio --workspace=@sos360/database",
+    "api:dev": "npm run dev --workspace=@sos360/api",
+    "web:dev": "npm run dev --workspace=@sos360/web",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:reset": "docker-compose down -v && docker-compose up -d"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.4",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "npm@11.6.1",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

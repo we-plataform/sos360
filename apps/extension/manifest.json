@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "SOS 360 - Lead Importer",
+  "version": "1.0.0",
+  "description": "Importe leads de redes sociais para o SOS 360",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.facebook.com/*",
+    "*://*.linkedin.com/*",
+    "*://*.twitter.com/*",
+    "*://*.x.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.instagram.com/*"],
+      "js": ["content-scripts/instagram.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["content-scripts/facebook.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["content-scripts/linkedin.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
