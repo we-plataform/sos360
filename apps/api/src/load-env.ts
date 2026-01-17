@@ -8,7 +8,6 @@ import { existsSync } from 'fs';
 
 // Get __dirname equivalent that works in both ESM and CommonJS
 let __dirname: string;
-// @ts-expect-error - import.meta may not be available in all build contexts
 const importMetaUrl = typeof import.meta !== 'undefined' && import.meta.url;
 if (importMetaUrl) {
   // ESM way

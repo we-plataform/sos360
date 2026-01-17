@@ -6,7 +6,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import pinoHttp from 'pino-http';
+import { pinoHttp } from 'pino-http';
 
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';

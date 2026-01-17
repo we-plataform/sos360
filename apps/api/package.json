@@ -2,6 +2,7 @@
   "name": "@sos360/api",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "prebuild": "npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database",
     "build": "tsc",
