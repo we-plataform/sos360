@@ -5,7 +5,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "prisma generate && tsc",
+    "prebuild": "prisma generate",
+    "build": "tsc",
     "dev": "tsc --watch",
     "db:generate": "dotenv -e ../../.env -- prisma generate",
     "db:push": "dotenv -e ../../.env -- prisma db push",
