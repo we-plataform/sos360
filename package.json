@@ -2,6 +2,7 @@
   "name": "sos360",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate --schema=packages/database/prisma/schema.prisma || echo 'Prisma generate skipped'",
     "build": "turbo build",
     "build:api": "npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api",
     "dev": "turbo dev",

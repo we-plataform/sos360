@@ -14,22 +14,34 @@ import { errorHandler } from './middleware/error-handler.js';
 import { setupRoutes } from './routes/index.js';
 import { setupSocket } from './socket/index.js';
 
-// Handle uncaught errors - must be set up after logger is available
+// Log startup information immediately
+console.log('=== SOS360 API Starting ===');
+console.log(`Node version: ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`PORT env: ${process.env.PORT || 'not set'}`);
+console.log(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
+console.log(`JWT_SECRET set: ${!!process.env.JWT_SECRET}`);
+
+// Handle uncaught errors - log to both console and logger
 process.on('uncaughtException', (error) => {
+  console.error('FATAL: Uncaught Exception:', error);
   logger.error({ err: error }, 'Uncaught Exception');
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  console.error('FATAL: Unhandled Rejection:', reason);
   logger.error({ reason, promise }, 'Unhandled Rejection');
   process.exit(1);
 });
 
 // Initialize Express app and HTTP server
+console.log('Initializing Express...');
 const app = express();
 const httpServer = createServer(app);
 
 // Socket.io
+console.log('Initializing Socket.io...');
 let io: Server;
 try {
   io = new Server(httpServer, {
@@ -38,7 +50,9 @@ try {
       credentials: true,
     },
   });
+  console.log('Socket.io initialized successfully');
 } catch (error) {
+  console.error('FATAL: Failed to initialize Socket.io:', error);
   logger.error({ err: error }, 'Failed to initialize Socket.io');
   process.exit(1);
 }
@@ -98,18 +112,34 @@ app.get('/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root endpoint
+app.get('/', (_, res) => {
+  res.json({ 
+    name: 'SOS360 API',
+    version: '0.0.1',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API Routes
+console.log('Setting up routes...');
 try {
   setupRoutes(app);
+  console.log('Routes setup completed');
 } catch (error) {
+  console.error('FATAL: Failed to setup routes:', error);
   logger.error({ err: error }, 'Failed to setup routes');
   process.exit(1);
 }
 
 // Socket.io setup
+console.log('Setting up Socket.io handlers...');
 try {
   setupSocket(io);
+  console.log('Socket.io handlers setup completed');
 } catch (error) {
+  console.error('FATAL: Failed to setup Socket.io:', error);
   logger.error({ err: error }, 'Failed to setup Socket.io');
   process.exit(1);
 }
@@ -123,22 +153,28 @@ app.use(errorHandler);
 // Start server - listen on 0.0.0.0 to accept external connections
 // Railway injects PORT automatically, ensure we use it
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = '0.0.0.0'; // Always use 0.0.0.0 for Railway
+
+console.log(`Starting server on ${HOST}:${PORT}...`);
 
 httpServer.listen(PORT, HOST, () => {
+  console.log(`=== Server running on ${HOST}:${PORT} ===`);
   logger.info(`Server running on ${HOST}:${PORT}`);
   logger.info(`Environment: ${env.NODE_ENV}`);
   logger.info(`CORS origins: ${env.CORS_ORIGINS.join(', ')}`);
-  logger.info('Server is ready to accept connections');
+  console.log('Server is ready to accept connections');
 });
 
 httpServer.on('error', (error: NodeJS.ErrnoException) => {
+  console.error('FATAL: Server error:', error);
   logger.error({ err: error }, 'Server error');
   
   if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
     logger.error(`Port ${PORT} is already in use`);
     process.exit(1);
   } else {
+    console.error('Failed to start server');
     logger.error('Failed to start server');
     process.exit(1);
   }
