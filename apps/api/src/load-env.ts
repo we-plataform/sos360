@@ -29,22 +29,25 @@ if (process.cwd().includes('apps/api') || process.cwd().endsWith('api')) {
 
 const envPath = resolve(projectRoot, '.env');
 
-// Debug info
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 Debug: process.cwd() =', process.cwd());
-  console.log('🔍 Debug: projectRoot =', projectRoot);
-  console.log('🔍 Debug: envPath =', envPath);
-  console.log('🔍 Debug: .env exists =', existsSync(envPath));
-}
-
-const result = config({ path: envPath });
-
-if (result.error) {
-  console.error('✗ ERROR: Could not load .env file!');
-  console.error('  Path tried:', envPath);
-  console.error('  Error:', result.error.message);
-  console.error('\n💡 Make sure .env exists in the project root');
-  process.exit(1);
+// Only try to load .env file if it exists (for local development)
+// In production (Railway, etc.), environment variables are injected directly
+if (existsSync(envPath)) {
+  const result = config({ path: envPath });
+  
+  if (result.error) {
+    // Only log warning in development, don't fail in production
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️  Warning: Could not load .env file!');
+      console.warn('  Path tried:', envPath);
+      console.warn('  Error:', result.error.message);
+      console.warn('  Continuing with environment variables from process.env...');
+    }
+  } else {
+    console.log(`✓ Loaded .env from: ${envPath}`);
+  }
 } else {
-  console.log(`✓ Loaded .env from: ${envPath}`);
+  // File doesn't exist - this is normal in production
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ℹ️  No .env file found, using environment variables from process.env');
+  }
 }
