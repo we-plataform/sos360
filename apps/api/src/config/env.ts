@@ -14,7 +14,17 @@ console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3001),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required').refine(
+    (val) => {
+      try {
+        const url = new URL(val);
+        return url.hostname && url.hostname.length > 0;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'DATABASE_URL must be a valid PostgreSQL connection string with hostname' }
+  ),
   DIRECT_URL: z.string().optional(),
   REDIS_URL: z.string().default(''),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
