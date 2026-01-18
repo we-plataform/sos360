@@ -15,16 +15,30 @@ if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
 }
 
 // Validate DATABASE_URL format
+let databaseUrl: string;
 try {
-  const url = new URL(process.env.DATABASE_URL);
-  if (!url.hostname || url.hostname === '') {
+  databaseUrl = process.env.DATABASE_URL.trim();
+  const url = new URL(databaseUrl);
+  
+  if (!url.hostname || url.hostname === '' || url.hostname === 'undefined') {
     throw new Error('DATABASE_URL missing hostname');
   }
+  
+  if (!url.protocol || !url.protocol.startsWith('postgres')) {
+    throw new Error('DATABASE_URL must use postgresql:// or postgres:// protocol');
+  }
+  
   console.log('[Database] DATABASE_URL hostname:', url.hostname);
-  console.log('[Database] DATABASE_URL port:', url.port || 'default');
+  console.log('[Database] DATABASE_URL port:', url.port || '5432 (default)');
+  console.log('[Database] DATABASE_URL database:', url.pathname.replace('/', '') || 'not specified');
+  
+  // Store validated URL for Prisma
+  process.env.DATABASE_URL = databaseUrl;
 } catch (error) {
-  console.error('[Database] FATAL: Invalid DATABASE_URL format:', error);
-  throw new Error(`Invalid DATABASE_URL format: ${error instanceof Error ? error.message : 'unknown error'}`);
+  console.error('[Database] FATAL: Invalid DATABASE_URL format');
+  console.error('[Database] Error:', error instanceof Error ? error.message : 'unknown error');
+  console.error('[Database] DATABASE_URL value (first 50 chars):', process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET');
+  throw new Error(`Invalid DATABASE_URL format: ${error instanceof Error ? error.message : 'unknown error'}. Please check your DATABASE_URL environment variable.`);
 }
 
 // Prisma Client (for ORM operations)
@@ -35,10 +49,21 @@ const globalForPrisma = globalThis as unknown as {
 let prismaInstance: PrismaClient;
 
 try {
-  // Test connection before creating client
+  // Use validated DATABASE_URL (already validated above)
   const testUrl = process.env.DATABASE_URL;
+  
   if (!testUrl || testUrl.trim() === '') {
-    throw new Error('DATABASE_URL is required but not set');
+    throw new Error('DATABASE_URL is required but not set or empty');
+  }
+
+  // Final validation before creating Prisma client
+  try {
+    const url = new URL(testUrl);
+    if (!url.hostname || url.hostname === '' || url.hostname === 'undefined') {
+      throw new Error('DATABASE_URL hostname is empty or invalid');
+    }
+  } catch (urlError) {
+    throw new Error(`DATABASE_URL format invalid: ${urlError instanceof Error ? urlError.message : 'unknown error'}`);
   }
 
   prismaInstance = globalForPrisma.prisma ?? new PrismaClient({

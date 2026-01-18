@@ -38,6 +38,11 @@ process.on('unhandledRejection', (reason, promise) => {
 // Initialize Express app and HTTP server
 console.log('Initializing Express...');
 const app = express();
+
+// Trust proxy - CRITICAL for Render/Vercel/Cloudflare
+// This allows express-rate-limit to correctly identify client IPs
+app.set('trust proxy', true);
+
 const httpServer = createServer(app);
 
 // Socket.io
