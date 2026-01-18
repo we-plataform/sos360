@@ -19,7 +19,7 @@ import { useAuthStore } from '@/stores/auth';
 import { Avatar } from '@/components/ui/avatar';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
   { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare },
   { name: 'Automações', href: '/dashboard/automations', icon: Zap },
@@ -78,7 +78,10 @@ export default function DashboardLayout({
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = (item as any).exact
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + '/');
+
             return (
               <Link
                 key={item.name}

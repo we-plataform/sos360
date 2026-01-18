@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 console.log('[Config] Validating environment variables...');
-console.log('[Config] Available env vars:', Object.keys(process.env).filter(k => 
-  k.startsWith('DATABASE') || 
-  k.startsWith('JWT') || 
-  k.startsWith('CORS') || 
-  k.startsWith('NODE') || 
+console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
+  k.startsWith('DATABASE') ||
+  k.startsWith('JWT') ||
+  k.startsWith('CORS') ||
+  k.startsWith('NODE') ||
   k.startsWith('PORT') ||
   k.startsWith('REDIS') ||
   k.startsWith('SUPABASE')
@@ -36,6 +36,7 @@ const envSchema = z.object({
     .transform((val) => val.split(',')),
   SUPABASE_URL: z.string().optional(),
   SUPABASE_SERVICE_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

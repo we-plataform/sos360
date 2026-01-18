@@ -159,6 +159,41 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
   }
 });
 
+// POST /leads/analyze - Analyze lead with AI
+leadsRouter.post(
+  '/analyze',
+  authorize('owner', 'admin', 'manager', 'agent'),
+  async (req, res, next) => {
+    try {
+      const { profile, criteria } = req.body;
+
+      if (!profile || !profile.username) {
+        return res.status(400).json({
+          success: false,
+          error: 'Profile data with username is required'
+        });
+      }
+
+      if (!criteria) {
+        return res.status(400).json({
+          success: false,
+          error: 'Qualification criteria is required'
+        });
+      }
+
+      const { analyzeLead } = await import('../lib/openai.js');
+      const result = await analyzeLead(profile, criteria);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // POST /leads/import - Import leads in bulk
 leadsRouter.post(
   '/import',
@@ -203,6 +238,8 @@ leadsRouter.post(
             followingCount: leadData.followingCount || null,
             postsCount: leadData.postsCount || null,
             verified: leadData.verified || false,
+            score: leadData.score || undefined, // Support score from analysis
+            notes: leadData.analysisReason ? `Qualificação AI: ${leadData.analysisReason}` : undefined,
           };
 
           // Ensure profileUrl exists for unique constraint

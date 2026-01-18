@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -258,15 +259,105 @@
       text-decoration: underline;
     }
 
-    #logged-out, #logged-in {
+    #logged-out,
+    #logged-in {
       display: none;
     }
 
-    #logged-out.active, #logged-in.active {
+    #logged-out.active,
+    #logged-in.active {
       display: block;
+    }
+
+    /* Auto Mode Styles */
+    .auto-mode-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .auto-mode-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .auto-mode-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .auto-mode-status {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .auto-mode-status.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    textarea.keywords-input {
+      width: 100%;
+      height: 80px;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      resize: none;
+      margin-bottom: 12px;
+    }
+
+    textarea.keywords-input:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+
+    .auto-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-stop {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-stop:hover {
+      background: #dc2626;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #4f46e5;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .detailed-status {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #4b5563;
+      min-height: 14px;
+      line-height: 1.4;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
@@ -281,7 +372,7 @@
     <div id="logged-out">
       <form class="login-form" id="login-form">
         <div id="login-error" class="error" style="display: none;"></div>
-        
+
         <div class="form-group">
           <label for="email">Email</label>
           <input type="email" id="email" placeholder="seu@email.com" required>
@@ -325,6 +416,41 @@
         </button>
       </div>
 
+      <!-- Autonomous Mode Section -->
+      <div class="auto-mode-section">
+        <div class="auto-mode-header">
+          <span class="auto-mode-title">Modo Automático de Prospecção</span>
+          <span class="auto-mode-status" id="auto-status-badge">Parado</span>
+        </div>
+
+        <div class="form-group">
+          <label style="margin-bottom: 4px;">Palavras-chave (uma por linha)</label>
+          <textarea class="keywords-input" id="auto-keywords"
+            placeholder="marketing digital&#10;odontologia&#10;fitness"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="margin-bottom: 4px;">Critérios de Qualificação (Opcional)</label>
+          <textarea class="keywords-input" id="auto-criteria" style="height: 60px;"
+            placeholder="Ex: Apenas donos de clínicas ou consultórios.&#10;Excluir estudantes."></textarea>
+        </div>
+
+        <div class="actions auto-controls">
+          <button class="btn btn-primary" id="start-auto-btn" style="flex: 1;">
+            Iniciar Prospecção
+          </button>
+          <button class="btn btn-stop" id="stop-auto-btn" style="display: none; flex: 1;">
+            Parar
+          </button>
+        </div>
+
+        <div id="auto-progress" class="progress-container" style="display: none;">
+          <div class="progress-bar" id="auto-progress-bar"></div>
+        </div>
+        <div id="auto-detailed-status" class="detailed-status" style="display: none;"></div>
+        <div id="auto-status-msg" style="margin-top: 4px; font-size: 11px; color: #9ca3af; min-height: 16px;"></div>
+      </div>
+
       <div class="stats">
         <div class="stat-card">
           <div class="label">Importados hoje</div>
@@ -344,4 +470,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>
