@@ -1,12 +1,23 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Precompile for both local dev and production
+  previewFeatures = []
 }
 
 datasource db {
   provider  = "postgresql"
+  // Use connection pooling URL (pgbouncer) for normal operations
   url       = env("DATABASE_URL")
+  // Direct connection for migrations (bypasses pgbouncer)
   directUrl = env("DIRECT_URL")
 }
+
+// NOTE: For Supabase with pgbouncer, ensure:
+// - DATABASE_URL uses port 6543 with ?pgbouncer=true
+// - DIRECT_URL uses port 5432 without pgbouncer params
+// Example:
+// DATABASE_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+// DIRECT_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 
 // ============================================
 // WORKSPACE & USERS

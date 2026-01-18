@@ -85,9 +85,39 @@ export function errorHandler(
     return;
   }
 
-  // Prisma connection errors
-  if (err instanceof Prisma.PrismaClientInitializationError || 
-      err instanceof Prisma.PrismaClientRustPanicError ||
+  // Prisma connection/initialization errors
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    logger.error({ 
+      err, 
+      errorCode: err.errorCode,
+      clientVersion: err.clientVersion 
+    }, 'Prisma initialization error - DATABASE CONNECTION FAILED');
+    
+    // Log additional diagnostic info
+    console.error('[ErrorHandler] DATABASE CONNECTION ERROR');
+    console.error('[ErrorHandler] This usually means:');
+    console.error('[ErrorHandler]   1. DATABASE_URL is not configured correctly');
+    console.error('[ErrorHandler]   2. The database server is not reachable');
+    console.error('[ErrorHandler]   3. Network/firewall is blocking the connection');
+    console.error('[ErrorHandler] DATABASE_URL set:', !!process.env.DATABASE_URL);
+    
+    res.status(503).json({
+      success: false,
+      error: {
+        type: 'database_unavailable',
+        title: 'Database Unavailable',
+        status: 503,
+        detail: 'Unable to connect to the database. Please check server configuration.',
+        hint: process.env.NODE_ENV === 'development' 
+          ? 'Check if DATABASE_URL is correctly configured and the database is running'
+          : undefined,
+      },
+    });
+    return;
+  }
+
+  // Prisma panic/unknown errors  
+  if (err instanceof Prisma.PrismaClientRustPanicError ||
       err instanceof Prisma.PrismaClientUnknownRequestError) {
     logger.error({ err }, 'Prisma client error');
     res.status(503).json({

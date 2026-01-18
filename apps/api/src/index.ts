@@ -128,9 +128,22 @@ app.use(
   })
 );
 
-// Health check - must be before routes to avoid rate limiting
-app.get('/health', (_, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Basic health check - keep for backwards compatibility with Render health checks
+// Note: More detailed health checks are available at /health/detailed
+app.get('/health', async (_, res) => {
+  try {
+    // Simple health check that doesn't depend on database
+    // Full database health check is at /health/detailed
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Root endpoint

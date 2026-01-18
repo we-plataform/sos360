@@ -6,9 +6,13 @@ import { conversationsRouter } from './conversations.js';
 import { templatesRouter } from './templates.js';
 import { analyticsRouter } from './analytics.js';
 import { usersRouter } from './users.js';
+import { healthRouter } from './health.js';
 import { defaultRateLimit } from '../middleware/rate-limit.js';
 
 export function setupRoutes(app: Express): void {
+  // Health check routes (no rate limit for monitoring)
+  app.use('/health', healthRouter);
+
   // Apply default rate limit to all API routes
   app.use('/api', defaultRateLimit);
 
