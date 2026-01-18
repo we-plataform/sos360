@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sos360-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build:api
+    # Opção 1: Usar workspace (preferido)
+    startCommand: npm run start --workspace=@sos360/api
+    # Opção 2: Caminho direto (alternativa se workspace não funcionar)
+    # startCommand: node apps/api/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+    # Nota: Variáveis sensíveis devem ser configuradas manualmente no dashboard
+    # DATABASE_URL, JWT_SECRET, CORS_ORIGINS, etc.

@@ -77,8 +77,24 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Allow configured origins
-    if (env.CORS_ORIGINS.includes(origin) || env.CORS_ORIGINS.includes('*')) {
+    // Check if origin matches any configured origin (exact match or wildcard)
+    const isAllowed = env.CORS_ORIGINS.some((allowedOrigin) => {
+      // Exact match
+      if (allowedOrigin === origin) {
+        return true;
+      }
+      
+      // Wildcard match (e.g., https://*.vercel.app)
+      if (allowedOrigin.includes('*')) {
+        const pattern = allowedOrigin.replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(origin);
+      }
+      
+      return false;
+    });
+    
+    if (isAllowed || env.CORS_ORIGINS.includes('*')) {
       return callback(null, true);
     }
     
