@@ -20,27 +20,24 @@ datasource db {
 // DIRECT_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 
 // ============================================
-// WORKSPACE & USERS
+// COMPANY (NEW - Multi-workspace support)
 // ============================================
 
-model Workspace {
-  id        String   @id @default(cuid())
-  name      String
-  plan      Plan     @default(trial)
-  settings  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // URL-friendly identifier
+  plan        Plan     @default(trial)
+  settings    Json     @default("{}")
+  billingInfo Json     @default("{}") // Stripe customer info, etc
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  users       User[]
-  leads       Lead[]
-  tags        Tag[]
-  templates   Template[]
-  automations Automation[]
-  webhooks    Webhook[]
-  invitations Invitation[]
-  importJobs  ImportJob[]
+  workspaces  Workspace[]
+  members     CompanyMember[]
+  invitations CompanyInvitation[]
 
-  @@map("workspaces")
+  @@map("companies")
 }
 
 enum Plan {
@@ -51,21 +48,116 @@ enum Plan {
   enterprise
 }
 
+enum CompanyRole {
+  owner  // Dono da empresa (billing, pode deletar empresa)
+  admin  // Administrador (pode criar workspaces, gerenciar membros)
+  member // Membro padrão (acesso aos workspaces atribuídos)
+}
+
+// Associação Usuário <-> Empresa (N:N com role)
+model CompanyMember {
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  role      CompanyRole @default(member)
+  createdAt DateTime    @default(now())
+
+  @@id([userId, companyId])
+  @@index([companyId])
+  @@map("company_members")
+}
+
+// Convites para Empresa
+model CompanyInvitation {
+  id        String           @id @default(cuid())
+  email     String
+  role      CompanyRole      @default(member)
+  token     String           @unique @default(cuid())
+  status    InvitationStatus @default(pending)
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Workspaces que o convidado terá acesso: [{workspaceId, role}]
+  workspaceAccess Json @default("[]")
+
+  @@unique([companyId, email])
+  @@index([token])
+  @@map("company_invitations")
+}
+
+// ============================================
+// WORKSPACE & USERS
+// ============================================
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  members     WorkspaceMember[]
+  leads       Lead[]
+  socialProfiles SocialProfile[]
+  tags        Tag[]
+  templates   Template[]
+  automations Automation[]
+  webhooks    Webhook[]
+  importJobs  ImportJob[]
+
+  @@index([companyId])
+  @@map("workspaces")
+}
+
+enum WorkspaceRole {
+  owner   // Pode gerenciar workspace, deletar, etc
+  admin   // Pode gerenciar usuários do workspace
+  manager // Pode ver tudo, gerenciar leads e automações
+  agent   // Pode interagir com leads atribuídos
+  viewer  // Apenas visualização
+}
+
+// Associação Usuário <-> Workspace (N:N com role)
+model WorkspaceMember {
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  role        WorkspaceRole @default(agent)
+  createdAt   DateTime      @default(now())
+
+  @@id([userId, workspaceId])
+  @@index([workspaceId])
+  @@map("workspace_members")
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
   passwordHash String
   fullName     String
   avatarUrl    String?
-  role         Role      @default(agent)
   settings     Json      @default("{}")
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Multi-workspace relations
+  companies  CompanyMember[]
+  workspaces WorkspaceMember[]
 
+  // Business relations (these reference user directly, workspace context comes from the entity itself)
   assignedLeads         Lead[]         @relation("AssignedLeads")
   assignedConversations Conversation[] @relation("AssignedConversations")
   sentMessages          Message[]      @relation("SentMessages")
@@ -73,34 +165,8 @@ model User {
   createdAutomations    Automation[]   @relation("CreatedAutomations")
   activities            Activity[]     @relation("UserActivities")
 
-  @@index([workspaceId])
   @@index([email])
   @@map("users")
-}
-
-enum Role {
-  owner
-  admin
-  manager
-  agent
-  viewer
-}
-
-model Invitation {
-  id        String           @id @default(cuid())
-  email     String
-  role      Role             @default(agent)
-  token     String           @unique @default(cuid())
-  status    InvitationStatus @default(pending)
-  expiresAt DateTime
-  createdAt DateTime         @default(now())
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, email])
-  @@index([token])
-  @@map("invitations")
 }
 
 enum InvitationStatus {
@@ -127,7 +193,7 @@ model RefreshToken {
 
 model Lead {
   id                String     @id @default(cuid())
-  platform          Platform
+  platform          Platform?
   username          String?
   fullName          String?
   profileUrl        String?
@@ -157,17 +223,43 @@ model Lead {
   assignedTo   User?   @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
 
   tags           LeadTag[]
+  socialProfiles SocialProfile[]
   conversation   Conversation?
   activities     Activity[]
   automationLogs AutomationLog[]
 
-  @@unique([workspaceId, platform, profileUrl])
+  @@unique([workspaceId, platform, profileUrl]) // Keep for backward compatibility or primary profile
   @@index([workspaceId, status])
   @@index([workspaceId, platform])
   @@index([workspaceId, score])
   @@index([workspaceId, createdAt])
   @@index([assignedToId])
   @@map("leads")
+}
+
+model SocialProfile {
+  id              String   @id @default(cuid())
+  platform        Platform
+  username        String?
+  profileUrl      String
+  avatarUrl       String?
+  bio             String?
+  followersCount  Int?
+  followingCount  Int?
+  postsCount      Int?
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, platform, profileUrl])
+  @@index([leadId])
+  @@map("social_profiles")
 }
 
 enum Platform {

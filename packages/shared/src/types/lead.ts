@@ -25,9 +25,31 @@ export type LeadStatus =
   | 'closed'
   | 'lost';
 
-export interface Lead {
+export interface SocialProfile {
   id: string;
   platform: Platform;
+  username?: string;
+  profileUrl: string;
+  avatarUrl?: string;
+  bio?: string;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  verified: boolean;
+  leadId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Lead {
+  id: string;
+  // platform: Platform; // Deprecated - moved to socialProfiles
+  // username?: string; // Deprecated - moved to socialProfiles
+  // profileUrl?: string; // Deprecated - moved to socialProfiles
+  // avatarUrl?: string; // Deprecated - moved to socialProfiles
+  // bio?: string; // Deprecated - moved to socialProfiles
+  // ... other deprecated fields kept for backward compatibility if needed, or we just rely on optional ?
+  platform?: Platform;
   username?: string;
   fullName?: string;
   profileUrl?: string;
@@ -55,6 +77,7 @@ export interface Lead {
     avatarUrl?: string;
   };
   tags?: Tag[];
+  socialProfiles?: SocialProfile[];
 }
 
 export interface Tag {
@@ -108,6 +131,13 @@ export interface ImportLeadData {
   phone?: string;
   followersCount?: number;
   followingCount?: number;
+  // Additional fields for import
+  postsCount?: number;
+  verified?: boolean;
+  website?: string;
+  location?: string;
+  score?: number;
+  analysisReason?: string;
 }
 
 export interface ImportJobResponse {

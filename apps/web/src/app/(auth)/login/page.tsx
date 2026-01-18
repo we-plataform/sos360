@@ -12,6 +12,8 @@ import { useAuthStore } from '@/stores/auth';
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
+  const setContext = useAuthStore((state) => state.setContext);
+  const setAvailableCompanies = useAuthStore((state) => state.setAvailableCompanies);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +27,14 @@ export default function LoginPage() {
     try {
       const data = await api.login(email, password);
       setUser(data.user);
-      router.push('/dashboard');
+
+      if (data.selectionRequired) {
+        setAvailableCompanies(data.companies);
+        router.push(`/select-context?token=${data.selectionToken}`);
+      } else {
+        setContext(data.context.company, data.context.workspace);
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {

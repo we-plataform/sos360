@@ -1,34 +1,45 @@
 import { Router } from 'express';
 import { prisma } from '@sos360/database';
-import { inviteUserSchema, updateUserSchema } from '@sos360/shared';
+import { updateWorkspaceMemberSchema } from '@sos360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { NotFoundError, ConflictError, ForbiddenError } from '../lib/errors.js';
+import { NotFoundError, ForbiddenError } from '../lib/errors.js';
+import type { WorkspaceRole } from '@sos360/shared';
 
 export const usersRouter = Router();
 
 usersRouter.use(authenticate);
 
-// GET /users - List workspace users
+/**
+ * GET /users - List workspace users (members of current workspace)
+ */
 usersRouter.get('/', async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
 
-    const users = await prisma.user.findMany({
+    const members = await prisma.workspaceMember.findMany({
       where: { workspaceId },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        avatarUrl: true,
-        lastLoginAt: true,
-        createdAt: true,
-        _count: {
+      include: {
+        user: {
           select: {
-            assignedLeads: true,
-            assignedConversations: {
-              where: { status: 'active' },
+            id: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+            lastLoginAt: true,
+            createdAt: true,
+            _count: {
+              select: {
+                assignedLeads: {
+                  where: { workspaceId },
+                },
+                assignedConversations: {
+                  where: {
+                    status: 'active',
+                    lead: { workspaceId },
+                  },
+                },
+              },
             },
           },
         },
@@ -36,18 +47,19 @@ usersRouter.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'asc' },
     });
 
-    const formattedUsers = users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
+    const formattedUsers = members.map((member) => ({
+      id: member.user.id,
+      email: member.user.email,
+      fullName: member.user.fullName,
+      role: member.role as WorkspaceRole,
+      avatarUrl: member.user.avatarUrl,
       stats: {
-        leadsAssigned: user._count.assignedLeads,
-        conversationsActive: user._count.assignedConversations,
+        leadsAssigned: member.user._count.assignedLeads,
+        conversationsActive: member.user._count.assignedConversations,
       },
-      lastLogin: user.lastLoginAt,
-      createdAt: user.createdAt,
+      lastLogin: member.user.lastLoginAt,
+      joinedAt: member.createdAt,
+      createdAt: member.user.createdAt,
     }));
 
     res.json({
@@ -59,86 +71,20 @@ usersRouter.get('/', async (req, res, next) => {
   }
 });
 
-// POST /users/invite - Invite user to workspace
-usersRouter.post(
-  '/invite',
-  authorize('owner', 'admin'),
-  validate(inviteUserSchema),
-  async (req, res, next) => {
-    try {
-      const workspaceId = req.user!.workspaceId;
-      const { email, role = 'agent' } = req.body;
-
-      // Check if user already exists in workspace
-      const existingUser = await prisma.user.findFirst({
-        where: { workspaceId, email },
-      });
-
-      if (existingUser) {
-        throw new ConflictError('Usuário já faz parte deste workspace');
-      }
-
-      // Check for existing invitation
-      const existingInvitation = await prisma.invitation.findFirst({
-        where: { workspaceId, email, status: 'pending' },
-      });
-
-      if (existingInvitation) {
-        throw new ConflictError('Já existe um convite pendente para este email');
-      }
-
-      // Create invitation
-      const invitation = await prisma.invitation.create({
-        data: {
-          email,
-          role,
-          workspaceId,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        },
-      });
-
-      // TODO: Send invitation email
-
-      res.status(201).json({
-        success: true,
-        data: {
-          id: invitation.id,
-          email: invitation.email,
-          role: invitation.role,
-          status: invitation.status,
-          expiresAt: invitation.expiresAt,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// GET /users/:id - Get user details
-usersRouter.get('/:id', authorize('owner', 'admin', 'manager'), async (req, res, next) => {
+/**
+ * GET /users/me - Get current user profile
+ */
+usersRouter.get('/me', async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const workspaceId = req.user!.workspaceId;
-
-    const user = await prisma.user.findFirst({
-      where: { id, workspaceId },
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
       select: {
         id: true,
         email: true,
         fullName: true,
-        role: true,
         avatarUrl: true,
         settings: true,
-        lastLoginAt: true,
         createdAt: true,
-        _count: {
-          select: {
-            assignedLeads: true,
-            assignedConversations: true,
-            sentMessages: true,
-          },
-        },
       },
     });
 
@@ -150,10 +96,74 @@ usersRouter.get('/:id', authorize('owner', 'admin', 'manager'), async (req, res,
       success: true,
       data: {
         ...user,
+        workspaceRole: req.user!.workspaceRole,
+        companyRole: req.user!.companyRole,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /users/:id - Get user details
+ */
+usersRouter.get('/:id', authorize('owner', 'admin', 'manager'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const workspaceId = req.user!.workspaceId;
+
+    // Check if user is a member of this workspace
+    const member = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: { userId: id, workspaceId },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+            settings: true,
+            lastLoginAt: true,
+            createdAt: true,
+            _count: {
+              select: {
+                assignedLeads: {
+                  where: { workspaceId },
+                },
+                assignedConversations: {
+                  where: { lead: { workspaceId } },
+                },
+                sentMessages: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundError('Usuário');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: member.user.id,
+        email: member.user.email,
+        fullName: member.user.fullName,
+        role: member.role,
+        avatarUrl: member.user.avatarUrl,
+        settings: member.user.settings,
+        lastLoginAt: member.user.lastLoginAt,
+        joinedAt: member.createdAt,
+        createdAt: member.user.createdAt,
         stats: {
-          leadsAssigned: user._count.assignedLeads,
-          conversationsTotal: user._count.assignedConversations,
-          messagesSent: user._count.sentMessages,
+          leadsAssigned: member.user._count.assignedLeads,
+          conversationsTotal: member.user._count.assignedConversations,
+          messagesSent: member.user._count.sentMessages,
         },
       },
     });
@@ -162,50 +172,76 @@ usersRouter.get('/:id', authorize('owner', 'admin', 'manager'), async (req, res,
   }
 });
 
-// PATCH /users/:id - Update user
+/**
+ * PATCH /users/:id - Update user's workspace role
+ */
 usersRouter.patch(
   '/:id',
   authorize('owner', 'admin'),
-  validate(updateUserSchema),
+  validate(updateWorkspaceMemberSchema),
   async (req, res, next) => {
     try {
       const { id } = req.params;
       const workspaceId = req.user!.workspaceId;
-      const updates = req.body;
+      const { role } = req.body;
 
-      const user = await prisma.user.findFirst({
-        where: { id, workspaceId },
+      // Check if user is a member of this workspace
+      const member = await prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: { userId: id, workspaceId },
+        },
       });
 
-      if (!user) {
+      if (!member) {
         throw new NotFoundError('Usuário');
       }
 
-      // Prevent changing owner role
-      if (user.role === 'owner' && updates.role && updates.role !== 'owner') {
-        throw new ForbiddenError('Não é possível alterar o role do proprietário');
+      // Prevent changing owner role (only another owner can do this)
+      if (member.role === 'owner' && req.user!.workspaceRole !== 'owner') {
+        throw new ForbiddenError('Apenas o dono pode alterar outro dono');
       }
 
       // Admin cannot change another admin or owner
-      if (req.user!.role === 'admin' && (user.role === 'owner' || user.role === 'admin')) {
+      if (req.user!.workspaceRole === 'admin' && (member.role === 'owner' || member.role === 'admin')) {
         throw new ForbiddenError('Você não tem permissão para alterar este usuário');
       }
 
-      const updated = await prisma.user.update({
-        where: { id },
-        data: updates,
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          role: true,
-          avatarUrl: true,
+      // Cannot change your own role
+      if (id === req.user!.id) {
+        throw new ForbiddenError('Você não pode alterar seu próprio papel');
+      }
+
+      // Only owner can assign owner role
+      if (role === 'owner' && req.user!.workspaceRole !== 'owner') {
+        throw new ForbiddenError('Apenas o dono pode promover outro usuário a dono');
+      }
+
+      const updated = await prisma.workspaceMember.update({
+        where: {
+          userId_workspaceId: { userId: id, workspaceId },
+        },
+        data: { role },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
         },
       });
 
       res.json({
         success: true,
-        data: updated,
+        data: {
+          id: updated.user.id,
+          email: updated.user.email,
+          fullName: updated.user.fullName,
+          role: updated.role,
+          avatarUrl: updated.user.avatarUrl,
+        },
       });
     } catch (error) {
       next(error);
@@ -213,40 +249,49 @@ usersRouter.patch(
   }
 );
 
-// DELETE /users/:id - Remove user from workspace
+/**
+ * DELETE /users/:id - Remove user from workspace
+ */
 usersRouter.delete('/:id', authorize('owner', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
 
-    const user = await prisma.user.findFirst({
-      where: { id, workspaceId },
+    // Check if user is a member of this workspace
+    const member = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: { userId: id, workspaceId },
+      },
     });
 
-    if (!user) {
+    if (!member) {
       throw new NotFoundError('Usuário');
     }
 
     // Cannot remove owner
-    if (user.role === 'owner') {
-      throw new ForbiddenError('Não é possível remover o proprietário do workspace');
+    if (member.role === 'owner') {
+      throw new ForbiddenError('Não é possível remover o dono do workspace');
     }
 
     // Cannot remove yourself
-    if (user.id === req.user!.id) {
+    if (id === req.user!.id) {
       throw new ForbiddenError('Você não pode remover a si mesmo');
     }
 
     // Admin cannot remove another admin
-    if (req.user!.role === 'admin' && user.role === 'admin') {
+    if (req.user!.workspaceRole === 'admin' && member.role === 'admin') {
       throw new ForbiddenError('Admins não podem remover outros admins');
     }
 
-    await prisma.user.delete({ where: { id } });
+    await prisma.workspaceMember.delete({
+      where: {
+        userId_workspaceId: { userId: id, workspaceId },
+      },
+    });
 
     res.json({
       success: true,
-      data: { message: 'Usuário removido com sucesso' },
+      data: { message: 'Usuário removido do workspace com sucesso' },
     });
   } catch (error) {
     next(error);

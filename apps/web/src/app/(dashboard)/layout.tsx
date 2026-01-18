@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { Avatar } from '@/components/ui/avatar';
+import { ContextSelector } from '@/components/dashboard/context-selector';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
@@ -34,7 +35,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, setUser, isLoading, logout } = useAuthStore();
+  const { user, setUser, setContext, setAvailableCompanies, isLoading, logout } = useAuthStore();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -45,15 +46,24 @@ export default function DashboardLayout({
       }
 
       try {
-        const userData = await api.getMe();
-        setUser(userData as any);
-      } catch {
+        const data = await api.getMe() as any;
+        setUser(data.user);
+
+        if (data.context && data.context.company && data.context.workspace) {
+          setContext(data.context.company, data.context.workspace);
+        }
+
+        if (data.companies) {
+          setAvailableCompanies(data.companies);
+        }
+      } catch (error) {
+        console.error(error);
         router.push('/login');
       }
     };
 
     checkAuth();
-  }, [router, setUser]);
+  }, [router, setUser, setContext, setAvailableCompanies]);
 
   const handleLogout = () => {
     logout();
@@ -73,13 +83,17 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col bg-white shadow-sm">
-        <div className="flex h-16 items-center px-6">
+      <aside className="flex w-64 flex-col bg-white shadow-sm border-r">
+        <div className="flex h-16 items-center px-6 border-b">
           <span className="text-xl font-bold text-indigo-600">SOS 360</span>
         </div>
 
+        <div className="p-3 border-b">
+          <ContextSelector />
+        </div>
+
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navigation.map((item) => {
+          {navigation.map((item: any) => {
             const isActive = (item as any).exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + '/');

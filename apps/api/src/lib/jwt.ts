@@ -1,8 +1,11 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import type { StringValue } from 'ms';
 import { env } from '../config/env.js';
-import type { JwtPayload } from '@sos360/shared';
+import type { JwtPayload, SelectionTokenPayload } from '@sos360/shared';
 
+/**
+ * Sign an access token with company and workspace context
+ */
 export function signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
   const options: SignOptions = {
     expiresIn: env.JWT_EXPIRES_IN as StringValue,
@@ -10,6 +13,9 @@ export function signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): strin
   return jwt.sign(payload as object, env.JWT_SECRET as string, options);
 }
 
+/**
+ * Sign a refresh token (long-lived, used to get new access tokens)
+ */
 export function signRefreshToken(userId: string): string {
   const options: SignOptions = {
     expiresIn: env.REFRESH_TOKEN_EXPIRES_IN as StringValue,
@@ -17,14 +23,44 @@ export function signRefreshToken(userId: string): string {
   return jwt.sign({ sub: userId, type: 'refresh' } as object, env.JWT_SECRET as string, options);
 }
 
+/**
+ * Sign a selection token (short-lived, used after login to select context)
+ */
+export function signSelectionToken(userId: string): string {
+  const options: SignOptions = {
+    expiresIn: '5m', // 5 minutes to select context
+  };
+  return jwt.sign({ sub: userId, type: 'selection' } as object, env.JWT_SECRET as string, options);
+}
+
+/**
+ * Verify an access token and return the payload
+ */
 export function verifyAccessToken(token: string): JwtPayload {
   return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
 }
 
+/**
+ * Verify a refresh token and return the payload
+ */
 export function verifyRefreshToken(token: string): { sub: string; type: string } {
   return jwt.verify(token, env.JWT_SECRET) as { sub: string; type: string };
 }
 
+/**
+ * Verify a selection token and return the payload
+ */
+export function verifySelectionToken(token: string): SelectionTokenPayload {
+  const payload = jwt.verify(token, env.JWT_SECRET) as SelectionTokenPayload;
+  if (payload.type !== 'selection') {
+    throw new Error('Invalid token type');
+  }
+  return payload;
+}
+
+/**
+ * Get token expiration time in seconds
+ */
 export function getTokenExpiresIn(): number {
   const match = env.JWT_EXPIRES_IN.match(/^(\d+)([smhd])$/);
   if (!match) return 900; // default 15 minutes

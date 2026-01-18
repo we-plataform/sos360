@@ -1,5 +1,7 @@
 import type { Express } from 'express';
 import { authRouter } from './auth.js';
+import { companiesRouter } from './companies.js';
+import { workspacesRouter } from './workspaces.js';
 import { leadsRouter } from './leads.js';
 import { tagsRouter } from './tags.js';
 import { conversationsRouter } from './conversations.js';
@@ -18,6 +20,8 @@ export function setupRoutes(app: Express): void {
 
   // Mount routers
   app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/companies', companiesRouter);
+  app.use('/api/v1/workspaces', workspacesRouter);
   app.use('/api/v1/leads', leadsRouter);
   app.use('/api/v1/tags', tagsRouter);
   app.use('/api/v1/conversations', conversationsRouter);

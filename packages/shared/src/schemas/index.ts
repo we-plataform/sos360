@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PLATFORMS, LEAD_STATUSES, USER_ROLES } from '../constants';
+import { PLATFORMS, LEAD_STATUSES, COMPANY_ROLES, WORKSPACE_ROLES, USER_ROLES } from '../constants';
 
 // Auth schemas
 export const loginSchema = z.object({
@@ -16,7 +16,56 @@ export const registerSchema = z.object({
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
     .regex(/[0-9]/, 'Senha deve conter pelo menos um número'),
   fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  workspaceName: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres'),
+  companyName: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres'),
+  workspaceName: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres').optional(),
+});
+
+export const selectContextSchema = z.object({
+  selectionToken: z.string().min(1, 'Token de seleção é obrigatório'),
+  companyId: z.string().min(1, 'ID da empresa é obrigatório'),
+  workspaceId: z.string().min(1, 'ID do workspace é obrigatório'),
+});
+
+// Company schemas
+export const companyRoleSchema = z.enum(COMPANY_ROLES);
+export const workspaceRoleSchema = z.enum(WORKSPACE_ROLES);
+
+export const createCompanySchema = z.object({
+  name: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres').max(100),
+  workspaceName: z.string().min(2).max(100).optional(),
+});
+
+export const updateCompanySchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  settings: z.record(z.unknown()).optional(),
+});
+
+export const inviteToCompanySchema = z.object({
+  email: z.string().email('Email inválido'),
+  role: companyRoleSchema.optional(),
+  workspaceAccess: z.array(z.object({
+    workspaceId: z.string().min(1),
+    role: workspaceRoleSchema,
+  })).optional(),
+});
+
+// Workspace management schemas
+export const createWorkspaceSchema = z.object({
+  name: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres').max(100),
+});
+
+export const updateWorkspaceSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  settings: z.record(z.unknown()).optional(),
+});
+
+export const addWorkspaceMemberSchema = z.object({
+  userId: z.string().min(1, 'ID do usuário é obrigatório'),
+  role: workspaceRoleSchema,
+});
+
+export const updateWorkspaceMemberSchema = z.object({
+  role: workspaceRoleSchema,
 });
 
 export const refreshTokenSchema = z.object({

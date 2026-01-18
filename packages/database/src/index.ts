@@ -41,8 +41,8 @@ function validateDatabaseUrl(url: string | undefined, name: string): { valid: bo
     }
 
     // Validate it's not a placeholder
-    if (parsedUrl.hostname.includes('[') || parsedUrl.hostname.includes(']') || 
-        parsedUrl.hostname === 'host' || parsedUrl.hostname === 'localhost' && process.env.NODE_ENV === 'production') {
+    if (parsedUrl.hostname.includes('[') || parsedUrl.hostname.includes(']') ||
+      parsedUrl.hostname === 'host' || parsedUrl.hostname === 'localhost' && process.env.NODE_ENV === 'production') {
       return { valid: false, error: `${name} appears to be a placeholder or invalid for production` };
     }
 
@@ -53,9 +53,9 @@ function validateDatabaseUrl(url: string | undefined, name: string): { valid: bo
 
     return { valid: true, url: parsedUrl };
   } catch (error) {
-    return { 
-      valid: false, 
-      error: `${name} is not a valid URL: ${error instanceof Error ? error.message : 'unknown error'}` 
+    return {
+      valid: false,
+      error: `${name} is not a valid URL: ${error instanceof Error ? error.message : 'unknown error'}`
     };
   }
 }
@@ -112,17 +112,24 @@ let prismaInstance: PrismaClient;
 
 try {
   console.log('[Database] Creating Prisma Client...');
-  
+
   // Determine log level based on environment
-  const logLevel = process.env.NODE_ENV === 'development' 
+  const logLevel = process.env.NODE_ENV === 'development'
     ? ['query', 'error', 'warn'] as const
     : ['error'] as const;
+
+  // Auto-fix connection string for Supabase Transaction Pooler
+  let connectionUrl = rawDatabaseUrl!.trim();
+  if (connectionUrl.includes(':6543') && !connectionUrl.includes('pgbouncer=true')) {
+    console.log('[Database] Automatically appending ?pgbouncer=true to connection string for Transaction Pooler');
+    connectionUrl += connectionUrl.includes('?') ? '&pgbouncer=true' : '?pgbouncer=true';
+  }
 
   prismaInstance = globalForPrisma.prisma ?? new PrismaClient({
     log: [...logLevel],
     datasources: {
       db: {
-        url: rawDatabaseUrl!.trim(),
+        url: connectionUrl,
       },
     },
     // Error formatting for better debugging
@@ -160,24 +167,24 @@ try {
  * @returns Promise<boolean> - true if connected successfully
  */
 export async function testDatabaseConnection(
-  maxRetries = 3, 
+  maxRetries = 3,
   retryDelay = 2000
 ): Promise<{ success: boolean; error?: string; latency?: number }> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[Database] Connection test attempt ${attempt}/${maxRetries}...`);
-      
+
       const startTime = Date.now();
       await prismaInstance.$queryRaw`SELECT 1 as test`;
       const latency = Date.now() - startTime;
-      
+
       console.log(`[Database] Connection successful! Latency: ${latency}ms`);
       return { success: true, latency };
-      
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[Database] Connection attempt ${attempt} failed:`, errorMessage);
-      
+
       if (attempt < maxRetries) {
         console.log(`[Database] Retrying in ${retryDelay}ms...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -186,7 +193,7 @@ export async function testDatabaseConnection(
       }
     }
   }
-  
+
   return { success: false, error: 'Max retries exceeded' };
 }
 
@@ -236,7 +243,7 @@ export async function getDatabaseHealth(): Promise<{
 // Auto-test connection in production (non-blocking)
 if (process.env.NODE_ENV === 'production') {
   console.log('[Database] Testing connection in background...');
-  
+
   testDatabaseConnection(3, 3000)
     .then(result => {
       if (result.success) {

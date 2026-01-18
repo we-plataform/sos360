@@ -118,6 +118,41 @@ class ApiClient {
     return data.data;
   }
 
+  async selectContext(selectionToken: string, companyId: string, workspaceId: string) {
+    const response = await fetch(`${this.baseUrl}/api/v1/auth/select-context`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectionToken, companyId, workspaceId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.detail || 'Context selection failed');
+    }
+
+    localStorage.setItem('accessToken', data.data.accessToken);
+    localStorage.setItem('refreshToken', data.data.refreshToken);
+
+    return data.data;
+  }
+
+  async switchContext(companyId: string, workspaceId: string) {
+    return this.request<{
+      accessToken: string;
+      context: any;
+      expiresIn: number;
+    }>('/api/v1/auth/switch-context', {
+      method: 'POST',
+      body: JSON.stringify({ companyId, workspaceId }),
+    }).then((data) => {
+      if (data.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+      }
+      return data;
+    });
+  }
+
   async getMe() {
     return this.request('/api/v1/auth/me');
   }

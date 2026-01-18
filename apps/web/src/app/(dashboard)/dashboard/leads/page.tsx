@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { api } from '@/lib/api';
 import { formatNumber, formatRelativeTime } from '@/lib/utils';
+import { socket } from '@/lib/socket';
 import { PLATFORM_COLORS, STATUS_COLORS } from '@sos360/shared';
 
 export default function LeadsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState('');
   const [status, setStatus] = useState('');
@@ -21,6 +23,26 @@ export default function LeadsPage() {
     queryKey: ['leads', { search, platform, status }],
     queryFn: () => api.getLeads({ search, platform, status, limit: 50 }) as any,
   });
+
+  useEffect(() => {
+    function onLeadChange() {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on('lead:created', onLeadChange);
+    socket.on('lead:updated', onLeadChange);
+    socket.on('lead:deleted', onLeadChange);
+
+    return () => {
+      socket.off('lead:created', onLeadChange);
+      socket.off('lead:updated', onLeadChange);
+      socket.off('lead:deleted', onLeadChange);
+    };
+  }, [queryClient]);
 
   const leads = data || [];
 
@@ -97,7 +119,7 @@ export default function LeadsPage() {
             <Card key={lead.id} className="p-4 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
                 <Avatar src={lead.avatarUrl} fallback={lead.fullName || lead.username} size="lg" />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium truncate">
@@ -110,30 +132,54 @@ export default function LeadsPage() {
                   <p className="text-sm text-gray-500 truncate">
                     @{lead.username} • {lead.email || 'Sem email'}
                   </p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span 
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    {/* Social Profiles */}
+                    {lead.socialProfiles?.length > 0 ? (
+                      lead.socialProfiles.map((profile: any) => (
+                        <a
+                          key={profile.id}
+                          href={profile.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity"
+                          style={{
+                            backgroundColor: (PLATFORM_COLORS[profile.platform] || '#6366F1') + '20',
+                            color: PLATFORM_COLORS[profile.platform] || '#6366F1'
+                          }}
+                          title={`Ver perfil no ${profile.platform}`}
+                        >
+                          {profile.platform}
+                        </a>
+                      ))
+                    ) : lead.platform ? (
+                      <span
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: (PLATFORM_COLORS[lead.platform] || '#6366F1') + '20',
+                          color: PLATFORM_COLORS[lead.platform] || '#6366F1'
+                        }}
+                      >
+                        {lead.platform}
+                      </span>
+                    ) : null}
+
+                    {/* Status Badge */}
+                    <span
                       className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{ 
-                        backgroundColor: PLATFORM_COLORS[lead.platform] + '20',
-                        color: PLATFORM_COLORS[lead.platform]
-                      }}
-                    >
-                      {lead.platform}
-                    </span>
-                    <span 
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{ 
-                        backgroundColor: STATUS_COLORS[lead.status] + '20',
-                        color: STATUS_COLORS[lead.status]
+                      style={{
+                        backgroundColor: (STATUS_COLORS[lead.status] || '#6366F1') + '20',
+                        color: STATUS_COLORS[lead.status] || '#6366F1'
                       }}
                     >
                       {lead.status}
                     </span>
+
+                    {/* Tags */}
                     {lead.tags?.map((tag: any) => (
                       <span
                         key={tag.id}
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                        style={{ 
+                        style={{
                           backgroundColor: tag.color + '20',
                           color: tag.color
                         }}

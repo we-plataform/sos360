@@ -42,6 +42,98 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // --- Search Helpers ---
+
+  async function openSearch() {
+    console.log('[SOS 360] Opening search...');
+    // Try to find the search link/button in the sidebar
+    // Valid for standard desktop layout: aria-label="Search" or "Pesquisar"
+    const searchIcon = document.querySelector('svg[aria-label="Search"], svg[aria-label="Pesquisar"]');
+    if (searchIcon) {
+      const button = searchIcon.closest('a') || searchIcon.closest('button') || searchIcon.closest('div[role="button"]');
+      if (button) {
+        button.click();
+        await sleep(2500); // Wait for drawer animation
+        return true;
+      }
+    }
+
+    // Fallback: Check if search input is already visible (maybe mobile/tablet layout)
+    const existingInput = document.querySelector('input[aria-label="Search input"], input[placeholder="Search"], input[placeholder="Pesquisar"]');
+    if (existingInput) return true;
+
+    console.warn('[SOS 360] Search button not found');
+    return false;
+  }
+
+  async function typeSearch(keyword) {
+    console.log('[SOS 360] Typing search:', keyword);
+    const input = document.querySelector('input[aria-label="Search input"], input[placeholder="Search"], input[placeholder="Pesquisar"]');
+
+    if (!input) {
+      console.warn('[SOS 360] Search input not found');
+      return false;
+    }
+
+    // Focus and click
+    input.focus();
+    input.click();
+    await sleep(500);
+
+    // clear existing
+    input.value = '';
+
+    // React/Native value setter hack to trigger change events
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(input, keyword);
+    } else {
+      input.value = keyword;
+    }
+
+    // Dispatch events
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true })); // Just in case
+
+    await sleep(3000); // Wait for results to propagate
+    return true;
+  }
+
+  async function getSearchResults() {
+    console.log('[SOS 360] Getting search results...');
+
+    // The search results appear in a container below the input.
+    // There isn't a stable unique ID, but they are 'a' tags with specific structure.
+    // We look for any 'a' tag that is likely a result.
+
+    // Commonly results are in a scrollable container.
+    // We'll collect all anchor tags that look relevant in the DOM.
+    // To be precise, we should target the sidebar/drawer container if possible.
+
+    // Try to find the drawer container
+    const input = document.querySelector('input[aria-label="Search input"], input[placeholder="Search"], input[placeholder="Pesquisar"]');
+    let scope = document;
+    if (input) {
+      // The results usually share a common ancestor reasonably close to the input
+      // But simpler: just find all links that are NOT nav links (nav links are usually distinct)
+      // Strategy: standard links that are /explore/tags/ or /username/
+    }
+
+    const links = Array.from(document.querySelectorAll('a[href^="/"]'));
+    const results = links
+      .map(a => a.getAttribute('href'))
+      .filter(href => {
+        // Filter out common nav items
+        if (['/', '/explore/', '/reels/', '/direct/inbox/', '/accounts/activity/'].includes(href)) return false;
+        if (href.startsWith('/p/')) return false; // Don't want posts, want tags/users
+        return true;
+      })
+      .map(href => `https://instagram.com${href}`);
+
+    // Deduplicate
+    return [...new Set(results)];
+  }
+
   function parseCount(text) {
     if (!text) return 0;
     const clean = text.toLowerCase().replace(/,/g, '');

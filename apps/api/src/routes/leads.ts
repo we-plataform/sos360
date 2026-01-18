@@ -15,6 +15,7 @@ import { validate } from '../middleware/validate.js';
 import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
+import type { Server } from 'socket.io';
 
 export const leadsRouter = Router();
 
@@ -65,7 +66,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
     }
 
     // Agent can only see assigned leads
-    if (req.user!.role === 'agent') {
+    if (req.user!.workspaceRole === 'agent') {
       where.assignedToId = req.user!.id;
     }
 
@@ -81,6 +82,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
               tag: { select: { id: true, name: true, color: true } },
             },
           },
+          socialProfiles: true,
         },
         orderBy: { [sortField]: sortDirection },
         skip: calculateOffset(page, limit),
@@ -116,38 +118,138 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
     const workspaceId = req.user!.workspaceId;
     const { tags, ...leadData } = req.body;
 
-    const lead = await prisma.lead.create({
-      data: {
-        ...leadData,
+    const profileUrl = leadData.profileUrl || (leadData.username ? `${leadData.platform}:${leadData.username}` : null);
+    if (!profileUrl) {
+      // Should be caught by schema validation usually, but strictly required for our logic
+      return res.status(400).json({ success: false, error: 'Cannot determine profile URL' });
+    }
+
+    // 1. Try to find existing lead by Social Profile OR Email OR Phone
+    const existingLead = await prisma.lead.findFirst({
+      where: {
         workspaceId,
-        ...(tags?.length && {
+        OR: [
+          {
+            socialProfiles: {
+              some: {
+                platform: leadData.platform,
+                profileUrl: profileUrl
+              }
+            }
+          },
+          // Legacy check
+          {
+            platform: leadData.platform,
+            profileUrl: profileUrl
+          },
+          ...(leadData.email ? [{ email: leadData.email }] : []),
+          ...(leadData.phone ? [{ phone: leadData.phone }] : [])
+        ]
+      }
+    });
+
+    let lead;
+    const profileData = {
+      platform: leadData.platform,
+      username: leadData.username,
+      profileUrl: profileUrl,
+      avatarUrl: leadData.avatarUrl,
+      bio: leadData.bio,
+      followersCount: leadData.followersCount,
+      followingCount: leadData.followingCount,
+      postsCount: leadData.postsCount,
+      verified: leadData.verified || false,
+      workspaceId // Add workspaceId to profile
+    };
+
+    if (existingLead) {
+      // Update existing lead and upsert social profile
+      lead = await prisma.lead.update({
+        where: { id: existingLead.id },
+        data: {
+          ...leadData, // Update lead fields (e.g. status, score if changed)
+          socialProfiles: {
+            upsert: {
+              where: {
+                workspaceId_platform_profileUrl: {
+                  workspaceId,
+                  platform: leadData.platform,
+                  profileUrl: profileUrl
+                }
+              },
+              create: profileData,
+              update: profileData
+            }
+          },
+          ...(tags?.length && {
+            tags: {
+              create: tags.map((tagId: string) => ({ tagId })), // This might add duplicate tags if not careful, but schema handles unique constraint on lead_tags
+            },
+          }),
+        },
+        include: {
+          assignedTo: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
           tags: {
-            create: tags.map((tagId: string) => ({ tagId })),
+            include: {
+              tag: { select: { id: true, name: true, color: true } },
+            },
           },
-        }),
-      },
-      include: {
-        assignedTo: {
-          select: { id: true, fullName: true, avatarUrl: true },
+          socialProfiles: true
         },
-        tags: {
-          include: {
-            tag: { select: { id: true, name: true, color: true } },
+      });
+    } else {
+      // Create new lead
+      lead = await prisma.lead.create({
+        data: {
+          ...leadData,
+          workspaceId,
+          profileUrl, // Legacy field
+          socialProfiles: {
+            create: profileData
           },
+          ...(tags?.length && {
+            tags: {
+              create: tags.map((tagId: string) => ({ tagId })),
+            },
+          }),
         },
-      },
+        include: {
+          assignedTo: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          tags: {
+            include: {
+              tag: { select: { id: true, name: true, color: true } },
+            },
+          },
+          socialProfiles: true
+        },
+      });
+    }
+
+    // Emit socket event
+    const io = req.app.get('io') as Server;
+    io.to(`workspace:${workspaceId}`).emit(existingLead ? 'lead:updated' : 'lead:created', {
+      ...lead,
+      tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
     });
 
     // Create activity
     await prisma.activity.create({
       data: {
-        type: 'lead_created',
+        type: existingLead ? 'lead_updated' : 'lead_created',
         leadId: lead.id,
         userId: req.user!.id,
+        metadata: {
+          merged: !!existingLead,
+          platform: leadData.platform
+        }
       },
     });
 
-    res.status(201).json({
+    res.status(existingLead ? 200 : 201).json({
       success: true,
       data: {
         ...lead,
@@ -242,35 +344,76 @@ leadsRouter.post(
             notes: leadData.analysisReason ? `Qualificação AI: ${leadData.analysisReason}` : undefined,
           };
 
-          // Ensure profileUrl exists for unique constraint
+          // Ensure profileUrl exists
           const profileUrl = cleanedLeadData.profileUrl || `${platform}:${cleanedLeadData.username || 'unknown'}`;
 
-          await prisma.lead.upsert({
+          // 1. Try to find existing lead
+          const existingLead = await prisma.lead.findFirst({
             where: {
-              workspaceId_platform_profileUrl: {
-                workspaceId,
-                platform,
-                profileUrl,
-              },
-            },
-            create: {
-              ...cleanedLeadData,
-              platform,
               workspaceId,
-              sourceUrl: sourceUrl || null,
-              profileUrl,
-              ...(tags?.length && {
-                tags: {
-                  create: tags.map((tagId: string) => ({ tagId })),
-                },
-              }),
-            },
-            update: {
-              ...cleanedLeadData,
-              profileUrl,
-              updatedAt: new Date(),
-            },
+              OR: [
+                { socialProfiles: { some: { platform, profileUrl } } },
+                { platform, profileUrl },
+                ...(cleanedLeadData.email ? [{ email: cleanedLeadData.email }] : []),
+                ...(cleanedLeadData.phone ? [{ phone: cleanedLeadData.phone }] : [])
+              ]
+            }
           });
+
+          const profileData = {
+            platform,
+            username: cleanedLeadData.username,
+            profileUrl,
+            avatarUrl: cleanedLeadData.avatarUrl,
+            bio: cleanedLeadData.bio,
+            followersCount: cleanedLeadData.followersCount,
+            followingCount: cleanedLeadData.followingCount,
+            postsCount: cleanedLeadData.postsCount,
+            verified: cleanedLeadData.verified,
+            workspaceId
+          };
+
+          if (existingLead) {
+            await prisma.lead.update({
+              where: { id: existingLead.id },
+              data: {
+                ...cleanedLeadData,
+                profileUrl, // Update legacy profile URL to latest? Or keep original? Let's update.
+                updatedAt: new Date(),
+                socialProfiles: {
+                  upsert: {
+                    where: {
+                      workspaceId_platform_profileUrl: {
+                        workspaceId,
+                        platform,
+                        profileUrl
+                      }
+                    },
+                    create: profileData,
+                    update: profileData
+                  }
+                }
+              }
+            });
+          } else {
+            await prisma.lead.create({
+              data: {
+                ...cleanedLeadData,
+                platform,
+                workspaceId,
+                sourceUrl: sourceUrl || null,
+                profileUrl,
+                socialProfiles: {
+                  create: profileData
+                },
+                ...(tags?.length && {
+                  tags: {
+                    create: tags.map((tagId: string) => ({ tagId })),
+                  },
+                }),
+              }
+            });
+          }
           imported++;
         } catch (err: unknown) {
           console.error('Error importing lead:', err, leadData);
@@ -327,6 +470,7 @@ leadsRouter.get('/:id', async (req, res, next) => {
             tag: { select: { id: true, name: true, color: true } },
           },
         },
+        socialProfiles: true,
         activities: {
           orderBy: { createdAt: 'desc' },
           take: 20,
@@ -372,7 +516,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
     }
 
     // Agent can only update assigned leads
-    if (req.user!.role === 'agent' && existingLead.assignedToId !== req.user!.id) {
+    if (req.user!.workspaceRole === 'agent' && existingLead.assignedToId !== req.user!.id) {
       throw new NotFoundError('Lead');
     }
 
@@ -388,7 +532,15 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
             tag: { select: { id: true, name: true, color: true } },
           },
         },
+        socialProfiles: true,
       },
+    });
+
+    // Emit socket event
+    const io = req.app.get('io') as Server;
+    io.to(`workspace:${workspaceId}`).emit('lead:updated', {
+      ...lead,
+      tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
     });
 
     // Create activity for status change
@@ -431,6 +583,10 @@ leadsRouter.delete('/:id', authorize('owner', 'admin', 'manager'), async (req, r
 
     await prisma.lead.delete({ where: { id } });
 
+    // Emit socket event
+    const io = req.app.get('io') as Server;
+    io.to(`workspace:${workspaceId}`).emit('lead:deleted', { id });
+
     res.json({
       success: true,
       data: { message: 'Lead removido com sucesso' },
@@ -472,6 +628,13 @@ leadsRouter.post('/:id/tags', authorize('owner', 'admin', 'manager', 'agent'), a
       },
     });
 
+    // Emit socket event
+    const io = req.app.get('io') as Server;
+    io.to(`workspace:${workspaceId}`).emit('lead:updated', {
+      ...updatedLead!,
+      tags: updatedLead!.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
+    });
+
     res.json({
       success: true,
       data: {
@@ -501,6 +664,30 @@ leadsRouter.delete('/:id/tags/:tagId', authorize('owner', 'admin', 'manager', 'a
     await prisma.leadTag.delete({
       where: { leadId_tagId: { leadId: id, tagId } },
     });
+
+    // Get updated lead to emit
+    const updatedLead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        assignedTo: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        tags: {
+          include: {
+            tag: { select: { id: true, name: true, color: true } },
+          },
+        },
+      },
+    });
+
+    if (updatedLead) {
+      // Emit socket event
+      const io = req.app.get('io') as Server;
+      io.to(`workspace:${workspaceId}`).emit('lead:updated', {
+        ...updatedLead,
+        tags: updatedLead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
+      });
+    }
 
     res.json({
       success: true,
@@ -535,6 +722,10 @@ leadsRouter.post('/:id/assign', authorize('owner', 'admin', 'manager'), async (r
         },
       },
     });
+
+    // Emit socket event
+    const io = req.app.get('io') as Server;
+    io.to(`workspace:${workspaceId}`).emit('lead:updated', updatedLead);
 
     // Create activity
     await prisma.activity.create({

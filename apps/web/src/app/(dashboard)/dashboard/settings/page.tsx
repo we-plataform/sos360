@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth';
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
+  const currentWorkspace = useAuthStore((state) => state.currentWorkspace);
   const [inviteEmail, setInviteEmail] = useState('');
 
   const { data: users } = useQuery({
@@ -48,7 +49,7 @@ export default function SettingsPage() {
               <div>
                 <p className="font-medium">{user?.fullName}</p>
                 <p className="text-sm text-gray-500">{user?.email}</p>
-                <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+                <p className="text-xs text-gray-400 capitalize">{currentWorkspace?.role}</p>
               </div>
             </div>
             <Button variant="outline">Editar Perfil</Button>

@@ -336,12 +336,29 @@ class LeadNavigator {
   async collectPosts() {
     // Send message to content script to scrape hrefs
     try {
-      const response = await chrome.tabs.sendMessage(this.state.currentTabId, {
+      console.log('[LeadNavigator] Collecting posts...');
+      let posts = [];
+
+      // Attempt 1
+      let response = await chrome.tabs.sendMessage(this.state.currentTabId, {
         action: 'getPostLinks',
         limit: this.config.postsPerKeyword
       });
-      const posts = response?.data || [];
+      posts = response?.data || [];
+
+      // Retry if 0 - sometimes the page is just slow or infinite scroll didn't trigger
+      if (posts.length === 0) {
+        console.log('[LeadNavigator] No posts found, waiting and retrying collection...');
+        await this.sleep(5000);
+        response = await chrome.tabs.sendMessage(this.state.currentTabId, {
+          action: 'getPostLinks',
+          limit: this.config.postsPerKeyword
+        });
+        posts = response?.data || [];
+      }
+
       this.state.totalPostsForKeyword = posts.length;
+      console.log(`[LeadNavigator] Collected ${posts.length} posts.`);
       return posts;
     } catch (e) {
       console.warn('Failed to collect posts:', e);

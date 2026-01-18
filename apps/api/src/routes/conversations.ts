@@ -40,7 +40,7 @@ conversationsRouter.get('/', validate(conversationFiltersSchema, 'query'), async
     if (assignedTo) where.assignedToId = assignedTo;
 
     // Agent can only see assigned conversations
-    if (req.user!.role === 'agent') {
+    if (req.user!.workspaceRole === 'agent') {
       where.assignedToId = req.user!.id;
     }
 
@@ -139,7 +139,7 @@ conversationsRouter.get('/:id', async (req, res, next) => {
     }
 
     // Agent can only see assigned conversations
-    if (req.user!.role === 'agent' && conversation.assignedToId !== req.user!.id) {
+    if (req.user!.workspaceRole === 'agent' && conversation.assignedToId !== req.user!.id) {
       throw new NotFoundError('Conversa');
     }
 

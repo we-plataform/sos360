@@ -27,7 +27,15 @@ export const LEAD_STATUSES = [
   'lost',
 ] as const;
 
-export const USER_ROLES = ['owner', 'admin', 'manager', 'agent', 'viewer'] as const;
+export const COMPANY_ROLES = ['owner', 'admin', 'member'] as const;
+export const WORKSPACE_ROLES = ['owner', 'admin', 'manager', 'agent', 'viewer'] as const;
+
+/**
+ * @deprecated Use WORKSPACE_ROLES instead
+ */
+export const USER_ROLES = WORKSPACE_ROLES;
+
+export const PLANS = ['trial', 'starter', 'professional', 'business', 'enterprise'] as const;
 
 export const PLATFORM_COLORS: Record<string, string> = {
   instagram: '#E4405F',
