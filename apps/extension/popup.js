@@ -95,7 +95,32 @@ async function checkCurrentTab() {
       updateStatus('connected', 'Plataforma detectada');
       platformBadge.textContent = platform.charAt(0).toUpperCase() + platform.slice(1);
       platformBadge.style.display = 'inline-flex';
-      importBtn.disabled = false;
+
+      // Auto Mode visibility (Default: Hidden unless Instagram)
+      const autoModeContainer = document.querySelector('.auto-mode-container') || document.getElementById('auto-mode-section') || document.getElementById('start-auto-btn')?.parentElement?.parentElement;
+      if (currentPlatform === 'instagram') {
+        if (autoModeContainer) autoModeContainer.style.display = 'block';
+        // Ensure buttons are visible if state allows
+        document.getElementById('start-auto-btn').style.display = 'block';
+      } else {
+        // Hide Auto Mode UI for non-Instagram platforms to avoid confusion
+        if (autoModeContainer) autoModeContainer.style.display = 'none';
+        document.getElementById('start-auto-btn').style.display = 'none';
+        document.getElementById('stop-auto-btn').style.display = 'none';
+        document.getElementById('auto-status-badge').style.display = 'none';
+        document.getElementById('auto-status-msg').style.display = 'none';
+      }
+
+      // Special logic for LinkedIn Connections page
+      if (platform === 'linkedin' && tab.url.includes('/mynetwork/invite-connect/connections/')) {
+        importBtn.textContent = 'Abrir Painel de Conexões';
+        importBtn.dataset.action = 'open-overlay';
+        importBtn.disabled = false;
+      } else {
+        importBtn.textContent = 'Importar Leads desta Página';
+        delete importBtn.dataset.action;
+        importBtn.disabled = false;
+      }
       return;
     }
   }
@@ -103,6 +128,8 @@ async function checkCurrentTab() {
   updateStatus('disconnected', 'Plataforma não suportada');
   platformBadge.style.display = 'none';
   importBtn.disabled = true;
+  // Hide auto buttons if disconnected
+  document.getElementById('start-auto-btn').style.display = 'none';
 }
 
 function updateStatus(status, text) {
@@ -229,6 +256,18 @@ loginForm.addEventListener('submit', async (e) => {
 importBtn.addEventListener('click', async () => {
   if (!currentPlatform || !currentTab) return;
 
+  // Special Action: Open Overlay
+  if (importBtn.dataset.action === 'open-overlay') {
+    try {
+      await chrome.tabs.sendMessage(currentTab.id, { action: 'openOverlay' });
+      window.close(); // Close popup so user sees the overlay
+    } catch (e) {
+      console.error('Failed to open overlay', e);
+      showMessage('error', 'Erro ao abrir painel. Recarregue a página.');
+    }
+    return;
+  }
+
   importBtn.disabled = true;
   importBtn.textContent = 'Importando...';
 
@@ -273,7 +312,12 @@ importBtn.addEventListener('click', async () => {
     console.error(error);
   } finally {
     importBtn.disabled = false;
-    importBtn.textContent = 'Importar Leads desta Página';
+    // Restore text if we weren't in overlay mode
+    if (!importBtn.dataset.action) {
+      importBtn.textContent = 'Importar Leads desta Página';
+    } else {
+      importBtn.textContent = 'Abrir Painel de Conexões';
+    }
   }
 });
 

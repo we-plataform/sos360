@@ -17,7 +17,44 @@ async function clearToken() {
 }
 
 // --- API helpers ---
-async function apiRequest(endpoint, options = {}) {
+async function refreshAccessToken() {
+  const result = await chrome.storage.local.get(['refreshToken']);
+  if (!result.refreshToken) {
+    console.log('[SOS 360] No refresh token available');
+    return null;
+  }
+
+  try {
+    console.log('[SOS 360] Attempting token refresh...');
+    const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: result.refreshToken }),
+    });
+
+    if (!response.ok) {
+      console.log('[SOS 360] Token refresh failed, clearing auth');
+      await clearToken();
+      return null;
+    }
+
+    const data = await response.json();
+    if (data.success && data.data?.accessToken) {
+      console.log('[SOS 360] Token refreshed successfully');
+      await chrome.storage.local.set({
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken || result.refreshToken,
+      });
+      return data.data.accessToken;
+    }
+    return null;
+  } catch (error) {
+    console.error('[SOS 360] Token refresh error:', error);
+    return null;
+  }
+}
+
+async function apiRequest(endpoint, options = {}, isRetry = false) {
   const token = await getToken();
 
   const headers = {
@@ -42,11 +79,20 @@ async function apiRequest(endpoint, options = {}) {
       data = await response.json();
     } else {
       const text = await response.text();
-      // If it's a 200 OK but text, we might treat it as success if body is optional, but usually we expect JSON
       if (!response.ok) {
         throw new Error(`API returned non-JSON: ${text.substring(0, 100)}`);
       }
       data = { message: text };
+    }
+
+    // Handle 401 - try to refresh token and retry once
+    if (response.status === 401 && !isRetry) {
+      console.log('[SOS 360] Got 401, attempting token refresh...');
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return apiRequest(endpoint, options, true);
+      }
+      throw new Error('Token inválido ou expirado. Por favor, faça login novamente.');
     }
 
     if (!response.ok) {
@@ -67,6 +113,7 @@ async function apiRequest(endpoint, options = {}) {
     throw error;
   }
 }
+
 
 // --- LEAD NAVIGATOR (Autonomous Agent) ---
 

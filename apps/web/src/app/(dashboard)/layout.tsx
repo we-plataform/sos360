@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,9 +35,23 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, setUser, setContext, setAvailableCompanies, isLoading, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
+  const setContext = useAuthStore((state) => state.setContext);
+  const setAvailableCompanies = useAuthStore((state) => state.setAvailableCompanies);
+  const logout = useAuthStore((state) => state.logout);
+
+  // Wait for client-side mount to avoid hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
     const checkAuth = async () => {
       const token = localStorage.getItem('accessToken');
       if (!token) {
@@ -56,29 +70,33 @@ export default function DashboardLayout({
         if (data.companies) {
           setAvailableCompanies(data.companies);
         }
+        setAuthChecked(true);
       } catch (error) {
-        console.error(error);
+        console.error('Auth check failed:', error);
         router.push('/login');
       }
     };
 
     checkAuth();
-  }, [router, setUser, setContext, setAvailableCompanies]);
+  }, [mounted, router, setUser, setContext, setAvailableCompanies]);
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  if (isLoading && !user) {
+  // Show loading spinner until mounted AND auth is checked
+  if (!mounted || !authChecked) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-gray-100">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
       </div>
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -93,8 +111,8 @@ export default function DashboardLayout({
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navigation.map((item: any) => {
-            const isActive = (item as any).exact
+          {navigation.map((item) => {
+            const isActive = item.exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + '/');
 

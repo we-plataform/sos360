@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AuthUser, CompanyContext, WorkspaceContext, CompanyWithWorkspaces } from '@sos360/shared';
 import { api } from '../lib/api';
 
@@ -9,12 +10,10 @@ interface AuthState {
   currentWorkspace: WorkspaceContext | null;
   availableCompanies: CompanyWithWorkspaces[];
   isAuthenticated: boolean;
-  isLoading: boolean;
 
   setUser: (user: AuthUser | null) => void;
   setContext: (company: CompanyContext, workspace: WorkspaceContext) => void;
   setAvailableCompanies: (companies: CompanyWithWorkspaces[]) => void;
-  setLoading: (loading: boolean) => void;
 
   switchWorkspace: (workspaceId: string) => Promise<void>;
   switchCompany: (companyId: string, workspaceId: string) => Promise<void>;
@@ -29,7 +28,6 @@ export const useAuthStore = create<AuthState>()(
       currentWorkspace: null,
       availableCompanies: [],
       isAuthenticated: false,
-      isLoading: true,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
@@ -38,8 +36,6 @@ export const useAuthStore = create<AuthState>()(
 
       setAvailableCompanies: (companies) =>
         set({ availableCompanies: companies }),
-
-      setLoading: (isLoading) => set({ isLoading }),
 
       switchWorkspace: async (workspaceId) => {
         const { currentCompany } = get();
@@ -50,9 +46,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             currentCompany: data.context.company,
             currentWorkspace: data.context.workspace,
-            // Access token is updated by api.switchContext
           });
-          // Reload page to ensure all components refresh with new context/token
           window.location.reload();
         } catch (error) {
           console.error('Failed to switch workspace:', error);
@@ -87,6 +81,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
@@ -97,3 +92,14 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+// Hook for waiting for hydration in components
+export const useAuthHydration = () => {
+  const [hydrated, setHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return hydrated;
+};
