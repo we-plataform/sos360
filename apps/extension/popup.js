@@ -31,6 +31,9 @@ const leadsTodayEl = document.getElementById('leads-today');
 const leadsMonthEl = document.getElementById('leads-month');
 
 // Auto Mode Elements
+const deepScanCheckbox = document.getElementById('deep-scan-checkbox');
+const aiCriteriaContainer = document.getElementById('ai-criteria-container');
+const aiCriteriaInput = document.getElementById('ai-criteria-input');
 const autoKeywordsInput = document.getElementById('auto-keywords');
 const autoCriteriaInput = document.getElementById('auto-criteria');
 const startAutoBtn = document.getElementById('start-auto-btn');
@@ -77,6 +80,25 @@ function showLoggedOut() {
   loggedInEl.classList.remove('active');
 }
 
+// Detect if URL is an Instagram profile page
+function isInstagramProfilePage(url) {
+  const path = url.pathname;
+  const parts = path.split('/').filter(Boolean);
+
+  // Profile page: instagram.com/{username}
+  // Not a profile: instagram.com/explore, /reels, /direct, /stories, /p/, /accounts, etc.
+  if (parts.length === 0) return false;
+
+  const nonProfilePaths = ['explore', 'reels', 'direct', 'stories', 'p', 'tv', 'accounts', 'about', 'emails'];
+  const firstPart = parts[0].toLowerCase();
+
+  if (nonProfilePaths.includes(firstPart)) return false;
+  if (firstPart.startsWith('_')) return false; // Internal pages
+
+  // Valid username pattern (alphanumeric, dots, underscores)
+  return /^[a-zA-Z0-9_.]+$/.test(firstPart);
+}
+
 async function checkCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tab;
@@ -116,7 +138,14 @@ async function checkCurrentTab() {
         importBtn.textContent = 'Abrir Painel de Conexões';
         importBtn.dataset.action = 'open-overlay';
         importBtn.disabled = false;
-      } else {
+      }
+      // Special logic for Instagram Profile page
+      else if (platform === 'instagram' && isInstagramProfilePage(url)) {
+        importBtn.textContent = '📥 Abrir Painel de Importação';
+        importBtn.dataset.action = 'open-overlay';
+        importBtn.disabled = false;
+      }
+      else {
         importBtn.textContent = 'Importar Leads desta Página';
         delete importBtn.dataset.action;
         importBtn.disabled = false;
@@ -277,36 +306,63 @@ importBtn.addEventListener('click', async () => {
       action: 'extractLeads',
     });
 
+
+
     if (!extractResponse.success || !extractResponse.data?.length) {
       showMessage('error', 'Nenhum lead encontrado nesta página');
       return;
     }
 
-    // Send leads to API
-    const importResponse = await chrome.runtime.sendMessage({
-      action: 'importLeads',
-      data: {
-        source: 'extension',
-        platform: currentPlatform,
-        sourceUrl: currentTab.url,
-        leads: extractResponse.data,
-      },
-    });
+    const isDeepScan = deepScanCheckbox.checked;
 
-    if (importResponse.success) {
-      const result = importResponse.data.result || { imported: extractResponse.data.length };
-      showMessage('success', `${result.imported} leads importados com sucesso!`);
-
-      // Update stats
-      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
-      await chrome.storage.local.set({
-        leadsToday: (stats.leadsToday || 0) + result.imported,
-        leadsMonth: (stats.leadsMonth || 0) + result.imported,
+    if (isDeepScan) {
+      // Trigger background Deep Import process
+      const response = await chrome.runtime.sendMessage({
+        action: 'startDeepImport',
+        data: {
+          leads: extractResponse.data,
+          deepScan: true,
+          criteria: aiCriteriaInput.value || '', // Pass user criteria
+          tabId: currentTab.id // FIX: Pass current tab ID explicitly
+        }
       });
-      loadStats();
+
+      if (response.success) {
+        showMessage('success', `Deep Scan iniciado para ${extractResponse.data.length} leads! Verifique o progresso na página.`);
+        window.close(); // Close popup to let background script work
+        return;
+      } else {
+        showMessage('error', response.error || 'Erro ao iniciar Deep Scan');
+      }
+
     } else {
-      showMessage('error', importResponse.error || 'Erro ao importar leads');
+      // Standard Import
+      const importResponse = await chrome.runtime.sendMessage({
+        action: 'importLeads',
+        data: {
+          source: 'extension',
+          platform: currentPlatform,
+          sourceUrl: currentTab.url,
+          leads: extractResponse.data,
+        },
+      });
+
+      if (importResponse.success) {
+        const result = importResponse.data.result || { imported: extractResponse.data.length };
+        showMessage('success', `${result.imported} leads importados com sucesso!`);
+
+        // Update stats
+        const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+        await chrome.storage.local.set({
+          leadsToday: (stats.leadsToday || 0) + result.imported,
+          leadsMonth: (stats.leadsMonth || 0) + result.imported,
+        });
+        loadStats();
+      } else {
+        showMessage('error', importResponse.error || 'Erro ao importar leads');
+      }
     }
+
   } catch (error) {
     showMessage('error', 'Erro ao extrair leads da página');
     console.error(error);
@@ -361,6 +417,15 @@ stopAutoBtn.addEventListener('click', () => {
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'autoModeUpdate') {
     updateAutoUI(message.state);
+  }
+});
+
+// Toggle Deep Scan Instructions
+deepScanCheckbox.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    aiCriteriaContainer.style.display = 'block';
+  } else {
+    aiCriteriaContainer.style.display = 'none';
   }
 });
 

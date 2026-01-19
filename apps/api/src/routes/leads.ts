@@ -296,6 +296,117 @@ leadsRouter.post(
   }
 );
 
+// POST /leads/analyze-batch - Analyze multiple leads with AI in one call
+leadsRouter.post(
+  '/analyze-batch',
+  authorize('owner', 'admin', 'manager', 'agent'),
+  async (req, res, next) => {
+    try {
+      const { profiles, criteria } = req.body;
+
+      if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Profiles array is required'
+        });
+      }
+
+      if (profiles.length > 50) {
+        return res.status(400).json({
+          success: false,
+          error: 'Maximum 50 profiles per batch'
+        });
+      }
+
+      if (!criteria) {
+        return res.status(400).json({
+          success: false,
+          error: 'Qualification criteria is required'
+        });
+      }
+
+      const { analyzeLeadBatch } = await import('../lib/openai.js');
+      const results = await analyzeLeadBatch(profiles, criteria);
+
+      res.json({
+        success: true,
+        data: {
+          results,
+          analyzed: results.length,
+          qualified: results.filter(r => r.qualified).length,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /leads/analyze-deep - Deep behavioral analysis with Multimodal AI
+leadsRouter.post(
+  '/analyze-deep',
+  authorize('owner', 'admin', 'manager', 'agent'),
+  async (req, res, next) => {
+    try {
+      const { leadId, profile, posts } = req.body;
+
+      if (!profile || !posts) {
+        return res.status(400).json({
+          success: false,
+          error: 'Profile and Posts data are required'
+        });
+      }
+
+      const { analyzeLeadDeep } = await import('../lib/openai.js');
+      const result = await analyzeLeadDeep(profile, posts);
+
+      // If we have a leadId, save the result
+      if (leadId) {
+        await prisma.leadBehavior.upsert({
+          where: { leadId },
+          create: {
+            leadId,
+            maritalStatus: result.maritalStatus,
+            hasChildren: result.hasChildren,
+            deviceType: result.deviceType,
+            interests: result.interests,
+            personalityType: result.personalityType,
+            buyingIntent: result.buyingIntent,
+            confidenceScore: result.confidenceScore,
+            rawAnalysis: result as any,
+          },
+          update: {
+            maritalStatus: result.maritalStatus,
+            hasChildren: result.hasChildren,
+            deviceType: result.deviceType,
+            interests: result.interests,
+            personalityType: result.personalityType,
+            buyingIntent: result.buyingIntent,
+            confidenceScore: result.confidenceScore,
+            rawAnalysis: result as any,
+            updatedAt: new Date(),
+          }
+        });
+
+        // Optionally update the lead score if high confidence
+        if (result.confidenceScore > 80 && result.buyingIntent === 'High') {
+          await prisma.lead.update({
+            where: { id: leadId },
+            data: { score: { increment: 10 } }
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // POST /leads/import - Import leads in bulk
 leadsRouter.post(
   '/import',
@@ -322,8 +433,12 @@ leadsRouter.post(
       let imported = 0;
       let duplicates = 0;
       let errors = 0;
+      const leadResults: { id: string; profileUrl: string }[] = [];
+
 
       for (const leadData of leads) {
+        // DEBUG: Log received lead data
+        console.log('[DEBUG] Processing lead:', JSON.stringify(leadData, null, 2));
         try {
           // Clean and validate lead data
           const cleanedLeadData = {
@@ -342,10 +457,22 @@ leadsRouter.post(
             verified: leadData.verified || false,
             score: leadData.score || undefined, // Support score from analysis
             notes: leadData.analysisReason ? `Qualificação AI: ${leadData.analysisReason}` : undefined,
+            customFields: {
+              ...(typeof leadData.customFields === 'object' ? leadData.customFields : {}),
+              ...(leadData.posts ? { recentPosts: leadData.posts } : {})
+            },
+            lastInteractionAt: leadData.lastInteractionAt || undefined,
+
+            // LinkedIn-specific fields
+            headline: leadData.headline || null,
+            company: leadData.company || null,
+            industry: leadData.industry || null,
+            connectionCount: leadData.connectionCount || null,
           };
 
           // Ensure profileUrl exists
           const profileUrl = cleanedLeadData.profileUrl || `${platform}:${cleanedLeadData.username || 'unknown'}`;
+          console.log('[DEBUG] Cleaned lead data:', JSON.stringify({ ...cleanedLeadData, profileUrl }, null, 2));
 
           // 1. Try to find existing lead
           const existingLead = await prisma.lead.findFirst({
@@ -373,12 +500,13 @@ leadsRouter.post(
             workspaceId
           };
 
+          let savedLead;
           if (existingLead) {
-            await prisma.lead.update({
+            savedLead = await prisma.lead.update({
               where: { id: existingLead.id },
               data: {
                 ...cleanedLeadData,
-                profileUrl, // Update legacy profile URL to latest? Or keep original? Let's update.
+                profileUrl,
                 updatedAt: new Date(),
                 socialProfiles: {
                   upsert: {
@@ -396,7 +524,7 @@ leadsRouter.post(
               }
             });
           } else {
-            await prisma.lead.create({
+            savedLead = await prisma.lead.create({
               data: {
                 ...cleanedLeadData,
                 platform,
@@ -415,6 +543,7 @@ leadsRouter.post(
             });
           }
           imported++;
+          leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
           console.error('Error importing lead:', err, leadData);
           if ((err as { code?: string }).code === 'P2002') {
@@ -445,6 +574,7 @@ leadsRouter.post(
           totalLeads: leads.length,
           result: { imported, duplicates, errors },
           message: `Importação concluída: ${imported} leads importados`,
+          leadResults // Return the list of imported IDs
         },
       });
     } catch (error) {
@@ -471,6 +601,7 @@ leadsRouter.get('/:id', async (req, res, next) => {
           },
         },
         socialProfiles: true,
+        behavior: true,
         activities: {
           orderBy: { createdAt: 'desc' },
           take: 20,

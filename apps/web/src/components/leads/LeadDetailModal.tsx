@@ -157,6 +157,80 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                                     </Card>
                                 </div>
 
+                                {/* Behavioral Analysis */}
+                                {lead.behavior && (
+                                    <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-indigo-100 rounded-lg">
+                                                <span className="text-lg">🧠</span>
+                                            </div>
+                                            <h4 className="text-base font-semibold text-indigo-900">Análise Comportamental Deep</h4>
+                                            {lead.behavior.confidenceScore > 0 && (
+                                                <span className="ml-auto text-xs font-medium text-indigo-600 bg-white px-2 py-1 rounded-full border border-indigo-200">
+                                                    Confiança: {lead.behavior.confidenceScore}%
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                <div className="text-xs text-gray-500 mb-0.5">Estado Civil</div>
+                                                <div className="font-medium text-gray-900 capitalize">
+                                                    {lead.behavior.maritalStatus === 'married' ? 'Casado(a)' :
+                                                        lead.behavior.maritalStatus === 'single' ? 'Solteiro(a)' : 'Desconhecido'}
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                <div className="text-xs text-gray-500 mb-0.5">Filhos</div>
+                                                <div className="font-medium text-gray-900">
+                                                    {lead.behavior.hasChildren ? 'Sim (Identificado)' : 'Não identificado'}
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                <div className="text-xs text-gray-500 mb-0.5">Dispositivo</div>
+                                                <div className="font-medium text-gray-900 capitalize">
+                                                    {lead.behavior.deviceType || 'Desconhecido'}
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                <div className="text-xs text-gray-500 mb-0.5">Intenção de Compra</div>
+                                                <div className={`font-medium ${lead.behavior.buyingIntent === 'High' ? 'text-green-600' :
+                                                        lead.behavior.buyingIntent === 'Medium' ? 'text-yellow-600' : 'text-gray-600'
+                                                    }`}>
+                                                    {lead.behavior.buyingIntent === 'High' ? 'Alta' :
+                                                        lead.behavior.buyingIntent === 'Medium' ? 'Média' : 'Baixa'}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <div className="text-xs text-gray-500 mb-1.5">Personalidade</div>
+                                            <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm text-sm text-gray-800">
+                                                {lead.behavior.personalityType || 'Não analisado'}
+                                            </div>
+                                        </div>
+
+                                        {lead.behavior.interests?.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="text-xs text-gray-500 mb-1.5">Interesses</div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {lead.behavior.interests.map((interest: string, i: number) => (
+                                                        <span key={i} className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-700 text-xs font-medium">
+                                                            {interest}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {lead.behavior.rawAnalysis?.reason && (
+                                            <div className="bg-white/50 p-3 rounded-lg border border-indigo-100/50 text-xs text-gray-600 italic">
+                                                "{lead.behavior.rawAnalysis.reason}"
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Social Profiles */}
                                 {lead.socialProfiles?.length > 0 && (
                                     <div>

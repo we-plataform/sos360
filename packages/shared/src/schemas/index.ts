@@ -132,6 +132,14 @@ export const importLeadDataSchema = z.object({
   verified: z.union([z.boolean(), z.null(), z.undefined()]).optional(),
   location: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   website: urlOrEmpty.optional(),
+  // LinkedIn-specific fields
+  headline: z.union([z.string().max(500), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  company: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  industry: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  connectionCount: z.union([z.number().int().min(0), z.null(), z.undefined()]).optional(),
+  // Score and analysis fields (from AI)
+  score: z.union([z.number().int().min(0).max(100), z.null(), z.undefined()]).optional(),
+  analysisReason: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
 });
 
 export const importLeadsSchema = z.object({

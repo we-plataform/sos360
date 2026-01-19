@@ -257,6 +257,11 @@ model Lead {
   lastInteractionAt DateTime?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+  // LinkedIn-specific fields
+  headline          String?    // Professional title/position
+  company           String?    // Current company/employer
+  industry          String?    // Industry/sector
+  connectionCount   Int?       // Number of connections
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -272,6 +277,7 @@ model Lead {
   conversation   Conversation?
   activities     Activity[]
   automationLogs AutomationLog[]
+  behavior       LeadBehavior?
 
   @@unique([workspaceId, platform, profileUrl]) // Keep for backward compatibility or primary profile
   @@index([workspaceId, status])
@@ -608,4 +614,29 @@ enum ImportJobStatus {
   processing
   completed
   failed
+}
+
+// ============================================
+// LEAD BEHAVIOR (Deep Profiling)
+// ============================================
+
+model LeadBehavior {
+  id              String   @id @default(cuid())
+  leadId          String   @unique
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  maritalStatus   String?  // "married", "single", "unknown"
+  hasChildren     Boolean?
+  deviceType      String?  // "iphone", "android", etc
+  interests       String[]
+  personalityType String?  // e.g. "Dominant", "Analytical"
+  buyingIntent    String?  // "High", "Medium", "Low"
+  
+  confidenceScore Float    // 0-100
+  rawAnalysis     Json     // Full AI analysis details
+  
+  analyzedAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("lead_behaviors")
 }

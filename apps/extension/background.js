@@ -485,7 +485,455 @@ class LeadNavigator {
   }
 }
 
+// --- LINKEDIN DEEP EXTRACTOR ---
+
+class LinkedInNavigator {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+    this.results = [];
+    this.originalTabId = null;
+    this.processedCount = 0;
+    this.criteria = ''; // Qualification criteria for AI analysis
+    this.deepScan = false;
+  }
+
+  async start(leads, originalTabId, criteria = '', deepScan = false) {
+    if (this.isProcessing) return;
+    this.queue = [...leads];
+    this.isProcessing = true;
+    this.results = [];
+    this.originalTabId = originalTabId;
+    this.processedCount = 0;
+    this.total = leads.length;
+    this.criteria = criteria;
+    this.deepScan = deepScan;
+
+    console.log(`[LinkedInNavigator] Starting deep import for ${this.total} leads (DeepScan: ${deepScan})`);
+    this.processQueue();
+  }
+
+  async processQueue() {
+    if (!this.isProcessing) return;
+
+    if (this.queue.length === 0) {
+      this.finish();
+      return;
+    }
+
+    const lead = this.queue.shift();
+    this.processedCount++;
+
+    // Update progress on original tab
+    this.updateProgress(`Visiting ${lead.fullName}...`);
+
+    try {
+      // Open new tab
+      const tab = await chrome.tabs.create({ url: lead.profileUrl, active: false });
+
+      // Wait for load + random delay (mimic reading)
+      await this.sleep(8000 + Math.random() * 5000);
+
+      // Extract data
+      console.log(`[LinkedInNavigator] Extracting data for ${lead.fullName} (Deep: ${this.deepScan})`);
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'extractProfile',
+        deep: this.deepScan
+      });
+
+      let richLead = { ...lead };
+
+      if (response && response.success && response.data) {
+        // Merge new data with basic lead data
+        richLead = { ...lead, ...response.data, platform: 'linkedin' };
+      }
+
+      // AI Analysis - call OpenAI to qualify and score the lead
+      if (this.criteria) {
+        this.updateProgress(`Analyzing ${lead.fullName} with AI...`);
+        try {
+          const analysis = await this.analyzeLead(richLead);
+          if (analysis) {
+            richLead.score = analysis.score;
+            richLead.analysisReason = analysis.reason;
+            console.log(`[LinkedInNavigator] AI Score for ${lead.fullName}: ${analysis.score} - ${analysis.reason}`);
+          }
+        } catch (analysisError) {
+          console.warn(`[LinkedInNavigator] AI analysis failed for ${lead.fullName}:`, analysisError);
+        }
+      }
+
+      this.results.push(richLead);
+
+      // Save immediately to avoid data loss
+      await this.saveLead(richLead);
+
+      // Close tab
+      await chrome.tabs.remove(tab.id);
+
+      // Random delay between profiles
+      await this.sleep(3000 + Math.random() * 3000);
+
+    } catch (e) {
+      console.error(`[LinkedInNavigator] Error processing ${lead.fullName}:`, e);
+      // Save basic data anyway
+      await this.saveLead(lead);
+    }
+
+    this.processQueue();
+  }
+
+  async analyzeLead(lead) {
+    // Only analyze if we have criteria
+    if (!this.criteria) return null;
+
+    try {
+      const result = await apiRequest('/api/v1/leads/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          profile: {
+            ...lead,
+            platform: 'linkedin'
+          },
+          criteria: this.criteria
+        })
+      });
+      return result.data;
+    } catch (e) {
+      console.error('[LinkedInNavigator] Analysis API error:', e);
+      return null;
+    }
+  }
+
+  async saveLead(lead) {
+    try {
+      const response = await apiRequest('/api/v1/leads/import', {
+        method: 'POST',
+        body: JSON.stringify({
+          source: 'extension',
+          platform: 'linkedin',
+          sourceUrl: lead.profileUrl,
+          leads: [lead]
+        })
+      });
+
+      // If Deep Scan is enabled and we have a lead ID, triggering Behavioral Analysis
+      if (this.deepScan && response.data?.leadResults?.[0]?.id) {
+        const leadId = response.data.leadResults[0].id;
+        console.log(`[LinkedInNavigator] Triggering Deep Behavioral Analysis for ${leadId}...`);
+
+        try {
+          await apiRequest('/api/v1/leads/analyze-deep', {
+            method: 'POST',
+            body: JSON.stringify({
+              leadId: leadId,
+              profile: lead,
+              posts: lead.posts || []
+            })
+          });
+          console.log(`[LinkedInNavigator] Deep Analysis completed for ${lead.fullName}`);
+        } catch (deepError) {
+          console.error(`[LinkedInNavigator] Deep Analysis failed for ${lead.fullName}:`, deepError);
+        }
+      }
+
+    } catch (e) {
+      console.error('Failed to save lead', e);
+    }
+  }
+
+  async updateProgress(status) {
+    if (!this.originalTabId) return;
+    try {
+      await chrome.tabs.sendMessage(this.originalTabId, {
+        action: 'updateImportProgress',
+        data: {
+          current: this.processedCount,
+          total: this.total,
+          status
+        }
+      });
+    } catch (e) { }
+  }
+
+  finish() {
+    this.isProcessing = false;
+    this.updateProgress('Done!');
+    console.log('[LinkedInNavigator] Finished work');
+  }
+
+
+  sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+}
+
+// --- INSTAGRAM DEEP EXTRACTOR ---
+
+class InstagramNavigator {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+    this.results = [];
+    this.originalTabId = null;
+    this.processedCount = 0;
+    this.criteria = '';
+    this.profilesThisSession = 0;
+    this.sessionStartTime = null;
+    // Deep analysis settings
+    this.onlyQualified = true;  // Only save leads that pass AI analysis
+    this.minScore = 60;         // Minimum score to be considered qualified
+    this.qualifiedCount = 0;
+    this.discardedCount = 0;
+  }
+
+  // Rate limit config - Instagram is more aggressive with anti-automation
+  config = {
+    maxProfilesPerHour: 40,
+    delayBetweenProfiles: { min: 8000, max: 15000 },
+    longBreakEveryN: 10,
+    longBreakDuration: { min: 30000, max: 60000 },
+    pageLoadWait: { min: 5000, max: 10000 },
+  };
+
+  async start(leads, originalTabId, criteria = '', options = {}) {
+    if (this.isProcessing) {
+      console.log('[InstagramNavigator] Already processing');
+      return;
+    }
+
+    this.queue = [...leads];
+    this.isProcessing = true;
+    this.results = [];
+    this.originalTabId = originalTabId;
+    this.processedCount = 0;
+    this.total = leads.length;
+    this.criteria = criteria;
+    this.sessionStartTime = Date.now();
+    this.profilesThisSession = 0;
+    // Deep analysis options
+    this.onlyQualified = options.onlyQualified !== false; // default true
+    this.minScore = options.minScore || 60;
+    this.qualifiedCount = 0;
+    this.discardedCount = 0;
+
+    console.log(`[InstagramNavigator] Starting deep import for ${this.total} leads`);
+    console.log(`[InstagramNavigator] AI filter: ${this.onlyQualified ? `score >= ${this.minScore}` : 'disabled'}`);
+    console.log(`[InstagramNavigator] Rate limit: ${this.config.maxProfilesPerHour} profiles/hour`);
+
+    this.processQueue();
+  }
+
+  async processQueue() {
+    if (!this.isProcessing) return;
+
+    if (this.queue.length === 0) {
+      this.finish();
+      return;
+    }
+
+    // Rate limit check
+    const elapsed = Date.now() - this.sessionStartTime;
+    const hourInMs = 60 * 60 * 1000;
+    if (elapsed < hourInMs && this.profilesThisSession >= this.config.maxProfilesPerHour) {
+      const waitTime = hourInMs - elapsed + 60000; // Wait until next hour + 1 min buffer
+      console.log(`[InstagramNavigator] Rate limit reached.Waiting ${Math.round(waitTime / 60000)} minutes...`);
+      this.updateProgress(`Rate limit atingido.Aguardando ${Math.round(waitTime / 60000)}min...`);
+      await this.sleep(waitTime);
+      this.sessionStartTime = Date.now();
+      this.profilesThisSession = 0;
+    }
+
+    const lead = this.queue.shift();
+    this.processedCount++;
+    this.profilesThisSession++;
+
+    this.updateProgress(`Visitando @${lead.username}...`);
+
+    try {
+      // Open new tab with profile
+      const tab = await chrome.tabs.create({
+        url: lead.profileUrl,
+        active: false
+      });
+
+      // Wait for page load + random delay to mimic human reading
+      const loadWait = this.randomDelay(
+        this.config.pageLoadWait.min,
+        this.config.pageLoadWait.max
+      );
+      await this.sleep(loadWait);
+
+      // Extract detailed profile data
+      console.log(`[InstagramNavigator] Extracting data for @${lead.username}`);
+      let richLead = { ...lead };
+
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractProfile' });
+
+        if (response && response.success && response.data) {
+          richLead = {
+            ...lead,
+            ...response.data,
+            platform: 'instagram'
+          };
+          console.log(`[InstagramNavigator] Extracted: ${richLead.fullName}, followers: ${richLead.followersCount} `);
+        }
+      } catch (extractError) {
+        console.warn(`[InstagramNavigator] Extract failed for @${lead.username}: `, extractError);
+      }
+
+      // AI Analysis if criteria provided
+      if (this.criteria) {
+        this.updateProgress(`Analisando @${lead.username} com IA...`);
+        try {
+          const analysis = await this.analyzeLead(richLead);
+          if (analysis) {
+            richLead.score = analysis.score;
+            richLead.analysisReason = analysis.reason;
+            console.log(`[InstagramNavigator] AI Score for @${lead.username}: ${analysis.score} - ${analysis.reason}`);
+          }
+        } catch (analysisError) {
+          console.warn(`[InstagramNavigator] AI analysis failed for @${lead.username}:`, analysisError);
+        }
+      }
+
+      // Check if lead passes deep analysis filter
+      const passesFilter = !this.onlyQualified || !this.criteria ||
+        (richLead.score && richLead.score >= this.minScore);
+
+      if (passesFilter) {
+        this.results.push(richLead);
+        this.qualifiedCount++;
+        await this.saveLead(richLead);
+        this.updateProgress(`✅ @${lead.username} qualificado (${this.qualifiedCount}/${this.processedCount})`);
+      } else {
+        this.discardedCount++;
+        console.log(`[InstagramNavigator] Discarding @${lead.username} - score ${richLead.score} < ${this.minScore}`);
+        this.updateProgress(`❌ @${lead.username} descartado (score: ${richLead.score || 0})`);
+      }
+
+      // Close tab
+      try {
+        await chrome.tabs.remove(tab.id);
+      } catch (e) {
+        // Tab might already be closed
+      }
+
+      // Regular delay between profiles
+      const delay = this.randomDelay(
+        this.config.delayBetweenProfiles.min,
+        this.config.delayBetweenProfiles.max
+      );
+      console.log(`[InstagramNavigator] Waiting ${Math.round(delay / 1000)}s before next profile...`);
+      await this.sleep(delay);
+
+      // Long break every N profiles
+      if (this.profilesThisSession % this.config.longBreakEveryN === 0) {
+        const longBreak = this.randomDelay(
+          this.config.longBreakDuration.min,
+          this.config.longBreakDuration.max
+        );
+        console.log(`[InstagramNavigator] Taking a long break: ${Math.round(longBreak / 1000)} s`);
+        this.updateProgress(`Pausa de segurança(${Math.round(longBreak / 1000)}s)...`);
+        await this.sleep(longBreak);
+      }
+
+    } catch (e) {
+      console.error(`[InstagramNavigator] Error processing @${lead.username}: `, e);
+      // Still try to save basic lead data
+      await this.saveLead(lead);
+    }
+
+    this.processQueue();
+  }
+
+  async analyzeLead(lead) {
+    if (!this.criteria) return null;
+
+    try {
+      const result = await apiRequest('/api/v1/leads/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          profile: {
+            ...lead,
+            platform: 'instagram'
+          },
+          criteria: this.criteria
+        })
+      });
+      return result.data;
+    } catch (e) {
+      console.error('[InstagramNavigator] Analysis API error:', e);
+      return null;
+    }
+  }
+
+  async saveLead(lead) {
+    try {
+      await apiRequest('/api/v1/leads/import', {
+        method: 'POST',
+        body: JSON.stringify({
+          source: 'extension',
+          platform: 'instagram',
+          sourceUrl: lead.profileUrl,
+          leads: [lead]
+        })
+      });
+
+      // Update local stats
+      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+      await chrome.storage.local.set({
+        leadsToday: (stats.leadsToday || 0) + 1,
+        leadsMonth: (stats.leadsMonth || 0) + 1,
+      });
+    } catch (e) {
+      console.error('[InstagramNavigator] Failed to save lead:', e);
+    }
+  }
+
+  async updateProgress(status) {
+    if (!this.originalTabId) return;
+    try {
+      await chrome.tabs.sendMessage(this.originalTabId, {
+        action: 'updateImportProgress',
+        data: {
+          current: this.processedCount,
+          total: this.total,
+          status,
+          qualified: this.qualifiedCount,
+          discarded: this.discardedCount
+        }
+      });
+    } catch (e) {
+      // Tab might be closed
+    }
+  }
+
+  stop() {
+    console.log('[InstagramNavigator] Stopping...');
+    this.isProcessing = false;
+    this.updateProgress('Parado pelo usuário');
+  }
+
+  finish() {
+    this.isProcessing = false;
+    const statsMsg = `Concluído! ${this.qualifiedCount} importados, ${this.discardedCount} descartados`;
+    this.updateProgress(statsMsg);
+    console.log(`[InstagramNavigator] Finished! ${this.qualifiedCount} qualified, ${this.discardedCount} discarded of ${this.total}`);
+  }
+
+  sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  randomDelay(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
+}
+
+const instagramNavigator = new InstagramNavigator();
+const linkedInNavigator = new LinkedInNavigator();
 const navigator = new LeadNavigator();
+
 
 // --- Message handlers ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -537,9 +985,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        case 'startDeepImport': {
+          // Pass criteria for AI analysis if provided
+          const criteria = request.data.criteria || '';
+          const deepScan = request.data.deepScan || false;
+          // FIX: Use explicitly passed tabId or fallback to sender (sender might be popup)
+          const targetTabId = request.data.tabId || sender.tab?.id;
+
+          if (!targetTabId) {
+            console.error('[Background] No target tab ID for Deep Import');
+            sendResponse({ success: false, error: 'No active tab found' });
+            return;
+          }
+
+          linkedInNavigator.start(request.data.leads, targetTabId, criteria, deepScan);
+          sendResponse({ success: true });
+          break;
+        }
+
         case 'stopAutoMode': {
           navigator.stop();
           sendResponse({ success: true });
+          break;
+        }
+
+        case 'startInstagramDeepImport': {
+          // Instagram Deep Import with AI analysis
+          const instaCriteria = request.data.criteria || '';
+          const options = {
+            onlyQualified: request.data.onlyQualified !== false,
+            minScore: request.data.minScore || 60
+          };
+          instagramNavigator.start(request.data.leads, sender.tab.id, instaCriteria, options);
+          sendResponse({ success: true });
+          break;
+        }
+
+        case 'stopInstagramDeepImport': {
+          instagramNavigator.stop();
+          sendResponse({ success: true });
+          break;
+        }
+
+        case 'analyzeBatch': {
+          // Batch analysis with AI
+          const response = await apiRequest('/api/v1/leads/analyze-batch', {
+            method: 'POST',
+            body: JSON.stringify({
+              profiles: request.data.profiles,
+              criteria: request.data.criteria
+            })
+          });
+          sendResponse({ success: true, data: response.data });
           break;
         }
 

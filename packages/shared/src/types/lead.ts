@@ -138,6 +138,11 @@ export interface ImportLeadData {
   location?: string;
   score?: number;
   analysisReason?: string;
+  // LinkedIn-specific fields
+  headline?: string;       // Professional title/position
+  company?: string;        // Current company/employer
+  industry?: string;       // Industry/sector
+  connectionCount?: number; // Number of connections
 }
 
 export interface ImportJobResponse {

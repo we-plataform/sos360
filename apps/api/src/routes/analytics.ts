@@ -64,8 +64,9 @@ analyticsRouter.get('/overview', async (req, res, next) => {
     });
 
     const platformCounts = leadsByPlatform.reduce(
-      (acc: Record<string, number>, item: { platform: string; _count: { id: number } }) => {
-        acc[item.platform] = item._count.id;
+      (acc: Record<string, number>, item: { platform: string | null; _count: { id: number } }) => {
+        const key = item.platform || 'unknown';
+        acc[key] = item._count.id;
         return acc;
       },
       {} as Record<string, number>

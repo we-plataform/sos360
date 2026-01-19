@@ -407,6 +407,20 @@
 
       <div id="action-message" style="display: none; margin-bottom: 12px;"></div>
 
+      <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <input type="checkbox" id="deep-scan-checkbox" style="width: auto;">
+        <label for="deep-scan-checkbox" style="font-weight: normal; cursor: pointer;">Deep Scan (Análise
+          Comportamental)</label>
+      </div>
+
+      <div class="form-group" id="ai-criteria-container" style="display: none; margin-bottom: 12px;">
+        <label for="ai-criteria-input" style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">Instruções para a IA
+          (Opcional)</label>
+        <textarea id="ai-criteria-input"
+          style="width: 100%; height: 60px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; resize: none;"
+          placeholder="Ex: Priorize donos de clínicas, ignore estudantes..."></textarea>
+      </div>
+
       <div class="actions">
         <button class="btn btn-primary" id="import-btn" disabled>
           Importar Leads desta Página
