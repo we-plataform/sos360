@@ -27,7 +27,25 @@
     if (!url) return null;
     const href = url.startsWith('http') ? url : `https://www.linkedin.com${url}`;
     const match = href.match(/linkedin\.com\/in\/([^/?]+)/);
-    return match ? match[1] : null;
+    if (!match) return null;
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1]; // Fallback if decoding fails
+    }
+  }
+
+  /**
+   * Formats a LinkedIn username slug into a readable name
+   * e.g., "natália-ávila-2062b5251" -> "Natália Ávila"
+   */
+  function formatUsernameAsName(username) {
+    if (!username) return null;
+    return username
+      .replace(/-[a-f0-9]{6,}$/i, '')  // Remove ID hash at the end
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   function matchesKeywords(text, keywords) {
@@ -140,7 +158,7 @@
 
         leads.push({
           username,
-          fullName: getTextContent(card.querySelector('span[aria-hidden="true"]')) || getTextContent(linkEl),
+          fullName: getTextContent(card.querySelector('span[aria-hidden="true"]')) || getTextContent(linkEl) || formatUsernameAsName(username),
           profileUrl,
           bio: getTextContent(card.querySelector('.entity-result__primary-subtitle, .search-result__subtitle')),
           avatarUrl: card.querySelector('img')?.src || null,
@@ -158,7 +176,7 @@
 
     return {
       username,
-      fullName: getTextContent(document.querySelector('h1')),
+      fullName: getTextContent(document.querySelector('h1')) || formatUsernameAsName(username),
       profileUrl: `https://linkedin.com/in/${username}`,
       bio: getTextContent(document.querySelector('.text-body-medium')),
       location: getTextContent(document.querySelector('.text-body-small.inline')),
@@ -360,6 +378,11 @@
               fullName = el.textContent.trim();
               break;
             }
+          }
+
+          // Fallback: format username as name if fullName not found
+          if (!fullName && username) {
+            fullName = formatUsernameAsName(username);
           }
 
           const avatarEl = card.querySelector('img');

@@ -558,7 +558,9 @@ authRouter.get('/me', authenticate, async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        ...user,
+        user: {
+          ...user,
+        },
         context: {
           company: companyMember
             ? {
