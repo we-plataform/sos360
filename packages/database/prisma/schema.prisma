@@ -113,6 +113,7 @@ model Workspace {
   automations Automation[]
   webhooks    Webhook[]
   importJobs  ImportJob[]
+  pipelines   Pipeline[]
 
   @@index([companyId])
   @@map("workspaces")
@@ -188,6 +189,46 @@ model RefreshToken {
 }
 
 // ============================================
+// PIPELINES
+// ============================================
+
+model Pipeline {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  stages PipelineStage[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366F1")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  leads Lead[]
+
+  @@unique([pipelineId, name])
+  @@index([pipelineId, order])
+  @@map("pipeline_stages")
+}
+
+// ============================================
 // LEADS
 // ============================================
 
@@ -208,7 +249,8 @@ model Lead {
   postsCount        Int?
   verified          Boolean    @default(false)
   score             Int        @default(0)
-  status            LeadStatus @default(new)
+  status            LeadStatus @default(new)  // Legacy, kept for compatibility
+  position          Float      @default(0)    // For manual ordering in Kanban
   notes             String?
   sourceUrl         String?
   customFields      Json       @default("{}")
@@ -222,6 +264,9 @@ model Lead {
   assignedToId String?
   assignedTo   User?   @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
 
+  pipelineStageId String?
+  pipelineStage   PipelineStage? @relation(fields: [pipelineStageId], references: [id], onDelete: SetNull)
+
   tags           LeadTag[]
   socialProfiles SocialProfile[]
   conversation   Conversation?
@@ -234,6 +279,7 @@ model Lead {
   @@index([workspaceId, score])
   @@index([workspaceId, createdAt])
   @@index([assignedToId])
+  @@index([pipelineStageId, position])
   @@map("leads")
 }
 

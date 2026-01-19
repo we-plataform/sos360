@@ -3,6 +3,7 @@ import { authRouter } from './auth.js';
 import { companiesRouter } from './companies.js';
 import { workspacesRouter } from './workspaces.js';
 import { leadsRouter } from './leads.js';
+import { pipelinesRouter } from './pipelines.js';
 import { tagsRouter } from './tags.js';
 import { conversationsRouter } from './conversations.js';
 import { templatesRouter } from './templates.js';
@@ -23,6 +24,7 @@ export function setupRoutes(app: Express): void {
   app.use('/api/v1/companies', companiesRouter);
   app.use('/api/v1/workspaces', workspacesRouter);
   app.use('/api/v1/leads', leadsRouter);
+  app.use('/api/v1/pipelines', pipelinesRouter);
   app.use('/api/v1/tags', tagsRouter);
   app.use('/api/v1/conversations', conversationsRouter);
   app.use('/api/v1/templates', templatesRouter);

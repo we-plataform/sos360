@@ -285,6 +285,75 @@ class ApiClient {
       body: JSON.stringify({ email, role }),
     });
   }
+
+  // Pipelines
+  async getPipelines() {
+    return this.request('/api/v1/pipelines');
+  }
+
+  async getPipeline(id: string) {
+    return this.request(`/api/v1/pipelines/${id}`);
+  }
+
+  async createPipeline(data: { name: string; description?: string; stages?: { name: string; color?: string }[] }) {
+    return this.request('/api/v1/pipelines', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePipeline(id: string, data: { name?: string; description?: string }) {
+    return this.request(`/api/v1/pipelines/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePipeline(id: string) {
+    return this.request(`/api/v1/pipelines/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addPipelineStage(pipelineId: string, data: { name: string; color?: string }) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/stages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async reorderStages(pipelineId: string, stages: { id: string; order: number }[]) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/stages/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stages }),
+    });
+  }
+
+  async updateStage(pipelineId: string, stageId: string, data: { name?: string; color?: string }) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/stages/${stageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStage(pipelineId: string, stageId: string) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/stages/${stageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async moveLead(pipelineId: string, leadId: string, stageId: string, position: number) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/leads/move`, {
+      method: 'POST',
+      body: JSON.stringify({ leadId, stageId, position }),
+    });
+  }
+
+  async migratePipeline(pipelineId: string) {
+    return this.request(`/api/v1/pipelines/${pipelineId}/migrate`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new ApiClient(API_URL);
