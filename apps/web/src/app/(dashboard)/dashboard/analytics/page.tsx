@@ -22,7 +22,7 @@ export default function AnalyticsPage() {
   });
 
   return (
-    <div className="p-8">
+    <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <p className="text-gray-600">
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
             <p className="text-3xl font-bold">
               {formatPercent(
                 funnel?.conversionRates?.qualifiedToScheduled *
-                  funnel?.conversionRates?.scheduledToClosed || 0
+                funnel?.conversionRates?.scheduledToClosed || 0
               )}
             </p>
             <p className="text-sm text-gray-500">qualificado → fechado</p>

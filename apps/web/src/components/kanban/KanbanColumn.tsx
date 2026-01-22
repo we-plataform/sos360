@@ -154,7 +154,7 @@ export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
         isOpen={isAutomationModalOpen}
         onClose={() => setIsAutomationModalOpen(false)}
         stageId={stage.id}
-        stageName={stage.title}
+        stageName={stage.name}
         existingAutomation={automation}
         onSave={handleSaveAutomation}
       />

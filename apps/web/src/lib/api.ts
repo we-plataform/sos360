@@ -477,6 +477,64 @@ class ApiClient {
       body: JSON.stringify(config),
     });
   }
+
+  // Posts
+  async getPosts(params?: Record<string, string | number | boolean>) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/posts${query ? `?${query}` : ''}`);
+  }
+
+  async getPost(id: string) {
+    return this.request(`/api/v1/posts/${id}`);
+  }
+
+  async createPost(data: Record<string, unknown>) {
+    return this.request('/api/v1/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePost(id: string, data: Record<string, unknown>) {
+    return this.request(`/api/v1/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePost(id: string) {
+    return this.request(`/api/v1/posts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async importPosts(data: Record<string, unknown>) {
+    return this.request('/api/v1/posts/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async linkPostToLead(postId: string, leadId: string) {
+    return this.request(`/api/v1/posts/${postId}/link-lead`, {
+      method: 'POST',
+      body: JSON.stringify({ leadId }),
+    });
+  }
+
+  async unlinkPostFromLead(postId: string) {
+    return this.request(`/api/v1/posts/${postId}/link-lead`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient(API_URL);

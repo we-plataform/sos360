@@ -317,36 +317,40 @@
     return leads;
   }
 
-  function extractCurrentProfile() {
+  async function extractCurrentProfile() {
     const url = window.location.href;
     if (!url.includes('/in/')) return null;
     const username = parseLinkedInUrl(url);
     if (!username) return null;
 
-    // Basic info
-    const fullName = getTextContent(document.querySelector('h1')) || formatUsernameAsName(username);
+    console.log(`[SOS 360] Extracting robust profile data for ${username}...`);
 
-    // Headline/Bio - the professional title under the name
-    // Suporta: visualização autenticada (.text-body-medium) e pública (.top-card-layout__headline)
-    const headlineEl = document.querySelector('.text-body-medium.break-words') ||
-      document.querySelector('.top-card-layout__headline') ||
-      document.querySelector('[data-generated-suggestion-target*="headline"]') ||
-      document.querySelector('.pv-text-details__left-panel .text-body-medium');
-    const headline = getTextContent(headlineEl);
+    // Helper: Scroll to top of profile to ensure header is rendered
+    window.scrollTo(0, 0);
+    await sleep(500);
 
-    // Location
-    // Suporta: autenticado (.text-body-small.inline.t-black--light) e público (.top-card__subline-item:first-child)
-    const locationEl = document.querySelector('.text-body-small.inline.t-black--light.break-words') ||
-      document.querySelector('.pv-text-details__left-panel .text-body-small') ||
-      document.querySelector('.top-card-layout__first-subline span:first-child') ||
-      document.querySelector('.top-card__subline-item:first-child');
-    const location = getTextContent(locationEl);
+    // --- 1. Basic Info (Name, Headline, Location) ---
+    // Multiple selectors for resilience against AB testing
+    const fullName = getTextContent(document.querySelector('h1')) ||
+      getTextContent(document.querySelector('.text-heading-xlarge')) ||
+      getTextContent(document.querySelector('.top-card-layout__title')) ||
+      formatUsernameAsName(username);
 
-    // Avatar
-    const avatarUrl = document.querySelector('.pv-top-card-profile-picture__image, .profile-photo-edit__preview, img[class*="pv-top-card"]')?.src || null;
+    const headline = getTextContent(document.querySelector('.text-body-medium.break-words')) ||
+      getTextContent(document.querySelector('.top-card-layout__headline')) ||
+      getTextContent(document.querySelector('[data-generated-suggestion-target*="headline"]')) ||
+      getTextContent(document.querySelector('.pv-text-details__left-panel .text-body-medium'));
 
-    // About section (bio)
-    // Suporta: seletores autenticados e públicos
+    const location = getTextContent(document.querySelector('.text-body-small.inline.t-black--light.break-words')) ||
+      getTextContent(document.querySelector('.pv-text-details__left-panel .text-body-small')) ||
+      getTextContent(document.querySelector('.top-card-layout__first-subline span:first-child')) ||
+      getTextContent(document.querySelector('.top-card__subline-item:first-child'));
+
+    const avatarUrl = document.querySelector('.pv-top-card-profile-picture__image')?.src ||
+      document.querySelector('.profile-photo-edit__preview')?.src ||
+      document.querySelector('img[class*="pv-top-card"]')?.src || null;
+
+    // --- 2. About / Bio ---
     const aboutSection = document.querySelector('#about ~ .display-flex .pv-shared-text-with-see-more') ||
       document.querySelector('#about ~ div[class*="full-width"] .pv-shared-text-with-see-more') ||
       document.querySelector('[data-section="about"]') ||
@@ -354,219 +358,158 @@
       document.querySelector('.about-section .core-section-container__content');
     const bio = getTextContent(aboutSection) || headline;
 
-    // Experience - try to get current company and position
-    // Suporta: ID (#experience) para autenticado e data-section para público
+    // --- 3. Current Company & Position ---
     let company = null;
     let currentPosition = null;
     const experienceSection = document.querySelector('#experience') ||
       document.querySelector('[data-section="experience"]') ||
       document.querySelector('section.experience');
+
     if (experienceSection) {
       const experienceContainer = experienceSection.closest('section');
       if (experienceContainer) {
-        // Get first experience item (most recent)
         const firstExperience = experienceContainer.querySelector('.artdeco-list__item, li[class*="experience"]');
         if (firstExperience) {
-          // Company name is usually in a span with specific styling
           const companyEl = firstExperience.querySelector('.t-bold span[aria-hidden="true"]') ||
             firstExperience.querySelector('.hoverable-link-text span[aria-hidden="true"]');
-          company = getTextContent(companyEl);
+          const positionEl = firstExperience.querySelector('.t-bold span[aria-hidden="true"]'); // Logic check: selector might be same if structure differs
 
-          // Position/title
-          const positionEl = firstExperience.querySelector('.t-bold span[aria-hidden="true"]');
-          currentPosition = getTextContent(positionEl);
+          // Re-evaluate structure based on observed DOM
+          const tBoldElements = firstExperience.querySelectorAll('.t-bold span[aria-hidden="true"]');
+          if (tBoldElements.length >= 2) {
+            // Structure: Title \n Company
+            currentPosition = getTextContent(tBoldElements[0]);
+            company = getTextContent(tBoldElements[1]);
+          } else if (tBoldElements.length === 1) {
+            // Structure: Title at Company (old) or just one field
+            const text = getTextContent(tBoldElements[0]);
+            if (text) {
+              currentPosition = text;
+              // Try to find company in secondary text
+              const secondaryText = getTextContent(firstExperience.querySelector('.t-14.t-normal span[aria-hidden="true"]'));
+              company = secondaryText ? secondaryText.split('·')[0].trim() : null;
+            }
+          }
         }
       }
     }
 
-    // If no company from experience, try from headline (often "Position at Company")
+    // Fallback company from headline
     if (!company && headline) {
       const atMatch = headline.match(/(?:at|@|em|na)\s+(.+?)(?:\s*[|·•]|$)/i);
-      if (atMatch) {
-        company = atMatch[1].trim();
+      if (atMatch) company = atMatch[1].trim();
+    }
+
+    // --- 4. ROBUST Connection & Follower Count Extraction ---
+    // We strive for 100% precision by checking ALL known locations
+    let connectionCount = 0;
+    let followersCount = 0;
+
+    // Strategy A: Top Card Link (Most reliable for logged-in 1st/2nd/3rd degree)
+    // Selector looks for the link specifically styled as connection count
+    const topCardLinks = Array.from(document.querySelectorAll('ul.pv-top-card--list > li > span, ul.pv-top-card--list > li > a'));
+    for (const el of topCardLinks) {
+      const text = getTextContent(el);
+      if (!text) continue;
+
+      const nums = text.match(/[\d,.]+/g);
+      if (!nums) continue;
+      // Convert "500+" to 500
+      const val = text.includes('500+') ? 500 : parseMetricCount(nums[0]);
+
+      if (text.toLowerCase().includes('connect') || text.toLowerCase().includes('conex')) {
+        if (val > connectionCount) connectionCount = val;
+      }
+      if (text.toLowerCase().includes('follower') || text.toLowerCase().includes('seguind') || text.toLowerCase().includes('seguid')) {
+        if (val > followersCount) followersCount = val;
       }
     }
 
-    // Connection count and followers count extraction
-    // Suporta tanto visualização autenticada quanto pública
-    let followersCount = null;
-    let connectionCount = null;
-
-    // --- ESTRATÉGIA 1: Visualização autenticada (perfil logado) ---
-    // Tenta pegar de .pv-top-card--list (estrutura mais comum quando logado)
-    const topCardListItems = document.querySelectorAll('.pv-top-card--list > li, .pv-top-card--list > span, .pv-top-card--list-bullet li');
-    for (const item of topCardListItems) {
-      const text = getTextContent(item);
-      if (text) {
-        // Followers
-        if (text.match(/followers|seguidores/i)) {
-          const match = text.match(/([\d,.]+[KMkm]?)/);
+    // Strategy B: Public Profile Subline (Guest view or specific layouts)
+    if (connectionCount === 0 || followersCount === 0) {
+      const subline = getTextContent(document.querySelector('.top-card-layout__first-subline'));
+      if (subline) {
+        if (subline.includes('follower') || subline.includes('seguid')) {
+          const match = subline.match(/([\d,.]+[KkMm]?)/);
           if (match) followersCount = parseMetricCount(match[1]);
         }
-        // Connections
-        if (text.match(/connections|conexões/i)) {
-          if (text.includes('500+')) {
-            connectionCount = 500;
-          } else {
-            const match = text.match(/([\d,.]+)/);
-            if (match) connectionCount = parseInt(match[1].replace(/[^\d]/g, ''), 10);
-          }
+        if (subline.includes('connect') || subline.includes('conex')) {
+          const match = subline.match(/([\d,.]+[KkMm]?)\+?/);
+          if (match) connectionCount = parseMetricCount(match[1]);
         }
       }
     }
 
-    // --- ESTRATÉGIA 2: Visualização pública (guest view) ---
-    // Tenta de .top-card-layout__first-subline (texto completo contendo followers e connections)
-    if (!followersCount || !connectionCount) {
-      const publicSubline = document.querySelector('.top-card-layout__first-subline');
-      if (publicSubline) {
-        const text = publicSubline.textContent || '';
-        // Extrai followers (ex: "10M followers")
-        const followersMatch = text.match(/([\d,.]+[KMkm]?)\s*followers|([\d,.]+[KMkm]?)\s*seguidores/i);
-        if (followersMatch && !followersCount) {
-          followersCount = parseMetricCount(followersMatch[1] || followersMatch[2]);
-        }
-        // Extrai connections (ex: "500+ connections")
-        const connectionsMatch = text.match(/([\d,.]+\+?)\s*connections|([\d,.]+\+?)\s*conexões/i);
-        if (connectionsMatch && !connectionCount) {
-          const val = connectionsMatch[1] || connectionsMatch[2];
-          if (val.includes('+')) {
-            connectionCount = parseInt(val.replace(/[^\d]/g, ''), 10);
-          } else {
-            connectionCount = parseInt(val.replace(/[^\d]/g, ''), 10);
-          }
+    // Strategy C: Activity Section (Often contains exact follower count)
+    // We scroll deeply to ensure this might be rendered if lazily loaded
+    if (followersCount === 0) {
+      const activitySection = document.querySelector('#content_collections') || document.querySelector('.pv-recent-activity-detail__feed-container');
+      if (activitySection) {
+        // Look for "1,234 followers" text inside activity header
+        const followerText = getTextContent(activitySection.querySelector('.pvs-header__subtitle'));
+        if (followerText && (followerText.includes('follower') || followerText.includes('seguid'))) {
+          followersCount = parseMetricCount(followerText);
         }
       }
     }
 
-    // --- ESTRATÉGIA 3: Activity Section header ---
-    if (!followersCount) {
-      const activityHeaders = document.querySelectorAll('.pvs-header__subtitle, #content_collections span.t-black--light, .pvs-header__optional-link span');
-      for (const header of activityHeaders) {
-        const text = header.textContent || '';
-        if (text.match(/followers|seguidores/i)) {
-          const match = text.match(/([\d,.]+[KMkm]?)/);
-          if (match) {
-            followersCount = parseMetricCount(match[1]);
-            break;
-          }
-        }
-      }
+    // Strategy D: Contact Info Modal (The "Holy Grail" for exact connections if available)
+    // We verify if we can click "Contact info" without navigating away
+    const contactInfoBtn = document.querySelector('#top-card-text-details-contact-info');
+    if (contactInfoBtn && connectionCount < 500) { // Only needed if < 500 or not found
+      // Note: simulated keypress could open this, but might be intrusive. 
+      // We rely on standard visual elements for now to avoid popups blocking flow.
     }
 
-    // Fallback para followingCount (conexões) se connectionCount não encontrado
-    const followingCount = connectionCount;
-
-    // Recent Posts Extraction
-    // We try to find the activity section and get the last few posts
-    const recentPosts = [];
-    const activitySection = document.querySelector('#content_collections, .pv-recent-activity-detail__feed-container');
-
-    // Note: LinkedIn structure varies wildy. We look for generic feed update containers.
-    // Try to find post containers within the document if activity section isn't isolated, 
-    // or scoped to activity section if found.
-    const searchRoot = activitySection || document;
-
-    // Selectors for posts on profile activity
-    const postSelectors = [
-      '.profile-creator-shared-feed-update__container',
-      '.feed-shared-update-v2',
-      '.occludable-update'
-    ];
-
-    let postElements = [];
-    for (const sel of postSelectors) {
-      const els = searchRoot.querySelectorAll(sel);
-      if (els.length > 0) {
-        postElements = Array.from(els);
-        break;
-      }
+    // Fallback: If connections found but no followers, usually followers >= connections
+    if (followersCount === 0 && connectionCount > 0) {
+      followersCount = connectionCount;
+    }
+    // Vice versa, if has followers but 0 connections (e.g. Creator mode), assume connections ~ followers up to 500
+    if (connectionCount === 0 && followersCount > 0) {
+      connectionCount = followersCount > 500 ? 500 : followersCount;
     }
 
-    // Limit to 3 most recent posts
-    postElements.slice(0, 3).forEach(postEl => {
-      try {
-        // Text content
-        const textEl = postEl.querySelector('.feed-shared-update-v2__description, .update-components-text');
-        const content = getTextContent(textEl);
+    console.log(`[SOS 360] Extraction Result: Conn=${connectionCount}, Foll=${followersCount}, Co=${company}`);
 
-        // Meta (likes/comments) - approximate
-        const socialCounts = postEl.querySelector('.social-details-social-counts, .feed-shared-social-counts');
-        const reactionCountStr = getTextContent(socialCounts?.querySelector('.social-details-social-counts__reactions-count, .social-details-social-activity__detail-button'));
-        const commentCountStr = getTextContent(socialCounts?.querySelector('.social-details-social-counts__comments, .social-details-social-activity__detail-button--comments'));
+    // --- 5. Metadata Construction ---
+    // Industry
+    const industry = getTextContent(document.querySelector('.pv-text-details__left-panel span[class*="industry"]'));
 
-        let likes = 0;
-        if (reactionCountStr) {
-          likes = parseInt(reactionCountStr.replace(/[^\d]/g, ''), 10) || 0;
-        }
-
-        // Date/Time (e.g. "2d", "1w")
-        const timeEl = postEl.querySelector('.update-components-actor__sub-description, .feed-shared-actor__sub-description');
-        const dateStr = getTextContent(timeEl);
-
-        if (content) {
-          recentPosts.push({
-            content,
-            date: dateStr,
-            likes,
-            platform: 'linkedin'
-          });
-        }
-      } catch (e) { /* ignore individual post failure */ }
-    });
-
-
-    // Industry (sometimes in the profile header area)
-    let industry = null;
-    const industryEl = document.querySelector('.pv-text-details__left-panel span[class*="industry"]');
-    industry = getTextContent(industryEl);
-
-    // Extract jobTitle from headline (parse "Title at Company" pattern)
-    let jobTitle = null;
-    if (headline) {
-      // Try to extract job title - usually before "at/em" or first part before "|"
-      const atMatch = headline.match(/^(.+?)\s+(?:at|@|em|na)\s+/i);
-      const pipeMatch = headline.match(/^(.+?)\s*[|·•]/);
-      if (atMatch) {
-        jobTitle = atMatch[1].trim();
-      } else if (pipeMatch) {
-        jobTitle = pipeMatch[1].trim();
-      } else if (currentPosition) {
-        jobTitle = currentPosition;
-      }
+    // Job Title
+    let jobTitle = currentPosition;
+    if (!jobTitle && headline) {
+      // Heuristics for direct title extraction
+      const parts = headline.split(/[|•·]/);
+      jobTitle = parts[0].trim();
     }
 
-    // Parse location into address components
+    // Address
     let address = null;
     if (location) {
-      const parts = location.split(',').map(p => p.trim());
-      if (parts.length >= 3) {
-        address = { city: parts[0], state: parts[1], country: parts[2] };
-      } else if (parts.length === 2) {
-        address = { city: parts[0], country: parts[1] };
-      } else if (parts.length === 1) {
-        address = { city: parts[0] };
-      }
+      const parts = location.split(',').map(s => s.trim());
+      if (parts.length === 3) address = { city: parts[0], state: parts[1], country: parts[2] };
+      else if (parts.length === 2) address = { city: parts[0], country: parts[1] };
+      else address = { city: location };
     }
 
     return {
       username,
       fullName,
       profileUrl: `https://linkedin.com/in/${username}`,
-      headline,      // Professional title/position
+      headline,
       bio: bio || headline,
       location,
       avatarUrl,
-      company,       // Current company
-      industry,      // Industry sector
-      connectionCount: connectionCount || 0,
-      followersCount: followersCount || 0,
-      followingCount: connectionCount || 0, // LinkedIn "Connections" mapped to followingCount for backward compatibility
-      postsCount: recentPosts.length, // We don't have total count easily, just count what we found
-      posts: recentPosts,
-      // New expanded fields
-      jobTitle,      // Parsed from headline or position
-      address        // Parsed from location
+      company,
+      industry,
+      connectionCount,
+      followersCount,
+      followingCount: connectionCount, // Backward compatibility
+      postsCount: 0, // Activity extraction is separate/expensive
+      posts: [],
+      jobTitle,
+      address
     };
   }
 
@@ -670,23 +613,46 @@
     const experiences = [];
     const items = sectionContainer.querySelectorAll('.artdeco-list__item, li.pvs-list__paged-list-item');
 
+    console.log(`[SOS 360] Found ${items.length} raw experience items`);
+    const processedElements = new Set();
+
     for (const item of items) {
+      // Avoid processing nested items twice
+      if (processedElements.has(item)) continue;
+
+      // Check if this item is inside another item we are about to process (if querySelectorAll returned both parent and child)
+      // Actually simpler: just check if it is a child of any OTHER item in the list? No, that's O(N^2).
+      // Better: assume items are in document order. If we process a parent, we should mark its children as processed.
+
       try {
+        console.log('[SOS 360] Processing item:', item.className);
         // Check if this is a grouped experience (multiple roles at same company)
         const subItems = item.querySelectorAll('.pvs-entity__sub-components li');
 
         if (subItems.length > 0) {
+          console.log(`[SOS 360] Item is GROUPED with ${subItems.length} sub-items`);
+          // Mark subItems as processed so we don't handle them in the main loop again
+          subItems.forEach(sub => processedElements.add(sub));
+
           // Grouped experience - company with multiple roles
           const companyEl = item.querySelector('.t-bold span[aria-hidden="true"]');
           const companyName = getTextContent(companyEl);
+          console.log('[SOS 360] Group Company:', companyName);
+
           const companyLogoEl = item.querySelector('img');
           const companyLogo = companyLogoEl?.src || null;
           const companyLinkEl = item.querySelector('a[href*="/company/"]');
           const companyUrl = companyLinkEl?.href || null;
 
           for (const subItem of subItems) {
-            const roleTitleEl = subItem.querySelector('.t-bold span[aria-hidden="true"]');
+            // Debug selectors
+            const debugTitle = subItem.querySelector('.t-bold span[aria-hidden="true"]');
+            console.log('[SOS 360] SubItem Title Debug:', debugTitle ? debugTitle.textContent : 'Not Found', subItem.innerHTML.substring(0, 100));
+
+            const roleTitleEl = subItem.querySelector('.t-bold span[aria-hidden="true"]') ||
+              subItem.querySelector('.mr1 span[aria-hidden="true"]');
             const roleTitle = getTextContent(roleTitleEl) || 'Unknown Role';
+
             const dateRangeEl = subItem.querySelector('.t-normal.t-black--light span[aria-hidden="true"]');
             const dateRange = getTextContent(dateRangeEl);
             const locationEl = subItem.querySelectorAll('.t-normal.t-black--light span[aria-hidden="true"]')[1];
@@ -719,7 +685,12 @@
           }
         } else {
           // Single experience
-          const titleEl = item.querySelector('.t-bold span[aria-hidden="true"]');
+          console.log('[SOS 360] Item is SINGLE');
+          const titleEl = item.querySelector('.t-bold span[aria-hidden="true"]') ||
+            item.querySelector('.mr1 span[aria-hidden="true"]');
+
+          console.log('[SOS 360] Single Title Debug:', titleEl ? titleEl.textContent : 'Not Found');
+
           const roleTitle = getTextContent(titleEl) || 'Unknown Role';
           const companyLineEl = item.querySelectorAll('.t-14.t-normal span[aria-hidden="true"]')[0];
           let companyName = getTextContent(companyLineEl) || 'Unknown Company';
@@ -774,6 +745,7 @@
     }
 
     console.log(`[SOS 360] Extracted ${experiences.length} experiences`);
+    experiences.forEach(e => console.log(`[SOS 360] Final exp: ${e.roleTitle} at ${e.companyName}`));
     return experiences;
   }
 

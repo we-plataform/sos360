@@ -133,7 +133,7 @@ export default function EditAudiencePage() {
     }, [audience, isDataLoaded]);
 
     const updateMutation = useMutation({
-        mutationFn: (data: AudienceFormData) => api.updateAudience(audienceId, data),
+        mutationFn: (data: AudienceFormData) => api.updateAudience(audienceId, data as any),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['audiences'] });
             queryClient.invalidateQueries({ queryKey: ['audience', audienceId] });
@@ -562,7 +562,7 @@ export default function EditAudiencePage() {
     };
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Editar Audiência</h1>

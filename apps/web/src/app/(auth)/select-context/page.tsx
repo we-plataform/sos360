@@ -106,7 +106,7 @@ function SelectContextContent() {
 
 export default function SelectContextPage() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
             <Suspense fallback={<div>Carregando...</div>}>
                 <SelectContextContent />
             </Suspense>

@@ -91,7 +91,7 @@ export default function NewAudiencePage() {
     });
 
     const createMutation = useMutation({
-        mutationFn: (data: AudienceFormData) => api.createAudience(data),
+        mutationFn: (data: AudienceFormData) => api.createAudience(data as any),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['audiences'] });
             router.push('/dashboard/audiences');
@@ -513,7 +513,7 @@ export default function NewAudiencePage() {
     };
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Nova Audiência</h1>

@@ -78,7 +78,7 @@ export function RunAutomationModal({
                             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Stage Leads</div>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            Configurando execução para o estágio <strong>{stage.title}</strong>.
+                            Configurando execução para o estágio <strong>{stage.name}</strong>.
                             Por segurança, recomendamos limitar o número de contatos por execução.
                         </div>
                     </div>

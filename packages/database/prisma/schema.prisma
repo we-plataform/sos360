@@ -112,6 +112,7 @@ model Workspace {
   importJobs  ImportJob[]
   pipelines   Pipeline[]
   audiences   Audience[]
+  posts       Post[]
 
   @@index([companyId])
   @@map("workspaces")
@@ -303,6 +304,7 @@ model Lead {
   featured         LeadFeatured[]
   contactInfo      LeadContactInfo?
   leadPosts        LeadPost[]
+  posts            Post[]           @relation("PostsLibrary")
 
   @@unique([workspaceId, platform, profileUrl]) // Keep for backward compatibility or primary profile
   @@index([workspaceId, status])
@@ -383,6 +385,7 @@ model Tag {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   leads LeadTag[]
+  posts PostTag[]
 
   @@unique([workspaceId, name])
   @@map("tags")
@@ -1084,7 +1087,7 @@ model LeadPost {
   id         String   @id @default(cuid())
   leadId     String
   lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  
+
   content    String?
   date       String?
   likes      Int?
@@ -1095,10 +1098,70 @@ model LeadPost {
   linkedUrl  String?  // External link in the post
   postUrl    String?  // URL to the post itself
   postType   String?  // post, share, article, comment
-  
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([leadId])
   @@map("lead_posts")
+}
+
+// ============================================
+// POSTS (Standalone Posts Library)
+// ============================================
+
+model Post {
+  id              String    @id @default(cuid())
+  platform        Platform
+  postUrl         String
+  content         String?
+  imageUrls       String[]  @default([])
+  videoUrls       String[]  @default([])
+  linkedUrl       String?
+  postType        String?   // post, reel, story, article, share
+
+  // Engagement metrics
+  likesCount      Int?
+  commentsCount   Int?
+  sharesCount     Int?
+  viewsCount      Int?
+
+  // Author info
+  authorUsername  String
+  authorFullName  String?
+  authorAvatarUrl String?
+  authorProfileUrl String?
+
+  // Optional link to existing Lead
+  leadId          String?
+  lead            Lead?     @relation("PostsLibrary", fields: [leadId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  postDate        DateTime?
+  importedAt      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Multi-tenancy
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  tags            PostTag[]
+
+  @@unique([workspaceId, platform, postUrl])
+  @@index([workspaceId, platform])
+  @@index([workspaceId, authorUsername])
+  @@index([workspaceId, importedAt])
+  @@index([leadId])
+  @@map("posts")
+}
+
+model PostTag {
+  postId    String
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([postId, tagId])
+  @@map("post_tags")
 }

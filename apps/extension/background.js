@@ -37,6 +37,13 @@ function getTokenExpirationTime(token) {
   return payload.exp * 1000;
 }
 
+// --- Utility helpers ---
+
+// Sleep utility function
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // --- Storage helpers ---
 async function getApiUrl() {
   const result = await chrome.storage.local.get(['apiUrl']);
@@ -1100,20 +1107,31 @@ async function handleInstagramPostImport(postData) {
  * Imports the profiles as leads using the standard import endpoint
  */
 async function handleInstagramCommentAuthors(data) {
-  const { profiles, postUrl } = data;
+  const { profiles, postUrl, pipelineId, stageId } = data;
 
-  console.log(`[SOS 360] Importing ${profiles.length} Instagram comment authors`);
+  console.log(`[SOS 360] Importing ${profiles.length} Instagram comment authors to pipeline ${pipelineId}, stage ${stageId}`);
 
   try {
+    const requestBody = {
+      source: 'extension',
+      platform: 'instagram',
+      sourceUrl: postUrl,
+      leads: profiles,
+    };
+
+    // API expects pipelineStageId, not pipelineId/stageId
+    // Convert stageId to pipelineStageId
+    if (stageId) {
+      requestBody.pipelineStageId = stageId;
+      console.log(`[SOS 360] Setting pipelineStageId: ${stageId}`);
+    }
+
     const response = await apiRequest('/api/v1/leads/import', {
       method: 'POST',
-      body: JSON.stringify({
-        source: 'extension',
-        platform: 'instagram',
-        sourceUrl: postUrl,
-        leads: profiles,
-      })
+      body: JSON.stringify(requestBody)
     });
+
+    console.log('[SOS 360] Import response:', response);
 
     // Update local stats
     const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
@@ -1123,6 +1141,56 @@ async function handleInstagramCommentAuthors(data) {
     });
 
     console.log('[SOS 360] Comment authors imported successfully');
+
+    // ============================================================
+    // START AUTOMATIC PROFILE ENRICHMENT
+    // ============================================================
+    // API returns leadResults with { id, profileUrl }, need to enrich with original profile data
+    if (response.data?.leadResults && response.data.leadResults.length > 0) {
+      console.log(`[SOS 360] Starting automatic profile enrichment for ${response.data.leadResults.length} imported leads`);
+
+      // Merge lead results with original profile data
+      const leadsForEnrichment = response.data.leadResults
+        .map((result) => {
+          // Find original profile by matching profileUrl or username
+          const originalProfile = profiles.find(p =>
+            p.profileUrl === result.profileUrl ||
+            p.username === result.profileUrl?.replace('instagram:', '') ||
+            p.username === result.profileUrl
+          );
+
+          // Skip if no valid username found
+          const username = originalProfile?.username || result.profileUrl?.replace('instagram:', '');
+          if (!username || username === result.profileUrl) {
+            console.warn('[SOS 360] No valid username found for lead:', result);
+            return null;
+          }
+
+          return {
+            id: result.id,
+            username: username,
+            instagramProfileUrl: originalProfile?.profileUrl || `https://www.instagram.com/${username}/`,
+            profileUrl: result.profileUrl,
+            avatarUrl: originalProfile?.avatarUrl,
+          };
+        })
+        .filter(lead => lead !== null); // Remove null entries
+
+      console.log('[SOS 360] Leads for enrichment:', leadsForEnrichment);
+
+      if (leadsForEnrichment.length === 0) {
+        console.warn('[SOS 360] No valid leads for enrichment, skipping');
+        return;
+      }
+
+      // Start enrichment in background (don't await)
+      instagramCommentEnricher.start(leadsForEnrichment).catch(error => {
+        console.error('[SOS 360] Enrichment process error:', error);
+      });
+    } else {
+      console.log('[SOS 360] No leadResults in response, skipping enrichment');
+    }
+
     return response.data;
 
   } catch (error) {
@@ -1194,9 +1262,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        case 'savePostToLibrary': {
+          try {
+            const postData = {
+              platform: request.platform || 'instagram',
+              postUrl: request.data.postUrl,
+              content: request.data.content || null,
+              imageUrls: request.data.imageUrls || [],
+              videoUrls: request.data.videoUrls || [],
+              linkedUrl: request.data.linkedUrl || null,
+              postType: request.data.postType || 'post',
+              likesCount: request.data.likesCount || null,
+              commentsCount: request.data.commentsCount || null,
+              sharesCount: request.data.sharesCount || null,
+              viewsCount: request.data.viewsCount || null,
+              authorUsername: request.data.authorUsername,
+              authorFullName: request.data.authorFullName || null,
+              authorAvatarUrl: request.data.authorAvatarUrl || null,
+              authorProfileUrl: request.data.authorProfileUrl || null,
+            };
+
+            const response = await apiRequest('/api/v1/posts', {
+              method: 'POST',
+              body: JSON.stringify(postData),
+            });
+
+            console.log('[SOS 360] Post saved to library:', response.data);
+            sendResponse({ success: true, data: response.data });
+          } catch (error) {
+            console.error('[SOS 360] Error saving post to library:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+          break;
+        }
+
         case 'importCommentAuthors': {
           await handleInstagramCommentAuthors(request.data);
           sendResponse({ success: true, message: 'Comment authors imported successfully' });
+          break;
+        }
+
+        // --- Instagram Enrichment Control ---
+        case 'stopInstagramEnrichment': {
+          instagramCommentEnricher.stop();
+          sendResponse({ success: true });
+          break;
+        }
+
+        case 'getInstagramEnrichmentStats': {
+          const stats = instagramCommentEnricher.getStats();
+          sendResponse({ success: true, stats });
           break;
         }
 
@@ -2038,7 +2153,274 @@ class AutomationExecutor {
   }
 }
 
+/**
+ * InstagramCommentEnricher - Manages profile enrichment for imported comment authors
+ *
+ * Opens popup windows for each imported lead, extracts additional profile data,
+ * and updates the lead record in the database.
+ */
+class InstagramCommentEnricher {
+  constructor() {
+    this.active = false;
+    this.queue = [];
+    this.currentWindow = null;
+    this.currentLead = null;
+    this.stats = {
+      total: 0,
+      completed: 0,
+      failed: 0
+    };
+    this.rateLimit = {
+      minDelay: 10000,    // 10 seconds between profiles (conservative)
+      maxPerHour: 30,     // Instagram strict rate limit
+      lastProcessed: 0
+    };
+  }
+
+  /**
+   * Start enrichment process for a list of imported leads
+   * @param {Array} leads - Array of lead objects with username and instagramProfileUrl
+   */
+  async start(leads) {
+    if (this.active) {
+      console.warn('[SOS 360] Instagram enrichment already active');
+      return;
+    }
+
+    if (!leads || leads.length === 0) {
+      console.log('[SOS 360] No leads to enrich');
+      return;
+    }
+
+    console.log(`[SOS 360] Starting Instagram enrichment for ${leads.length} leads`);
+    this.active = true;
+    this.queue = leads;
+    this.stats.total = leads.length;
+    this.stats.completed = 0;
+    this.stats.failed = 0;
+
+    // Process leads sequentially
+    while (this.queue.length > 0 && this.active) {
+      const lead = this.queue.shift();
+      await this.processLead(lead);
+    }
+
+    console.log(`[SOS 360] Instagram enrichment complete: ${this.stats.completed} succeeded, ${this.stats.failed} failed`);
+    this.active = false;
+  }
+
+  /**
+   * Process a single lead - open window, extract data, update record
+   */
+  async processLead(lead) {
+    let windowClosed = false;
+    let windowId = null;
+
+    try {
+      // Validate lead data
+      if (!lead || !lead.username) {
+        throw new Error('Invalid lead: missing username');
+      }
+
+      // Rate limiting check
+      const timeSinceLast = Date.now() - this.rateLimit.lastProcessed;
+      if (timeSinceLast < this.rateLimit.minDelay) {
+        const waitTime = this.rateLimit.minDelay - timeSinceLast;
+        console.log(`[SOS 360] Rate limit: waiting ${waitTime}ms before processing ${lead.username}`);
+        await sleep(waitTime);
+      }
+
+      this.currentLead = lead;
+      console.log(`[SOS 360] ==================================================`);
+      console.log(`[SOS 360] Enriching profile: ${lead.username} (ID: ${lead.id})`);
+      console.log(`[SOS 360] Lead data:`, JSON.stringify(lead, null, 2));
+
+      // Construct profile URL
+      const profileUrl = lead.instagramProfileUrl || `https://www.instagram.com/${lead.username}/`;
+      console.log(`[SOS 360] Profile URL: ${profileUrl}`);
+
+      // Validate URL
+      if (!profileUrl || profileUrl === 'https://www.instagram.com//') {
+        throw new Error(`Invalid profile URL: ${profileUrl}`);
+      }
+
+      // Open popup window with Instagram profile
+      console.log(`[SOS 360] Opening popup window...`);
+
+      this.currentWindow = await chrome.windows.create({
+        url: profileUrl,
+        type: 'popup',
+        width: 1200,
+        height: 800,
+        focused: false
+      });
+
+      windowId = this.currentWindow.id;
+      console.log(`[SOS 360] Window ${windowId} created successfully`);
+
+      // Wait for page to load
+      console.log('[SOS 360] Waiting 5s for page to load...');
+      await sleep(5000);
+
+      // Check if window still exists
+      try {
+        await chrome.windows.get(windowId);
+      } catch (e) {
+        throw new Error('Window was closed by user or failed to load');
+      }
+
+      // Get tab from window
+      const tabs = await chrome.tabs.query({ windowId });
+      if (tabs.length === 0) {
+        throw new Error('No tabs found in enrichment window');
+      }
+
+      const tab = tabs[0];
+      console.log(`[SOS 360] Tab ${tab.id} found, current URL: ${tab.url}`);
+
+      // Check if tab navigated to Instagram successfully
+      if (!tab.url.includes('instagram.com')) {
+        throw new Error(`Tab did not navigate to Instagram. Current URL: ${tab.url}`);
+      }
+
+      // Inject content script
+      console.log('[SOS 360] Injecting content script...');
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-scripts/instagram.js']
+        });
+        console.log('[SOS 360] Content script injected successfully');
+      } catch (injectError) {
+        console.error('[SOS 360] Script injection failed:', injectError);
+        throw new Error(`Failed to inject content script: ${injectError.message}`);
+      }
+
+      // Wait for script initialization
+      console.log('[SOS 360] Waiting 1s for script initialization...');
+      await sleep(1000);
+
+      // Send message to content script
+      console.log('[SOS 360] Sending enrichInstagramProfile message...');
+      let response;
+      try {
+        response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'enrichInstagramProfile',
+          data: { username: lead.username }
+        });
+      } catch (messageError) {
+        console.error('[SOS 360] Message sending failed:', messageError);
+        throw new Error(`Failed to send message to content script: ${messageError.message}`);
+      }
+
+      console.log('[SOS 360] Response received:', response);
+
+      if (!response) {
+        throw new Error('No response from content script');
+      }
+
+      if (response?.success && response?.profile) {
+        console.log('[SOS 360] Profile data extracted successfully');
+        console.log('[SOS 360] Updating lead...');
+        await this.updateLead(lead.id, response.profile);
+        this.stats.completed++;
+        console.log(`[SOS 360] ✓ Successfully enriched ${lead.username}`);
+      } else {
+        throw new Error(response?.error || 'Failed to extract profile data');
+      }
+
+    } catch (error) {
+      console.error(`[SOS 360] ✗ Error enriching ${lead?.username}:`, error);
+      this.stats.failed++;
+    } finally {
+      // Close the popup window
+      if (windowId && !windowClosed) {
+        try {
+          console.log(`[SOS 360] Closing window ${windowId}...`);
+          await chrome.windows.remove(windowId);
+          console.log('[SOS 360] Window closed');
+        } catch (e) {
+          console.log('[SOS 360] Window already closed or error:', e.message);
+        }
+      }
+      this.currentWindow = null;
+      this.currentLead = null;
+      this.rateLimit.lastProcessed = Date.now();
+    }
+  }
+
+  /**
+   * Update lead record with enriched profile data
+   */
+  async updateLead(leadId, profileData) {
+    try {
+      console.log(`[SOS 360] ========================================`);
+      console.log(`[SOS 360] updateLead() called for lead ${leadId}`);
+      console.log(`[SOS 360] Full profileData received:`, JSON.stringify(profileData, null, 2));
+
+      // Filter out undefined/null values to avoid overwriting with null
+      const updateData = {};
+      if (profileData.bio !== undefined && profileData.bio !== null) updateData.bio = profileData.bio;
+      if (profileData.followersCount !== undefined && profileData.followersCount !== null) {
+        updateData.followersCount = profileData.followersCount;
+        console.log(`[SOS 360] ✅ Including followersCount: ${profileData.followersCount}`);
+      }
+      if (profileData.followingCount !== undefined && profileData.followingCount !== null) {
+        updateData.followingCount = profileData.followingCount;
+        console.log(`[SOS 360] ✅ Including followingCount: ${profileData.followingCount}`);
+      }
+      if (profileData.postsCount !== undefined && profileData.postsCount !== null) {
+        updateData.postsCount = profileData.postsCount;
+        console.log(`[SOS 360] ✅ Including postsCount: ${profileData.postsCount}`);
+      }
+      if (profileData.website !== undefined && profileData.website !== null) updateData.website = profileData.website;
+      if (profileData.email !== undefined && profileData.email !== null) updateData.email = profileData.email;
+
+      console.log(`[SOS 360] Update data (filtered):`, JSON.stringify(updateData, null, 2));
+      console.log(`[SOS 360] ========================================`);
+
+      const response = await apiRequest(`/api/v1/leads/${leadId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData)
+      });
+
+      console.log(`[SOS 360] ========================================`);
+      console.log(`[SOS 360] Update API response:`, JSON.stringify(response, null, 2));
+
+      if (!response?.success) {
+        throw new Error('Failed to update lead');
+      }
+
+      console.log(`[SOS 360] ✅✅✅ Lead ${leadId} updated successfully!`);
+      console.log(`[SOS 360] ✅✅✅ Stats saved to database:`);
+      console.log(`[SOS 360]     - followersCount: ${updateData.followersCount || '(not set)'}`);
+      console.log(`[SOS 360]     - followingCount: ${updateData.followingCount || '(not set)'}`);
+      console.log(`[SOS 360]     - postsCount: ${updateData.postsCount || '(not set)'}`);
+      console.log(`[SOS 360] ========================================`);
+    } catch (error) {
+      console.error(`[SOS 360] Error updating lead ${leadId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stop the enrichment process
+   */
+  stop() {
+    console.log('[SOS 360] Stopping Instagram enrichment');
+    this.active = false;
+  }
+
+  /**
+   * Get current stats
+   */
+  getStats() {
+    return { ...this.stats };
+  }
+}
+
 const executor = new AutomationExecutor();
+const instagramCommentEnricher = new InstagramCommentEnricher();
 
 // --- TAB/WINDOW CLOSE DETECTION ---
 // Cancel automation when user closes the tab

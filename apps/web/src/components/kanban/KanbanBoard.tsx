@@ -206,7 +206,6 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
         .kanban-board {
           display: flex;
           gap: 1rem;
-          padding: 1rem;
           overflow-x: auto;
           min-height: calc(100vh - 200px);
         }

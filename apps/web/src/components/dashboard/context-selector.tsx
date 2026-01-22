@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Check, ChevronsUpDown, PlusCircle, Building2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-export function ContextSelector() {
+export function ContextSelector({ collapsed = false }: { collapsed?: boolean }) {
     const currentCompany = useAuthStore((state) => state.currentCompany);
     const currentWorkspace = useAuthStore((state) => state.currentWorkspace);
     const availableCompanies = useAuthStore((state) => state.availableCompanies);
@@ -33,13 +34,24 @@ export function ContextSelector() {
                     variant="ghost"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between p-2 h-auto hover:bg-gray-100"
+                    className={cn(
+                        "w-full p-2 h-auto hover:bg-gray-100",
+                        collapsed ? "justify-center" : "justify-between"
+                    )}
                 >
-                    <div className="flex flex-col items-start overflow-hidden">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{currentCompany.name}</span>
-                        <span className="font-semibold truncate w-full text-left">{currentWorkspace.name}</span>
-                    </div>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    {collapsed ? (
+                        <div className="flex items-center justify-center p-1 rounded-sm bg-indigo-50 text-indigo-700 font-bold shrink-0">
+                            {currentWorkspace.name.substring(0, 2).toUpperCase()}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex flex-col items-start overflow-hidden">
+                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{currentCompany.name}</span>
+                                <span className="font-semibold truncate w-full text-left">{currentWorkspace.name}</span>
+                            </div>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </>
+                    )}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[240px]" align="start">
