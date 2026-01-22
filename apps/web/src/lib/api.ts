@@ -354,6 +354,50 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Audiences
+  async getAudiences() {
+    return this.request('/api/v1/audiences');
+  }
+
+  async getAudience(id: string) {
+    return this.request(`/api/v1/audiences/${id}`);
+  }
+
+  async createAudience(data: Record<string, unknown>) {
+    return this.request('/api/v1/audiences', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAudience(id: string, data: Record<string, unknown>) {
+    return this.request(`/api/v1/audiences/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAudience(id: string) {
+    return this.request(`/api/v1/audiences/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Automations
+  async upsertAutomation(data: Record<string, unknown>) {
+    return this.request('/api/v1/automations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async triggerAutomation(id: string, config?: { maxLeads?: number; interval?: string }) {
+    return this.request(`/api/v1/automations/${id}/trigger`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
 }
 
 export const api = new ApiClient(API_URL);

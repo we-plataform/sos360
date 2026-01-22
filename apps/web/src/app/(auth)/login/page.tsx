@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +17,10 @@ export default function LoginPage() {
   const setAvailableCompanies = useAuthStore((state) => state.setAvailableCompanies);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -33,10 +32,15 @@ export default function LoginPage() {
         router.push(`/select-context?token=${data.selectionToken}`);
       } else {
         setContext(data.context.company, data.context.workspace);
+        toast.success('Login realizado com sucesso!', {
+          description: `Bem-vindo, ${data.user.fullName}!`,
+        });
         router.push('/dashboard');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+      toast.error('Erro ao fazer login', {
+        description: err instanceof Error ? err.message : 'Verifique suas credenciais e tente novamente.',
+      });
     } finally {
       setLoading(false);
     }
@@ -53,13 +57,8 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
             <div className="space-y-2">
+
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>

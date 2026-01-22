@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
@@ -18,7 +19,6 @@ function SelectContextContent() {
     const setContext = useAuthStore((state) => state.setContext);
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     useEffect(() => {
         if (!token) {
@@ -29,14 +29,18 @@ function SelectContextContent() {
     const handleSelect = async (companyId: string, workspaceId: string) => {
         if (!token) return;
         setLoading(true);
-        setError('');
 
         try {
             const data = await api.selectContext(token, companyId, workspaceId);
             setContext(data.context.company, data.context.workspace);
+            toast.success('Workspace selecionado!', {
+                description: `Bem-vindo ao ${data.context.workspace.name}`,
+            });
             router.push('/dashboard');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to select context');
+            toast.error('Erro ao selecionar workspace', {
+                description: err instanceof Error ? err.message : 'Tente novamente.',
+            });
             setLoading(false);
         }
     };
@@ -52,12 +56,6 @@ function SelectContextContent() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {error && (
-                    <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
-                        {error}
-                    </div>
-                )}
-
                 <div className="space-y-6">
                     {availableCompanies.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">

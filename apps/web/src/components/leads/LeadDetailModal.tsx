@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Mail, Phone, Globe, MapPin, ExternalLink, User, Calendar, Trash2, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Mail, Phone, Globe, MapPin, ExternalLink, User, Calendar, Trash2, AlertTriangle, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,7 @@ interface LeadDetailModalProps {
 
 export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProps) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const { data: lead, isLoading } = useQuery({
         queryKey: ['lead', leadId],
@@ -26,6 +28,11 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
     });
 
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const handleViewFullProfile = () => {
+        onClose();
+        router.push(`/dashboard/leads/${leadId}/profile`);
+    };
 
     const deleteLeadMutation = useMutation({
         mutationFn: () => api.deleteLead(leadId),
@@ -79,6 +86,15 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-20">
                             <h2 className="text-lg font-semibold text-gray-900">Detalhes do Lead</h2>
                             <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
+                                    onClick={handleViewFullProfile}
+                                    title="Ver Perfil Completo"
+                                >
+                                    <Maximize2 className="h-5 w-5" />
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -195,7 +211,7 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                                             <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
                                                 <div className="text-xs text-gray-500 mb-0.5">Intenção de Compra</div>
                                                 <div className={`font-medium ${lead.behavior.buyingIntent === 'High' ? 'text-green-600' :
-                                                        lead.behavior.buyingIntent === 'Medium' ? 'text-yellow-600' : 'text-gray-600'
+                                                    lead.behavior.buyingIntent === 'Medium' ? 'text-yellow-600' : 'text-gray-600'
                                                     }`}>
                                                     {lead.behavior.buyingIntent === 'High' ? 'Alta' :
                                                         lead.behavior.buyingIntent === 'Medium' ? 'Média' : 'Baixa'}

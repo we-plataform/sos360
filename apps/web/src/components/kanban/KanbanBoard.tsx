@@ -43,6 +43,7 @@ export interface KanbanStage {
     color: string;
     order: number;
     leads: KanbanLead[];
+    automations?: any[]; // Using any for now to avoid extensive type definitions here, or define it properly
 }
 
 export interface KanbanPipeline {

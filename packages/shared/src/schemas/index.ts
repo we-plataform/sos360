@@ -99,6 +99,7 @@ export const updateLeadSchema = z.object({
   notes: z.string().max(5000).optional(),
   email: z.string().email().optional(),
   phone: z.string().max(50).optional(),
+  pipelineStageId: z.string().optional(),
   customFields: z.record(z.unknown()).optional(),
 });
 
@@ -140,6 +141,8 @@ export const importLeadDataSchema = z.object({
   // Score and analysis fields (from AI)
   score: z.union([z.number().int().min(0).max(100), z.null(), z.undefined()]).optional(),
   analysisReason: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  // Enrichment data (LinkedIn deep extraction)
+  enrichment: z.any().optional(), // Will be validated by linkedInEnrichmentPayloadSchema when present
 });
 
 export const importLeadsSchema = z.object({
@@ -154,6 +157,8 @@ export const importLeadsSchema = z.object({
   leads: z.array(importLeadDataSchema).min(1).max(1000),
   tags: z.array(z.string()).optional(),
   autoAssign: z.boolean().optional(),
+  audienceId: z.string().optional(), // ID da audiência para associar os leads
+  pipelineStageId: z.string().optional(), // ID do estágio do pipeline para importar os leads diretamente
 });
 
 // Tag schemas
@@ -230,3 +235,6 @@ export const conversationFiltersSchema = paginationSchema.extend({
   platform: platformSchema.optional(),
   assignedTo: z.string().optional(),
 });
+
+export * from './automations';
+export * from './enrichment';

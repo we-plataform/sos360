@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   LayoutDashboard,
   Users,
+  Target,
   MessageSquare,
   Zap,
   BarChart3,
@@ -22,8 +24,8 @@ import { ContextSelector } from '@/components/dashboard/context-selector';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
+  { name: 'Audiências', href: '/dashboard/audiences', icon: Target },
   { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare },
-  { name: 'Automações', href: '/dashboard/automations', icon: Zap },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ];
@@ -73,6 +75,9 @@ export default function DashboardLayout({
         setAuthChecked(true);
       } catch (error) {
         console.error('Auth check failed:', error);
+        toast.error('Sessão expirada', {
+          description: 'Por favor, faça login novamente.',
+        });
         router.push('/login');
       }
     };

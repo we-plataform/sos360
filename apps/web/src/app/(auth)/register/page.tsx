@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,20 +17,23 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [workspaceName, setWorkspaceName] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
       const data = await api.register(email, password, fullName, workspaceName);
       setUser(data.user);
+      toast.success('Conta criada com sucesso!', {
+        description: `Bem-vindo ao SOS 360, ${data.user.fullName}!`,
+      });
       router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar conta');
+      toast.error('Erro ao criar conta', {
+        description: err instanceof Error ? err.message : 'Verifique os dados e tente novamente.',
+      });
     } finally {
       setLoading(false);
     }
@@ -46,12 +50,6 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
             <div className="space-y-2">
               <label htmlFor="fullName" className="text-sm font-medium">
                 Nome Completo

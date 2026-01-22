@@ -46,6 +46,9 @@ const autoDetailedStatus = document.getElementById('auto-detailed-status');
 
 // Initialize popup
 async function init() {
+  // Load saved API URL
+  await loadApiUrl();
+
   // Check if user is logged in
   const response = await chrome.runtime.sendMessage({ action: 'getUser' });
 
@@ -56,6 +59,16 @@ async function init() {
     await loadAutoCheck();
   } else {
     showLoggedOut();
+  }
+}
+
+async function loadApiUrl() {
+  const apiUrlInput = document.getElementById('api-url');
+  if (!apiUrlInput) return;
+
+  const response = await chrome.runtime.sendMessage({ action: 'getApiUrl' });
+  if (response.success && response.url) {
+    apiUrlInput.value = response.url;
   }
 }
 
@@ -257,12 +270,18 @@ function getStatusMessage(status) {
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  const apiUrl = document.getElementById('api-url').value.trim();
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
   loginBtn.disabled = true;
   loginBtn.textContent = 'Entrando...';
   loginError.style.display = 'none';
+
+  // Set the API URL first
+  if (apiUrl) {
+    await chrome.runtime.sendMessage({ action: 'setApiUrl', url: apiUrl });
+  }
 
   const response = await chrome.runtime.sendMessage({
     action: 'login',

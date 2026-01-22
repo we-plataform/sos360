@@ -52,6 +52,9 @@ pipelinesRouter.get('/', async (req, res, next) => {
                         _count: {
                             select: { leads: true },
                         },
+                        automations: {
+                            where: { enabled: true },
+                        },
                     },
                 },
             },
@@ -86,6 +89,7 @@ pipelinesRouter.get('/:id', async (req, res, next) => {
                 stages: {
                     orderBy: { order: 'asc' },
                     include: {
+                        automations: true,
                         leads: {
                             orderBy: { position: 'asc' },
                             include: {

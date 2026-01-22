@@ -7,9 +7,11 @@ import { pipelinesRouter } from './pipelines.js';
 import { tagsRouter } from './tags.js';
 import { conversationsRouter } from './conversations.js';
 import { templatesRouter } from './templates.js';
+import { automationsRouter } from './automations.js';
 import { analyticsRouter } from './analytics.js';
 import { usersRouter } from './users.js';
 import { healthRouter } from './health.js';
+import { audiencesRouter } from './audiences.js';
 import { defaultRateLimit } from '../middleware/rate-limit.js';
 
 export function setupRoutes(app: Express): void {
@@ -28,8 +30,10 @@ export function setupRoutes(app: Express): void {
   app.use('/api/v1/tags', tagsRouter);
   app.use('/api/v1/conversations', conversationsRouter);
   app.use('/api/v1/templates', templatesRouter);
+  app.use('/api/v1/automations', automationsRouter);
   app.use('/api/v1/analytics', analyticsRouter);
   app.use('/api/v1/users', usersRouter);
+  app.use('/api/v1/audiences', audiencesRouter);
 
   // 404 handler for API routes
   app.use('/api', (_req, res) => {

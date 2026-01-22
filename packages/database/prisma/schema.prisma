@@ -114,6 +114,7 @@ model Workspace {
   webhooks    Webhook[]
   importJobs  ImportJob[]
   pipelines   Pipeline[]
+  audiences   Audience[]
 
   @@index([companyId])
   @@map("workspaces")
@@ -122,7 +123,7 @@ model Workspace {
 enum WorkspaceRole {
   owner   // Pode gerenciar workspace, deletar, etc
   admin   // Pode gerenciar usuários do workspace
-  manager // Pode ver tudo, gerenciar leads e automações
+  manager // Pode ver tudo, gerenciar leads
   agent   // Pode interagir com leads atribuídos
   viewer  // Apenas visualização
 }
@@ -221,7 +222,8 @@ model PipelineStage {
   pipelineId String
   pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 
-  leads Lead[]
+  leads       Lead[]
+  automations Automation[]
 
   @@unique([pipelineId, name])
   @@index([pipelineId, order])
@@ -262,6 +264,9 @@ model Lead {
   company           String?    // Current company/employer
   industry          String?    // Industry/sector
   connectionCount   Int?       // Number of connections
+  // Enrichment metadata
+  enrichedAt        DateTime?
+  enrichmentStatus  EnrichmentStatus @default(none)
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -278,6 +283,23 @@ model Lead {
   activities     Activity[]
   automationLogs AutomationLog[]
   behavior       LeadBehavior?
+  // LinkedIn enrichment relations
+  experiences      LeadExperience[]
+  educations       LeadEducation[]
+  certifications   LeadCertification[]
+  skills           LeadSkill[]
+  languages        LeadLanguage[]
+  recommendations  LeadRecommendation[]
+  volunteers       LeadVolunteer[]
+  publications     LeadPublication[]
+  patents          LeadPatent[]
+  projects         LeadProject[]
+  courses          LeadCourse[]
+  honors           LeadHonor[]
+  organizations    LeadOrganization[]
+  featured         LeadFeatured[]
+  contactInfo      LeadContactInfo?
+  leadPosts        LeadPost[]
 
   @@unique([workspaceId, platform, profileUrl]) // Keep for backward compatibility or primary profile
   @@index([workspaceId, status])
@@ -286,6 +308,7 @@ model Lead {
   @@index([workspaceId, createdAt])
   @@index([assignedToId])
   @@index([pipelineStageId, position])
+  @@index([enrichmentStatus])
   @@map("leads")
 }
 
@@ -495,22 +518,30 @@ model Automation {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  pipelineStageId String?
+  pipelineStage   PipelineStage? @relation(fields: [pipelineStageId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User   @relation("CreatedAutomations", fields: [createdById], references: [id], onDelete: Cascade)
 
   logs AutomationLog[]
 
   @@index([workspaceId, enabled])
+  @@index([pipelineStageId])
   @@map("automations")
 }
 
 model AutomationLog {
   id              String              @id @default(cuid())
   status          AutomationLogStatus
+  triggerType     String              @default("MANUAL") // MANUAL, EVENT
+  result          Json                @default("{}") // Stores leads processed, actions taken, errors
   actionsExecuted Int                 @default(0)
   errorMessage    String?
   metadata        Json                @default("{}")
-  executedAt      DateTime            @default(now())
+  startedAt       DateTime            @default(now())
+  completedAt     DateTime?
+  executedAt      DateTime            @default(now()) // Keep for backward compat or remove? Let's keep.
 
   automationId String
   automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
@@ -518,7 +549,7 @@ model AutomationLog {
   leadId String?
   lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
-  @@index([automationId, executedAt])
+  @@index([automationId, startedAt])
   @@map("automation_logs")
 }
 
@@ -526,6 +557,8 @@ enum AutomationLogStatus {
   success
   failed
   skipped
+  pending
+  running
 }
 
 // ============================================
@@ -639,4 +672,383 @@ model LeadBehavior {
   updatedAt       DateTime @updatedAt
 
   @@map("lead_behaviors")
+}
+
+// ============================================
+// AUDIENCE (Segmentation Criteria)
+// ============================================
+
+model Audience {
+  id          String   @id @default(cuid())
+  name        String
+  
+  // Detalhes do Perfil
+  gender                String[] @default([])     // ["male", "female"]
+  ignoreGenderIfUnknown Boolean  @default(true)   // Ignora critério se gênero não determinável
+  countries             String[] @default([])     // códigos ISO
+  ignoreCountryIfUnknown Boolean @default(true)   // Ignora critério se país não determinável
+  excludePrivate        Boolean  @default(false)
+  excludeNoMessage      Boolean  @default(false)
+  excludeNoPhoto        Boolean  @default(false)
+  excludeCompanyPages   Boolean  @default(false)
+  verifiedFilter        String   @default("any")  // "any", "verified_only", "unverified_only"
+  
+  // Atividade Social (opcional min/max)
+  friendsMin       Int?
+  friendsMax       Int?
+  mutualFriendsMin Int?
+  mutualFriendsMax Int?
+  followersMin     Int?
+  followersMax     Int?
+  postsMin         Int?
+  postsMax         Int?
+  
+  // Keywords (arrays separados incluir/excluir)
+  jobTitleInclude       String[] @default([])
+  jobTitleExclude       String[] @default([])
+  profileInfoInclude    String[] @default([])
+  profileInfoExclude    String[] @default([])
+  postContentInclude    String[] @default([])
+  postContentExclude    String[] @default([])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("audiences")
+}
+
+// ============================================
+// LINKEDIN ENRICHMENT
+// ============================================
+
+enum EnrichmentStatus {
+  none
+  partial
+  complete
+  failed
+}
+
+model LeadExperience {
+  id             String   @id @default(cuid())
+  leadId         String
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  companyName    String
+  companyUrl     String?
+  companyLogo    String?
+  roleTitle      String
+  employmentType String?  // Full-time, Part-time, Contract, etc.
+  location       String?
+  startDate      String?
+  endDate        String?  // null = current
+  duration       String?
+  description    String?
+  skills         String[] @default([])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leadId, companyName, roleTitle, startDate])
+  @@index([leadId])
+  @@map("lead_experiences")
+}
+
+model LeadEducation {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  school       String
+  schoolUrl    String?
+  schoolLogo   String?
+  degree       String?
+  fieldOfStudy String?
+  startDate    String?
+  endDate      String?
+  grade        String?
+  activities   String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([leadId, school, degree, startDate])
+  @@index([leadId])
+  @@map("lead_educations")
+}
+
+model LeadCertification {
+  id             String   @id @default(cuid())
+  leadId         String
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  name           String
+  issuer         String?
+  issuerUrl      String?
+  issuerLogo     String?
+  issueDate      String?
+  expirationDate String?
+  credentialId   String?
+  credentialUrl  String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leadId, name, issuer])
+  @@index([leadId])
+  @@map("lead_certifications")
+}
+
+model LeadSkill {
+  id               String   @id @default(cuid())
+  leadId           String
+  lead             Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  name             String
+  endorsementsCount Int?
+  category         String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([leadId, name])
+  @@index([leadId])
+  @@map("lead_skills")
+}
+
+model LeadLanguage {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  name        String
+  proficiency String?  // Native, Full Professional, Professional Working, Limited Working, Elementary
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([leadId, name])
+  @@index([leadId])
+  @@map("lead_languages")
+}
+
+model LeadRecommendation {
+  id             String   @id @default(cuid())
+  leadId         String
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  authorName     String
+  authorUrl      String?
+  authorHeadline String?
+  authorAvatar   String?
+  relationship   String?
+  date           String?
+  text           String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leadId, authorName, date])
+  @@index([leadId])
+  @@map("lead_recommendations")
+}
+
+model LeadVolunteer {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  organization String
+  role         String?
+  cause        String?
+  startDate    String?
+  endDate      String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([leadId, organization, role])
+  @@index([leadId])
+  @@map("lead_volunteers")
+}
+
+model LeadPublication {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  title       String
+  publisher   String?
+  date        String?
+  url         String?
+  description String?
+  authors     String[] @default([])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([leadId, title, publisher])
+  @@index([leadId])
+  @@map("lead_publications")
+}
+
+model LeadPatent {
+  id            String   @id @default(cuid())
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  title         String
+  patentNumber  String?
+  status        String?  // Pending, Granted
+  date          String?
+  url           String?
+  description   String?
+  inventors     String[] @default([])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([leadId, title, patentNumber])
+  @@index([leadId])
+  @@map("lead_patents")
+}
+
+model LeadProject {
+  id            String   @id @default(cuid())
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  title         String
+  url           String?
+  startDate     String?
+  endDate       String?
+  description   String?
+  collaborators String[] @default([])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([leadId, title])
+  @@index([leadId])
+  @@map("lead_projects")
+}
+
+model LeadCourse {
+  id             String   @id @default(cuid())
+  leadId         String
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  name           String
+  courseNumber   String?
+  associatedWith String?  // School or company name
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leadId, name])
+  @@index([leadId])
+  @@map("lead_courses")
+}
+
+model LeadHonor {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  title       String
+  issuer      String?
+  date        String?
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([leadId, title, issuer])
+  @@index([leadId])
+  @@map("lead_honors")
+}
+
+model LeadOrganization {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  name        String
+  position    String?
+  startDate   String?
+  endDate     String?
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([leadId, name, position])
+  @@index([leadId])
+  @@map("lead_organizations")
+}
+
+model LeadFeatured {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  type         String   // post, article, link, media
+  title        String?
+  url          String?
+  thumbnailUrl String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([leadId])
+  @@map("lead_featured")
+}
+
+model LeadContactInfo {
+  id         String   @id @default(cuid())
+  leadId     String   @unique
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  email      String?
+  phone      String?
+  website    String?
+  twitter    String?
+  birthday   String?
+  address    String?
+  profileUrl String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("lead_contact_info")
+}
+
+model LeadPost {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  content    String?
+  date       String?
+  likes      Int?
+  comments   Int?
+  shares     Int?
+  imageUrls  String[] @default([])
+  videoUrls  String[] @default([])
+  linkedUrl  String?  // External link in the post
+  postUrl    String?  // URL to the post itself
+  postType   String?  // post, share, article, comment
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([leadId])
+  @@map("lead_posts")
 }

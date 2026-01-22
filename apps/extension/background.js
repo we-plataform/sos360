@@ -1,8 +1,18 @@
 // Background service worker
 
-const API_URL = 'http://localhost:3001';
+// Default API URL - can be overridden via chrome.storage.local
+const DEFAULT_API_URL = 'http://localhost:3001';
 
 // --- Storage helpers ---
+async function getApiUrl() {
+  const result = await chrome.storage.local.get(['apiUrl']);
+  return result.apiUrl || DEFAULT_API_URL;
+}
+
+async function setApiUrl(url) {
+  await chrome.storage.local.set({ apiUrl: url });
+}
+
 async function getToken() {
   const result = await chrome.storage.local.get(['accessToken']);
   return result.accessToken;
@@ -26,7 +36,8 @@ async function refreshAccessToken() {
 
   try {
     console.log('[SOS 360] Attempting token refresh...');
-    const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+    const apiUrl = await getApiUrl();
+    const response = await fetch(`${apiUrl}/api/v1/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: result.refreshToken }),
@@ -56,6 +67,7 @@ async function refreshAccessToken() {
 
 async function apiRequest(endpoint, options = {}, isRetry = false) {
   const token = await getToken();
+  const apiUrl = await getApiUrl();
 
   const headers = {
     'Content-Type': 'application/json',
@@ -63,7 +75,7 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
     ...options.headers,
   };
 
-  const url = `${API_URL}${endpoint}`;
+  const url = `${apiUrl}${endpoint}`;
   console.log('[SOS 360] API Request:', url, { method: options.method || 'GET' });
 
   try {
@@ -105,7 +117,8 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
     console.error('[SOS 360] API Error:', error);
 
     if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
-      throw new Error('Não foi possível conectar à API. Verifique se a API está rodando em http://localhost:3001');
+      const apiUrl = await getApiUrl();
+      throw new Error(`Não foi possível conectar à API. Verifique se a API está rodando em ${apiUrl}`);
     }
     if (error.message.includes('CORS') || error.message.includes('Not allowed')) {
       throw new Error('Erro de CORS. Verifique se a API permite requisições da extensão.');
@@ -139,7 +152,7 @@ class LeadNavigator {
     };
 
     this.profilesVisitedThisSession = 0;
-    this.loadState();
+    this.loadState().catch(err => console.error('[SOS 360] LeadNavigator loadState failed:', err));
   }
 
   async loadState() {
@@ -970,6 +983,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        case 'getAudiences': {
+          const response = await apiRequest('/api/v1/audiences', { method: 'GET' });
+          sendResponse({ success: true, data: response.data });
+          break;
+        }
+
+        case 'getPipelines': {
+          const response = await apiRequest('/api/v1/pipelines', { method: 'GET' });
+          sendResponse({ success: true, data: response.data });
+          break;
+        }
+
         case 'importLeads': {
           const response = await apiRequest('/api/v1/leads/import', {
             method: 'POST',
@@ -989,17 +1014,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           // Pass criteria for AI analysis if provided
           const criteria = request.data.criteria || '';
           const deepScan = request.data.deepScan || false;
-          // FIX: Use explicitly passed tabId or fallback to sender (sender might be popup)
-          const targetTabId = request.data.tabId || sender.tab?.id;
+          const response = await apiRequest('/api/v1/leads/analyze-batch', {
+            method: 'POST',
+            body: JSON.stringify({
+              profiles: request.data.profiles,
+              criteria: request.data.criteria
+            })
+          });
+          sendResponse({ success: true, data: response.data });
+          break;
+        }
 
-          if (!targetTabId) {
-            console.error('[Background] No target tab ID for Deep Import');
-            sendResponse({ success: false, error: 'No active tab found' });
-            return;
-          }
-
-          linkedInNavigator.start(request.data.leads, targetTabId, criteria, deepScan);
+        case 'setApiUrl': {
+          await setApiUrl(request.url);
+          console.log('[SOS 360] API URL set to:', request.url);
           sendResponse({ success: true });
+          break;
+        }
+
+        case 'getApiUrl': {
+          const url = await getApiUrl();
+          sendResponse({ success: true, url });
           break;
         }
 
@@ -1009,34 +1044,65 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
-        case 'startInstagramDeepImport': {
-          // Instagram Deep Import with AI analysis
-          const instaCriteria = request.data.criteria || '';
-          const options = {
-            onlyQualified: request.data.onlyQualified !== false,
-            minScore: request.data.minScore || 60
-          };
-          instagramNavigator.start(request.data.leads, sender.tab.id, instaCriteria, options);
+        // --- Dashboard Sync Handlers ---
+        case 'syncAuth': {
+          const { accessToken, refreshToken } = request.data || {};
+          if (accessToken) {
+            await chrome.storage.local.set({
+              accessToken,
+              refreshToken: refreshToken || null
+            });
+            console.log('[SOS 360] Auth synced from dashboard');
+
+            // Trigger immediate poll after sync
+            setTimeout(() => executor.poll(), 1000);
+
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'No token provided' });
+          }
+          break;
+        }
+
+        case 'triggerImmediatePoll': {
+          console.log('[SOS 360] Immediate poll triggered from dashboard');
+          executor.poll();
           sendResponse({ success: true });
           break;
         }
 
-        case 'stopInstagramDeepImport': {
-          instagramNavigator.stop();
-          sendResponse({ success: true });
-          break;
-        }
-
-        case 'analyzeBatch': {
-          // Batch analysis with AI
-          const response = await apiRequest('/api/v1/leads/analyze-batch', {
-            method: 'POST',
-            body: JSON.stringify({
-              profiles: request.data.profiles,
-              criteria: request.data.criteria
-            })
+        case 'getExtensionStatus': {
+          const token = await getToken();
+          const apiUrl = await getApiUrl();
+          const isRunning = executor.state && executor.state.status === 'RUNNING';
+          sendResponse({
+            success: true,
+            isAuthenticated: !!token,
+            apiUrl: apiUrl,
+            isAutomationRunning: isRunning,
+            currentJobId: executor.state?.jobId || null
           });
-          sendResponse({ success: true, data: response.data });
+          break;
+        }
+
+        // --- Automation Control Messages (delegated to executor) ---
+        case 'STOP_AUTOMATION': {
+          console.log('[SOS 360] STOP_AUTOMATION received in main handler');
+          await executor.finishJob('cancelled');
+          sendResponse({ success: true, message: 'Automation stopped' });
+          break;
+        }
+
+        case 'NEXT_STEP': {
+          console.log('[SOS 360] NEXT_STEP received in main handler');
+          if (executor.state && executor.state.status === 'RUNNING') {
+            executor.state.currentIndex++;
+            await executor.saveState();
+            await executor.processCurrentLead();
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, message: 'No running automation' });
+          }
           break;
         }
 
@@ -1080,3 +1146,789 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 console.log('SOS 360 Extension loaded');
+
+// --- AUTOMATION EXECUTOR (Background Job Processor) ---
+
+class AutomationExecutor {
+  constructor() {
+    this.isPolling = false;
+    this.pollInterval = 10000; // 10 seconds
+    this.isStopping = false; // Flag to prevent race conditions during stop
+    this.finishedJobIds = new Set(); // Track finished jobs to prevent restart
+
+    // Initialize asynchronously
+    this.initialize();
+
+    // Listen for tab updates to inject overlay/execute actions
+    chrome.tabs.onUpdated.addListener(this.onTabUpdated.bind(this));
+
+    // Listen for messages from content script
+    chrome.runtime.onMessage.addListener(this.onMessage.bind(this));
+  }
+
+  async initialize() {
+    // Load finished job IDs FIRST
+    await this.loadFinishedJobs();
+    // Then restore state
+    await this.restoreState();
+  }
+
+  async loadFinishedJobs() {
+    const { finishedJobIds } = await chrome.storage.local.get(['finishedJobIds']);
+    if (finishedJobIds && Array.isArray(finishedJobIds)) {
+      this.finishedJobIds = new Set(finishedJobIds);
+      console.log('[SOS 360] Loaded finished job IDs:', this.finishedJobIds.size);
+    }
+  }
+
+  async saveFinishedJob(jobId) {
+    this.finishedJobIds.add(jobId);
+    // Keep only last 100 jobs to prevent unlimited growth
+    if (this.finishedJobIds.size > 100) {
+      const arr = Array.from(this.finishedJobIds);
+      this.finishedJobIds = new Set(arr.slice(-100));
+    }
+    await chrome.storage.local.set({ finishedJobIds: Array.from(this.finishedJobIds) });
+    console.log('[SOS 360] Saved finished job ID:', jobId);
+  }
+
+  // Utility method for delays
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async restoreState() {
+    const { automationState } = await chrome.storage.local.get(['automationState']);
+    if (automationState && automationState.status === 'RUNNING') {
+      console.log('[SOS 360] Found saved automation state, validating...');
+
+      // Check if job was already finished
+      if (automationState.jobId && this.finishedJobIds.has(automationState.jobId)) {
+        console.log('[SOS 360] Job was already finished, clearing state');
+        await chrome.storage.local.remove(['automationState']);
+        this.state = null;
+        return;
+      }
+
+      // Validate that the tab/window still exists before restoring
+      if (automationState.tabId) {
+        try {
+          await chrome.tabs.get(automationState.tabId);
+          console.log('[SOS 360] Tab still exists, restoring state');
+          this.state = automationState;
+        } catch (e) {
+          // Tab no longer exists, mark job as finished and clear state
+          console.log('[SOS 360] Tab no longer exists, marking job as finished');
+          if (automationState.jobId) {
+            await this.saveFinishedJob(automationState.jobId);
+          }
+          await chrome.storage.local.remove(['automationState']);
+          this.state = null;
+        }
+      } else {
+        // No tabId, state is incomplete, clear it
+        console.log('[SOS 360] Incomplete state (no tabId), clearing');
+        await chrome.storage.local.remove(['automationState']);
+        this.state = null;
+      }
+    } else {
+      this.state = null;
+    }
+  }
+
+  async saveState() {
+    if (this.state) {
+      await chrome.storage.local.set({ automationState: this.state });
+    } else {
+      await chrome.storage.local.remove(['automationState']);
+    }
+  }
+
+  async poll() {
+    // Only poll if not already running or stopping
+    if (this.isStopping) {
+      console.log('[SOS 360] Poll skipped: Automation is stopping');
+      return;
+    }
+
+    if (this.state && this.state.status === 'RUNNING') {
+      console.log('[SOS 360] Poll skipped: Automation already running');
+      return;
+    }
+
+    const token = await getToken();
+    if (!token) {
+      console.warn('[SOS 360] Polling skipped: No auth token. Please login to the extension first.');
+      return;
+    }
+
+    const apiUrl = await getApiUrl();
+    console.log('[SOS 360] Polling for jobs at:', apiUrl);
+
+    try {
+      const response = await apiRequest('/api/v1/automations/jobs', { method: 'GET' });
+      console.log('[SOS 360] Poll response:', response);
+
+      if (response && response.success && response.data && response.data.length > 0) {
+        // Find first job that hasn't been finished locally
+        const job = response.data.find(j => !this.finishedJobIds.has(j.id));
+
+        if (!job) {
+          console.log('[SOS 360] All pending jobs were already finished locally');
+          return;
+        }
+
+        console.log('[SOS 360] Found pending job:', job.id, 'with', job.result?.leadsToProcess?.length || 0, 'leads');
+
+        // Notify user that automation is starting
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon-128.png',
+          title: 'SOS 360 - Automation Starting',
+          message: `Starting automation with ${job.result?.leadsToProcess?.length || 0} leads...`
+        });
+
+        await this.startJob(job);
+      } else {
+        console.log('[SOS 360] No pending jobs found');
+      }
+    } catch (error) {
+      console.error('[SOS 360] Poll error:', error.message);
+
+      // Show notification on persistent errors
+      if (error.message.includes('401') || error.message.includes('token')) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon-128.png',
+          title: 'SOS 360 - Auth Error',
+          message: 'Please login to the extension to run automations.'
+        });
+      }
+    }
+  }
+
+  async startJob(job) {
+    console.log('[SOS 360] Starting job:', job.id);
+    console.log('[SOS 360] Job result:', JSON.stringify(job.result, null, 2));
+
+    const leadsToProcess = job.result?.leadsToProcess || [];
+    console.log('[SOS 360] Leads to process:', leadsToProcess.length);
+
+    if (leadsToProcess.length === 0) {
+      console.error('[SOS 360] No leads to process in job!');
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon-128.png',
+        title: 'SOS 360 - No Leads',
+        message: 'The automation job has no leads to process.'
+      });
+      return;
+    }
+
+    // Log first lead for debugging
+    console.log('[SOS 360] First lead:', JSON.stringify(leadsToProcess[0], null, 2));
+
+    this.state = {
+      jobId: job.id,
+      status: 'RUNNING',
+      leads: leadsToProcess,
+      actions: job.result?.actions || [],
+      config: job.result?.config || {},
+      currentIndex: 0,
+      currentLead: null,
+      tabId: null,
+      logs: []
+    };
+
+    // Parse Interval
+    let min = 60000, max = 90000;
+    if (this.state.config.interval) {
+      const p = this.state.config.interval.split('-');
+      if (p.length === 2) { min = parseInt(p[0]) * 1000; max = parseInt(p[1]) * 1000; }
+    }
+    this.state.minDelay = min;
+    this.state.maxDelay = max;
+
+    await this.saveState();
+
+    // Update API status
+    try {
+      await apiRequest(`/api/v1/automations/jobs/${job.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'running' })
+      });
+      console.log('[SOS 360] Job status updated to running');
+    } catch (e) {
+      console.error('[SOS 360] Failed to update job status to RUNNING. Aborting job to prevent loop:', e);
+      this.state = null;
+      await this.saveState();
+      return; // CRITICAL: Do not proceed if we can't lock the job
+    }
+
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon-128.png',
+      title: 'Automation Started',
+      message: `Processing ${this.state.leads.length} leads...`
+    });
+
+    console.log('[SOS 360] Calling processCurrentLead...');
+    await this.processCurrentLead();
+  }
+
+  async processCurrentLead() {
+    if (!this.state || this.state.status !== 'RUNNING' || this.isStopping) {
+      console.log('[SOS 360] processCurrentLead: State not running or stopping, aborting');
+      return;
+    }
+
+    const { leads, currentIndex } = this.state;
+    console.log(`[SOS 360] processCurrentLead: index=${currentIndex}, total leads=${leads?.length || 0}`);
+
+    // FINISHED
+    if (currentIndex >= leads.length) {
+      console.log('[SOS 360] All leads processed, finishing job');
+      await this.finishJob('success');
+      return;
+    }
+
+    const lead = leads[currentIndex];
+
+    // Validate lead has profileUrl
+    if (!lead || !lead.profileUrl) {
+      console.error('[SOS 360] Lead missing profileUrl, skipping:', lead);
+      this.state.currentIndex++;
+      await this.saveState();
+      await this.processCurrentLead(); // Skip to next
+      return;
+    }
+
+    this.state.currentLead = lead;
+
+    console.log(`[SOS 360] Processing lead ${currentIndex + 1}/${leads.length}: ${lead.fullName || lead.username || 'Unknown'}`);
+    console.log(`[SOS 360] Profile URL: ${lead.profileUrl}`);
+
+    try {
+      // Open or Update Tab
+      if (this.state.tabId) {
+        try {
+          // Check if tab exists
+          await chrome.tabs.get(parseInt(this.state.tabId));
+          console.log('[SOS 360] Updating existing tab:', this.state.tabId);
+          await chrome.tabs.update(parseInt(this.state.tabId), { url: lead.profileUrl, active: true });
+        } catch (e) {
+          // Tab closed by user, stop automation
+          console.log('[SOS 360] Automation tab/window was closed by user. Stopping automation.');
+
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon-128.png',
+            title: 'Automation Stopped',
+            message: 'Automation was stopped because the window was closed.'
+          });
+
+          await this.finishJob('cancelled');
+          return;
+        }
+      } else {
+        console.log('[SOS 360] No existing tab, creating new window for:', lead.profileUrl);
+        const win = await chrome.windows.create({
+          url: lead.profileUrl,
+          focused: true,
+          type: 'popup',
+          width: 1200,
+          height: 800
+        });
+
+        // Save window ID for close detection
+        this.state.windowId = win.id;
+
+        if (!win.tabs || win.tabs.length === 0) {
+          console.log('[SOS 360] Window created but tabs not returned, fetching...');
+          const tabs = await chrome.tabs.query({ windowId: win.id });
+          this.state.tabId = tabs[0].id;
+        } else {
+          this.state.tabId = win.tabs[0].id;
+        }
+
+        console.log('[SOS 360] Window created successfully:', { windowId: win.id, tabId: this.state.tabId });
+      }
+
+      await this.saveState();
+      // "onTabUpdated" will trigger next steps once Loaded
+    } catch (error) {
+      console.error('[SOS 360] Error opening tab:', error);
+      // Skip this lead and try next
+      this.state.currentIndex++;
+      await this.saveState();
+      setTimeout(() => this.processCurrentLead(), 2000);
+    }
+  }
+
+  async onTabUpdated(tabId, changeInfo, tab) {
+    if (!this.state || this.state.status !== 'RUNNING' || tabId !== this.state.tabId) return;
+
+    if (changeInfo.status === 'complete') {
+      console.log('[SOS 360] Tab loaded, injecting overlay...');
+
+      // 1. Show Overlay with full lead info
+      const lead = this.state.currentLead;
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'SHOW_OVERLAY',
+        state: {
+          total: this.state.leads.length,
+          current: this.state.currentIndex + 1,
+          lead: {
+            name: lead.fullName || lead.username || 'Unknown',
+            headline: lead.bio || lead.headline || lead.position || 'Processing...',
+            avatar: lead.avatarUrl || null
+          },
+          status: 'Sending connection request...'
+        }
+      }).catch(() => console.log('Content script not ready yet'));
+
+      // 2. Perform Actions
+      await this.executeActionsInTab(tabId);
+    }
+  }
+
+  async executeActionsInTab(tabId) {
+    // Check if state still exists (might have been cancelled)
+    if (!this.state || this.isStopping) {
+      console.log('[SOS 360] executeActionsInTab: State cleared or stopping, aborting');
+      return;
+    }
+
+    const lead = this.state.currentLead;
+    const actions = this.state.actions || [];
+    const totalLeads = this.state.leads?.length || 0;
+    const currentIndex = this.state.currentIndex || 0;
+
+    // If no actions defined but we had legacy behavior, support it? 
+    // For now assuming actions array is populated.
+    if (actions.length === 0) {
+      console.log('[SOS 360] No actions to execute');
+      return;
+    }
+
+    try {
+      // Wait a bit for page to fully render
+      await new Promise(r => setTimeout(r, 2000));
+
+      for (let i = 0; i < actions.length; i++) {
+        // Check if state still exists before each action
+        if (!this.state || this.isStopping) {
+          console.log('[SOS 360] Automation cancelled during action execution');
+          return;
+        }
+
+        const action = actions[i];
+        console.log(`[SOS 360] Executing action ${i + 1}/${actions.length}: ${action.type}`);
+
+        // Update overlay
+        await chrome.tabs.sendMessage(tabId, {
+          action: 'SHOW_OVERLAY',
+          state: {
+            total: totalLeads,
+            current: currentIndex + 1,
+            lead: {
+              name: lead.fullName || lead.username || 'Unknown',
+              headline: this.getActionStatusMessage(action),
+              avatar: lead.avatarUrl || null
+            },
+            status: `Action ${i + 1}/${actions.length} in progress...`
+          }
+        }).catch(() => { });
+
+        let actionSuccess = false;
+
+        if (action.type === 'connection_request') {
+          // === ENRICHMENT PHASE ===
+          // Perform profile enrichment BEFORE sending connection request
+          try {
+            console.log('[SOS 360] Starting profile enrichment before connection request...');
+
+            // Update overlay to show enrichment status
+            await chrome.tabs.sendMessage(tabId, {
+              action: 'SHOW_OVERLAY',
+              state: {
+                total: totalLeads,
+                current: currentIndex + 1,
+                lead: {
+                  name: lead.fullName || lead.username || 'Unknown',
+                  headline: 'Extracting profile data...',
+                  avatar: lead.avatarUrl || null
+                },
+                status: 'Enriching profile...'
+              }
+            }).catch(() => { });
+
+            // Call content script to perform enrichment
+            const enrichmentResult = await chrome.tabs.sendMessage(tabId, {
+              action: 'performEnrichment'
+            });
+
+            if (enrichmentResult && enrichmentResult.success && enrichmentResult.data) {
+              console.log('[SOS 360] Enrichment successful, persisting data...');
+
+              // Persist enriched data via API
+              try {
+                await apiRequest(`/api/v1/leads/${lead.id}/enrich`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                    enrichment: enrichmentResult.data.enrichment
+                  })
+                });
+                console.log('[SOS 360] Enrichment data persisted for lead:', lead.id);
+              } catch (apiError) {
+                console.warn('[SOS 360] Failed to persist enrichment data:', apiError);
+                // Continue anyway - enrichment failure shouldn't block connection
+              }
+            } else {
+              console.warn('[SOS 360] Enrichment returned no data or failed:', enrichmentResult?.error);
+            }
+          } catch (enrichError) {
+            console.warn('[SOS 360] Enrichment failed:', enrichError);
+            // Continue anyway - enrichment failure shouldn't block connection
+          }
+
+          // Update overlay before sending connection
+          await chrome.tabs.sendMessage(tabId, {
+            action: 'SHOW_OVERLAY',
+            state: {
+              total: totalLeads,
+              current: currentIndex + 1,
+              lead: {
+                name: lead.fullName || lead.username || 'Unknown',
+                headline: 'Sending connection request...',
+                avatar: lead.avatarUrl || null
+              },
+              status: 'Connecting...'
+            }
+          }).catch(() => { });
+
+          // === CONNECTION REQUEST PHASE ===
+          const result = await chrome.tabs.sendMessage(tabId, {
+            action: 'performAutomation',
+            automationType: 'connection_request',
+            config: action.config || {},
+            lead: lead
+          });
+          actionSuccess = result?.success !== false;
+
+        } else if (action.type === 'send_message') {
+          // TODO: Implement message sending
+          console.log('[SOS 360] Send message action triggered (mock success)');
+          actionSuccess = true;
+
+        } else if (action.type === 'move_pipeline_stage') {
+          try {
+            const targetStageId = action.config?.pipelineStageId;
+            if (targetStageId) {
+              await apiRequest(`/api/v1/leads/${lead.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ pipelineStageId: targetStageId })
+              });
+              console.log('[SOS 360] Lead moved to stage:', targetStageId);
+              actionSuccess = true;
+            } else {
+              throw new Error('Target pipeline stage ID is missing');
+            }
+          } catch (e) {
+            console.error('[SOS 360] Failed to move lead:', e);
+            actionSuccess = false;
+          }
+        }
+
+        // Log result (only if state still exists)
+        if (this.state && this.state.logs) {
+          this.state.logs.push({
+            leadId: lead.id,
+            leadName: lead.fullName,
+            action: action.type,
+            status: actionSuccess ? 'success' : 'failed',
+            time: new Date().toISOString()
+          });
+        }
+
+        // Delay between actions (only if not cancelled)
+        if (i < actions.length - 1 && this.state && !this.isStopping) {
+          await this.sleep(2000);
+        }
+      }
+
+      // Final success update (only if state still exists)
+      if (this.state && !this.isStopping) {
+        await chrome.tabs.sendMessage(tabId, {
+          action: 'SHOW_OVERLAY',
+          state: {
+            total: totalLeads,
+            current: currentIndex + 1,
+            lead: {
+              name: lead.fullName || lead.username || 'Unknown',
+              headline: '✓ All actions completed',
+              avatar: lead.avatarUrl || null
+            },
+            status: 'Waiting before next...'
+          }
+        }).catch(() => { });
+      }
+
+    } catch (e) {
+      console.error('[SOS 360] Action execution failed:', e);
+      // Only log if state still exists
+      if (this.state && this.state.logs) {
+        this.state.logs.push({
+          leadId: lead.id,
+          leadName: lead.fullName,
+          status: 'error',
+          error: e.message,
+          time: new Date().toISOString()
+        });
+      }
+    }
+
+    // Check if state still exists before continuing
+    if (!this.state || this.isStopping) {
+      console.log('[SOS 360] Automation cancelled, skipping wait');
+      return;
+    }
+
+    // START WAIT - Random delay before next LEAD
+    const delayMs = Math.floor(Math.random() * (this.state.maxDelay - this.state.minDelay + 1) + this.state.minDelay);
+    const delaySec = Math.round(delayMs / 1000);
+
+    await chrome.tabs.sendMessage(tabId, {
+      action: 'START_WAIT',
+      duration: delaySec
+    }).catch(() => { });
+
+    await this.saveState();
+  }
+
+  getActionStatusMessage(action) {
+    switch (action.type) {
+      case 'connection_request': return 'Sending connection request...';
+      case 'send_message': return 'Sending message...';
+      case 'move_pipeline_stage': return 'Moving to next stage...';
+      default: return 'Processing...';
+    }
+  }
+
+  onMessage(request, sender, sendResponse) {
+    // Only handle automation-related messages
+    if (request.action !== 'NEXT_STEP' && request.action !== 'STOP_AUTOMATION') {
+      return; // Let other handlers process this message
+    }
+
+    console.log('[SOS 360] AutomationExecutor received message:', request.action);
+
+    // Handle STOP even if not running (to clean up state)
+    if (request.action === 'STOP_AUTOMATION') {
+      console.log('[SOS 360] User requested STOP - cancelling automation');
+      (async () => {
+        await this.finishJob('cancelled');
+        sendResponse({ success: true, message: 'Automation stopped' });
+      })();
+      return true;
+    }
+
+    if (!this.state || this.state.status !== 'RUNNING') {
+      console.log('[SOS 360] No running automation to process');
+      sendResponse({ success: false, message: 'No running automation' });
+      return true;
+    }
+
+    (async () => {
+      if (request.action === 'NEXT_STEP') {
+        console.log('[SOS 360] Received NEXT_STEP from overlay');
+        this.state.currentIndex++;
+        await this.saveState();
+        await this.processCurrentLead(); // Navigation happens here
+        sendResponse({ success: true });
+      }
+    })();
+
+    return true; // Keep message channel open for async operations
+  }
+
+  async finishJob(status) {
+    // Prevent double-finish or race conditions
+    if (!this.state || this.isStopping) {
+      console.log('[SOS 360] finishJob called but already stopping or no state');
+      return;
+    }
+
+    this.isStopping = true; // Set flag to prevent concurrent calls
+    console.log('[SOS 360] Finishing job with status:', status);
+
+    const jobId = this.state.jobId;
+    const tabId = this.state.tabId;
+    const windowId = this.state.windowId;
+    const totalProcessed = this.state.currentIndex || 0;
+    const totalLeads = this.state.leads?.length || 0;
+
+    // FIRST: Mark job as finished BEFORE clearing state (prevents re-polling)
+    if (jobId) {
+      await this.saveFinishedJob(jobId);
+    }
+
+    // Clear state to prevent re-processing
+    const savedState = { ...this.state };
+    this.state = null;
+    await this.saveState();
+    console.log('[SOS 360] State cleared');
+
+    // Hide overlay
+    if (tabId) {
+      try {
+        await chrome.tabs.sendMessage(tabId, { action: 'HIDE_OVERLAY' });
+      } catch (e) {
+        console.log('[SOS 360] Could not hide overlay (tab might be closed):', e.message);
+      }
+    }
+
+    // Close automation window if it was created by the automation
+    if (windowId) {
+      try {
+        await chrome.windows.remove(windowId);
+        console.log('[SOS 360] Automation window closed:', windowId);
+      } catch (e) {
+        console.log('[SOS 360] Could not close automation window (might already be closed):', e.message);
+      }
+    }
+
+    // Update API - mark as completed/failed to prevent re-polling
+    try {
+      const apiStatus = status === 'cancelled' ? 'failed' : (status === 'success' ? 'success' : 'failed');
+      await apiRequest(`/api/v1/automations/jobs/${jobId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: apiStatus,
+          result: {
+            logs: savedState.logs || [],
+            processedCount: totalProcessed,
+            cancelledByUser: status === 'cancelled'
+          }
+        })
+      });
+      console.log('[SOS 360] Job status updated in API:', apiStatus);
+    } catch (e) {
+      console.error('[SOS 360] Failed to update job status in API:', e.message);
+    }
+
+    const statusMsg = status === 'success'
+      ? `Completed! ${totalProcessed}/${totalLeads} leads processed.`
+      : status === 'cancelled'
+        ? 'Automation cancelled by user.'
+        : `Automation finished with status: ${status}`;
+
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon-128.png',
+      title: 'Automation Finished',
+      message: statusMsg
+    });
+
+    console.log('[SOS 360] Job finished:', statusMsg);
+    this.isStopping = false; // Reset flag
+  }
+}
+
+const executor = new AutomationExecutor();
+
+// --- TAB/WINDOW CLOSE DETECTION ---
+// Cancel automation when user closes the tab
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  if (executor.state && executor.state.tabId === tabId) {
+    console.log('[SOS 360] Automation tab closed by user, cancelling automation');
+    executor.finishJob('cancelled');
+  }
+});
+
+// Cancel automation when user closes the window
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (executor.state && executor.state.windowId === windowId) {
+    console.log('[SOS 360] Automation window closed by user, cancelling automation');
+    executor.finishJob('cancelled');
+  }
+});
+
+// --- PERSISTENT ALARM SETUP ---
+// In Manifest V3, alarms need to be set up properly to persist across service worker restarts
+
+async function setupPollingAlarm() {
+  // Check if alarm already exists
+  const existingAlarm = await chrome.alarms.get('automationPoll');
+  if (!existingAlarm) {
+    console.log('[SOS 360] Creating polling alarm...');
+    chrome.alarms.create('automationPoll', {
+      delayInMinutes: 0.1, // Start after 6 seconds
+      periodInMinutes: 0.2  // Then every 12 seconds
+    });
+  } else {
+    console.log('[SOS 360] Polling alarm already exists');
+  }
+}
+
+// Set up alarm on install/update
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('[SOS 360] Extension installed/updated');
+  setupPollingAlarm();
+});
+
+// Set up alarm on browser startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log('[SOS 360] Browser started');
+  setupPollingAlarm();
+});
+
+// Also set up alarm immediately when service worker loads
+setupPollingAlarm();
+
+// Listen for alarm
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'automationPoll') {
+    console.log('[SOS 360] Polling for automation jobs...');
+    executor.poll();
+  }
+});
+
+// --- IMMEDIATE TRIGGER FROM FRONTEND ---
+// Allow frontend to trigger immediate poll via external message
+chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+  console.log('[SOS 360] External message received:', request);
+
+  if (request.action === 'TRIGGER_AUTOMATION_POLL') {
+    console.log('[SOS 360] Immediate poll triggered from frontend');
+    executor.poll().then(() => {
+      sendResponse({ success: true, message: 'Poll triggered' });
+    }).catch(err => {
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // Keep channel open for async response
+  }
+
+  if (request.action === 'CHECK_EXTENSION_STATUS') {
+    (async () => {
+      const token = await getToken();
+      const apiUrl = await getApiUrl();
+      sendResponse({
+        success: true,
+        isAuthenticated: !!token,
+        apiUrl: apiUrl
+      });
+    })();
+    return true;
+  }
+});
+
+// --- FORCE IMMEDIATE POLL ON SERVICE WORKER WAKE ---
+// When service worker wakes up, immediately check for pending jobs
+(async () => {
+  console.log('[SOS 360] Service worker active, checking for pending jobs...');
+  // Small delay to ensure everything is initialized
+  await new Promise(r => setTimeout(r, 1000));
+  executor.poll();
+})();
+

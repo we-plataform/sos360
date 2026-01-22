@@ -416,7 +416,7 @@ leadsRouter.post(
   async (req, res, next) => {
     try {
       const workspaceId = req.user!.workspaceId;
-      const { platform, sourceUrl, leads, tags } = req.body;
+      const { platform, sourceUrl, leads, tags, pipelineStageId } = req.body;
 
       // Create import job
       const importJob = await prisma.importJob.create({
@@ -507,6 +507,7 @@ leadsRouter.post(
               data: {
                 ...cleanedLeadData,
                 profileUrl,
+                ...(pipelineStageId && { pipelineStageId }),
                 updatedAt: new Date(),
                 socialProfiles: {
                   upsert: {
@@ -531,6 +532,7 @@ leadsRouter.post(
                 workspaceId,
                 sourceUrl: sourceUrl || null,
                 profileUrl,
+                ...(pipelineStageId && { pipelineStageId }),
                 socialProfiles: {
                   create: profileData
                 },
@@ -611,6 +613,32 @@ leadsRouter.get('/:id', async (req, res, next) => {
             },
           },
         },
+        // LinkedIn enrichment data
+        experiences: {
+          orderBy: { startDate: 'desc' },
+        },
+        educations: {
+          orderBy: { startDate: 'desc' },
+        },
+        certifications: true,
+        skills: {
+          orderBy: { endorsementsCount: 'desc' },
+        },
+        languages: true,
+        recommendations: true,
+        volunteers: true,
+        publications: true,
+        patents: true,
+        projects: true,
+        courses: true,
+        honors: true,
+        organizations: true,
+        featured: true,
+        contactInfo: true,
+        leadPosts: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
       },
     });
 
@@ -636,6 +664,9 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
     const updates = req.body;
+
+    // DEBUG: Log the incoming update request
+    console.log('[DEBUG] PATCH /leads/:id - Received:', { id, workspaceId, updates });
 
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
@@ -692,6 +723,349 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
         ...lead,
         tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /leads/:id/enrich - Enrich lead with LinkedIn data
+leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const workspaceId = req.user!.workspaceId;
+    const { enrichment } = req.body;
+
+    console.log('[DEBUG] PATCH /leads/:id/enrich - Received:', { id, workspaceId, enrichment: Object.keys(enrichment || {}) });
+
+    // Check lead exists
+    const existingLead = await prisma.lead.findFirst({
+      where: { id, workspaceId },
+    });
+
+    if (!existingLead) {
+      throw new NotFoundError('Lead');
+    }
+
+    // Agent can only enrich assigned leads
+    if (req.user!.workspaceRole === 'agent' && existingLead.assignedToId !== req.user!.id) {
+      throw new NotFoundError('Lead');
+    }
+
+    if (!enrichment) {
+      return res.status(400).json({ success: false, error: 'Enrichment data is required' });
+    }
+
+    let enrichedSections = 0;
+
+    // Process each enrichment type with upsert
+    const {
+      experiences, educations, certifications, skills, languages,
+      recommendations, volunteers, publications, patents, projects,
+      courses, honors, organizations, featured, contactInfo, posts
+    } = enrichment;
+
+    // Experiences
+    if (experiences?.length) {
+      for (const exp of experiences) {
+        await prisma.leadExperience.upsert({
+          where: {
+            leadId_companyName_roleTitle_startDate: {
+              leadId: id,
+              companyName: exp.companyName,
+              roleTitle: exp.roleTitle,
+              startDate: exp.startDate || ''
+            }
+          },
+          create: { leadId: id, ...exp },
+          update: exp
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Educations
+    if (educations?.length) {
+      for (const edu of educations) {
+        await prisma.leadEducation.upsert({
+          where: {
+            leadId_school_degree_startDate: {
+              leadId: id,
+              school: edu.school,
+              degree: edu.degree || '',
+              startDate: edu.startDate || ''
+            }
+          },
+          create: { leadId: id, ...edu },
+          update: edu
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Certifications
+    if (certifications?.length) {
+      for (const cert of certifications) {
+        await prisma.leadCertification.upsert({
+          where: {
+            leadId_name_issuer: {
+              leadId: id,
+              name: cert.name,
+              issuer: cert.issuer || ''
+            }
+          },
+          create: { leadId: id, ...cert },
+          update: cert
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Skills
+    if (skills?.length) {
+      for (const skill of skills) {
+        await prisma.leadSkill.upsert({
+          where: {
+            leadId_name: {
+              leadId: id,
+              name: skill.name
+            }
+          },
+          create: { leadId: id, ...skill },
+          update: skill
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Languages
+    if (languages?.length) {
+      for (const lang of languages) {
+        await prisma.leadLanguage.upsert({
+          where: {
+            leadId_name: {
+              leadId: id,
+              name: lang.name
+            }
+          },
+          create: { leadId: id, ...lang },
+          update: lang
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Recommendations
+    if (recommendations?.length) {
+      for (const rec of recommendations) {
+        await prisma.leadRecommendation.upsert({
+          where: {
+            leadId_authorName_date: {
+              leadId: id,
+              authorName: rec.authorName,
+              date: rec.date || ''
+            }
+          },
+          create: { leadId: id, ...rec },
+          update: rec
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Volunteers
+    if (volunteers?.length) {
+      for (const vol of volunteers) {
+        await prisma.leadVolunteer.upsert({
+          where: {
+            leadId_organization_role: {
+              leadId: id,
+              organization: vol.organization,
+              role: vol.role || ''
+            }
+          },
+          create: { leadId: id, ...vol },
+          update: vol
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Publications
+    if (publications?.length) {
+      for (const pub of publications) {
+        await prisma.leadPublication.upsert({
+          where: {
+            leadId_title_publisher: {
+              leadId: id,
+              title: pub.title,
+              publisher: pub.publisher || ''
+            }
+          },
+          create: { leadId: id, ...pub },
+          update: pub
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Patents
+    if (patents?.length) {
+      for (const pat of patents) {
+        await prisma.leadPatent.upsert({
+          where: {
+            leadId_title_patentNumber: {
+              leadId: id,
+              title: pat.title,
+              patentNumber: pat.patentNumber || ''
+            }
+          },
+          create: { leadId: id, ...pat },
+          update: pat
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Projects
+    if (projects?.length) {
+      for (const proj of projects) {
+        await prisma.leadProject.upsert({
+          where: {
+            leadId_title: {
+              leadId: id,
+              title: proj.title
+            }
+          },
+          create: { leadId: id, ...proj },
+          update: proj
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Courses
+    if (courses?.length) {
+      for (const course of courses) {
+        await prisma.leadCourse.upsert({
+          where: {
+            leadId_name: {
+              leadId: id,
+              name: course.name
+            }
+          },
+          create: { leadId: id, ...course },
+          update: course
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Honors
+    if (honors?.length) {
+      for (const honor of honors) {
+        await prisma.leadHonor.upsert({
+          where: {
+            leadId_title_issuer: {
+              leadId: id,
+              title: honor.title,
+              issuer: honor.issuer || ''
+            }
+          },
+          create: { leadId: id, ...honor },
+          update: honor
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Organizations
+    if (organizations?.length) {
+      for (const org of organizations) {
+        await prisma.leadOrganization.upsert({
+          where: {
+            leadId_name_position: {
+              leadId: id,
+              name: org.name,
+              position: org.position || ''
+            }
+          },
+          create: { leadId: id, ...org },
+          update: org
+        });
+      }
+      enrichedSections++;
+    }
+
+    // Featured - no unique constraint, just create
+    if (featured?.length) {
+      // Delete existing and recreate (simpler than complex upsert logic)
+      await prisma.leadFeatured.deleteMany({ where: { leadId: id } });
+      await prisma.leadFeatured.createMany({
+        data: featured.map((f: any) => ({ leadId: id, ...f }))
+      });
+      enrichedSections++;
+    }
+
+    // Contact Info - 1:1 relation
+    if (contactInfo && Object.values(contactInfo).some(v => v !== null)) {
+      await prisma.leadContactInfo.upsert({
+        where: { leadId: id },
+        create: { leadId: id, ...contactInfo },
+        update: contactInfo
+      });
+      enrichedSections++;
+    }
+
+    // Posts - no unique constraint, append new posts
+    if (posts?.length) {
+      // For posts, we'll just add new ones (avoid duplicates by postUrl if available)
+      for (const post of posts) {
+        if (post.postUrl) {
+          const existing = await prisma.leadPost.findFirst({
+            where: { leadId: id, postUrl: post.postUrl }
+          });
+          if (!existing) {
+            await prisma.leadPost.create({ data: { leadId: id, ...post } });
+          }
+        } else {
+          // No postUrl, just create
+          await prisma.leadPost.create({ data: { leadId: id, ...post } });
+        }
+      }
+      enrichedSections++;
+    }
+
+    // Update lead enrichment metadata
+    const enrichmentStatus = enrichedSections >= 4 ? 'complete' : enrichedSections > 0 ? 'partial' : 'none';
+
+    await prisma.lead.update({
+      where: { id },
+      data: {
+        enrichedAt: new Date(),
+        enrichmentStatus
+      }
+    });
+
+    // Create activity
+    await prisma.activity.create({
+      data: {
+        type: 'lead_updated',
+        leadId: id,
+        userId: req.user!.id,
+        description: `Profile enriched with ${enrichedSections} sections`,
+        metadata: { enrichedSections, enrichmentStatus }
+      }
+    });
+
+    console.log(`[DEBUG] Enrichment complete: ${enrichedSections} sections for lead ${id}`);
+
+    res.json({
+      success: true,
+      data: {
+        enrichedSections,
+        enrichmentStatus
+      }
     });
   } catch (error) {
     next(error);

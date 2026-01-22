@@ -73,24 +73,12 @@ export default function HomePage() {
               Todas as suas conversas em um só lugar. Responda leads de qualquer plataforma sem trocar de aba.
             </p>
           </div>
-
-          <div className="rounded-xl bg-white p-8 shadow-lg">
-            <div className="mb-4 inline-block rounded-lg bg-purple-100 p-3">
-              <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900">Automações</h3>
-            <p className="mt-2 text-gray-600">
-              Crie fluxos automatizados para nutrir leads e agendar mais reuniões no piloto automático.
-            </p>
-          </div>
         </div>
       </main>
 
       <footer className="mt-20 border-t bg-white py-8">
         <div className="container mx-auto px-6 text-center text-gray-600">
-          <p>&copy; 2025 SOS 360. Todos os direitos reservados.</p>
+          <p>&copy; 2026 SOS 360. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
