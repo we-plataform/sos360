@@ -3,6 +3,40 @@
 // Default API URL - can be overridden via chrome.storage.local
 const DEFAULT_API_URL = 'http://localhost:3001';
 
+// --- JWT HELPERS ---
+// Helper to decode JWT without verification (for expiration check only)
+function decodeJWT(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch (e) {
+    console.error('[SOS 360] Failed to decode JWT:', e);
+    return null;
+  }
+}
+
+// Check if token is expired or will expire soon (within 1 hour)
+function isTokenExpiringSoon(token) {
+  const payload = decodeJWT(token);
+  if (!payload || !payload.exp) return true;
+
+  const expirationTime = payload.exp * 1000; // Convert to milliseconds
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+
+  // Return true if token expires within 1 hour
+  return expirationTime - now < oneHour;
+}
+
+// Get token expiration time in milliseconds
+function getTokenExpirationTime(token) {
+  const payload = decodeJWT(token);
+  if (!payload || !payload.exp) return 0;
+  return payload.exp * 1000;
+}
+
 // --- Storage helpers ---
 async function getApiUrl() {
   const result = await chrome.storage.local.get(['apiUrl']);
@@ -27,6 +61,40 @@ async function clearToken() {
 }
 
 // --- API helpers ---
+
+// Test API connectivity before making requests
+async function testApiConnectivity() {
+  const apiUrl = await getApiUrl();
+
+  try {
+    console.log('[SOS 360] Testing API connectivity to:', apiUrl);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health check
+
+    // Try /health endpoint first (preferred)
+    const response = await fetch(`${apiUrl}/health`, {
+      method: 'GET',
+      signal: controller.signal
+    }).catch(() => {
+      // Fallback to /api/v1/health if /health doesn't work
+      return fetch(`${apiUrl}/api/v1/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+    });
+
+    clearTimeout(timeoutId);
+
+    const isHealthy = response.ok || response.status < 500;
+    console.log('[SOS 360] API connectivity test result:', response.status, isHealthy);
+    return isHealthy;
+  } catch (error) {
+    console.warn('[SOS 360] API connectivity test failed:', error.message);
+    return false;
+  }
+}
+
 async function refreshAccessToken() {
   const result = await chrome.storage.local.get(['refreshToken']);
   if (!result.refreshToken) {
@@ -52,6 +120,7 @@ async function refreshAccessToken() {
     const data = await response.json();
     if (data.success && data.data?.accessToken) {
       console.log('[SOS 360] Token refreshed successfully');
+      // Save both access and refresh token (API may issue a new refresh token too)
       await chrome.storage.local.set({
         accessToken: data.data.accessToken,
         refreshToken: data.data.refreshToken || result.refreshToken,
@@ -78,11 +147,23 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
   const url = `${apiUrl}${endpoint}`;
   console.log('[SOS 360] API Request:', url, { method: options.method || 'GET' });
 
+  // Validate API URL before attempting fetch
+  if (!apiUrl || apiUrl === 'undefined' || apiUrl === 'null') {
+    throw new Error('API URL não configurada. Por favor, configure a URL da API nas configurações da extensão.');
+  }
+
   try {
+    // Add timeout to fetch to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     const contentType = response.headers.get('content-type');
     let data;
@@ -116,13 +197,35 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
   } catch (error) {
     console.error('[SOS 360] API Error:', error);
 
-    if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
-      const apiUrl = await getApiUrl();
-      throw new Error(`Não foi possível conectar à API. Verifique se a API está rodando em ${apiUrl}`);
+    // Handle timeout errors
+    if (error.name === 'AbortError') {
+      throw new Error(`Timeout ao conectar à API (${apiUrl}). Verifique sua conexão ou tente novamente.`);
     }
+
+    // Handle network/fetch errors
+    if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      throw new Error(
+        `Não foi possível conectar à API em: ${apiUrl}\n\n` +
+        `Possíveis causas:\n` +
+        `1. A API não está rodando (execute 'npm run api:dev')\n` +
+        `2. URL incorreta configurada na extensão\n` +
+        `3. Problema de rede ou CORS\n\n` +
+        `URL configurada: ${apiUrl}\n` +
+        `Endpoint: ${endpoint}`
+      );
+    }
+
+    // Handle CORS errors
     if (error.message.includes('CORS') || error.message.includes('Not allowed')) {
-      throw new Error('Erro de CORS. Verifique se a API permite requisições da extensão.');
+      throw new Error(
+        `Erro de CORS ao acessar ${apiUrl}\n\n` +
+        `Verifique se:\n` +
+        `1. A API permite requisições da origem da extensão\n` +
+        `2. O domínio está configurado em host_permissions no manifest.json`
+      );
     }
+
+    // Re-throw other errors
     throw error;
   }
 }
@@ -947,6 +1050,87 @@ const instagramNavigator = new InstagramNavigator();
 const linkedInNavigator = new LinkedInNavigator();
 const navigator = new LeadNavigator();
 
+// --- INSTAGRAM POST IMPORT HANDLERS ---
+
+/**
+ * Handles import of Instagram post data
+ * Creates/updates a LeadPost with the post data
+ * Assumes the author Lead already exists
+ */
+async function handleInstagramPostImport(postData) {
+  console.log('[SOS 360] Importing Instagram post data:', postData);
+
+  try {
+    // First, find the author's Lead by Instagram username
+    const response = await apiRequest('/api/v1/leads/import-post', {
+      method: 'POST',
+      body: JSON.stringify({
+        platform: 'instagram',
+        postData: postData,
+      })
+    });
+
+    // Update local stats
+    const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+    await chrome.storage.local.set({
+      leadsToday: (stats.leadsToday || 0) + 1,
+      leadsMonth: (stats.leadsMonth || 0) + 1,
+    });
+
+    console.log('[SOS 360] Post data imported successfully:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('[SOS 360] Failed to import post data:', error);
+
+    // Show notification to user
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon-128.png',
+      title: 'SOS 360 - Import Error',
+      message: error.message || 'Failed to import post data. Make sure the author is already imported.',
+    });
+
+    throw error;
+  }
+}
+
+/**
+ * Handles import of Instagram comment authors
+ * Imports the profiles as leads using the standard import endpoint
+ */
+async function handleInstagramCommentAuthors(data) {
+  const { profiles, postUrl } = data;
+
+  console.log(`[SOS 360] Importing ${profiles.length} Instagram comment authors`);
+
+  try {
+    const response = await apiRequest('/api/v1/leads/import', {
+      method: 'POST',
+      body: JSON.stringify({
+        source: 'extension',
+        platform: 'instagram',
+        sourceUrl: postUrl,
+        leads: profiles,
+      })
+    });
+
+    // Update local stats
+    const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+    await chrome.storage.local.set({
+      leadsToday: (stats.leadsToday || 0) + profiles.length,
+      leadsMonth: (stats.leadsMonth || 0) + profiles.length,
+    });
+
+    console.log('[SOS 360] Comment authors imported successfully');
+    return response.data;
+
+  } catch (error) {
+    console.error('[SOS 360] Failed to import comment authors:', error);
+    throw error;
+  }
+}
+
 
 // --- Message handlers ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -1004,6 +1188,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        case 'importPostData': {
+          await handleInstagramPostImport(request.data);
+          sendResponse({ success: true, message: 'Post data imported successfully' });
+          break;
+        }
+
+        case 'importCommentAuthors': {
+          await handleInstagramCommentAuthors(request.data);
+          sendResponse({ success: true, message: 'Comment authors imported successfully' });
+          break;
+        }
+
         case 'startAutoMode': {
           navigator.start(request.keywords, request.criteria);
           sendResponse({ success: true });
@@ -1035,6 +1231,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'getApiUrl': {
           const url = await getApiUrl();
           sendResponse({ success: true, url });
+          break;
+        }
+
+        case 'testApiConnectivity': {
+          const isConnected = await testApiConnectivity();
+          const url = await getApiUrl();
+          sendResponse({ success: true, isConnected, apiUrl: url });
           break;
         }
 
@@ -1871,20 +2074,23 @@ async function setupPollingAlarm() {
   }
 }
 
-// Set up alarm on install/update
+// Set up alarms on install/update
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[SOS 360] Extension installed/updated');
   setupPollingAlarm();
+  setupTokenRefreshAlarm();
 });
 
-// Set up alarm on browser startup
+// Set up alarms on browser startup
 chrome.runtime.onStartup.addListener(() => {
   console.log('[SOS 360] Browser started');
   setupPollingAlarm();
+  setupTokenRefreshAlarm();
 });
 
-// Also set up alarm immediately when service worker loads
+// Also set up alarms immediately when service worker loads
 setupPollingAlarm();
+setupTokenRefreshAlarm();
 
 // Listen for alarm
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -1930,5 +2136,81 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
   // Small delay to ensure everything is initialized
   await new Promise(r => setTimeout(r, 1000));
   executor.poll();
+})();
+
+// --- PROACTIVE TOKEN REFRESH ---
+// Ensure the extension never loses session by proactively refreshing tokens
+
+async function setupTokenRefreshAlarm() {
+  // Check if alarm already exists
+  const existingAlarm = await chrome.alarms.get('tokenRefresh');
+  if (!existingAlarm) {
+    console.log('[SOS 360] Creating token refresh alarm...');
+    // Check every 30 minutes
+    chrome.alarms.create('tokenRefresh', {
+      delayInMinutes: 1, // Start after 1 minute
+      periodInMinutes: 30 // Then every 30 minutes
+    });
+  } else {
+    console.log('[SOS 360] Token refresh alarm already exists');
+  }
+}
+
+// Check and refresh token if needed
+async function checkAndRefreshToken() {
+  const result = await chrome.storage.local.get(['accessToken', 'refreshToken']);
+
+  if (!result.accessToken) {
+    console.log('[SOS 360] No access token to check');
+    return;
+  }
+
+  if (!result.refreshToken) {
+    console.log('[SOS 360] No refresh token available, cannot refresh');
+    return;
+  }
+
+  // Check if token is expiring soon (within 1 day)
+  const payload = decodeJWT(result.accessToken);
+  if (payload && payload.exp) {
+    const expirationTime = payload.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const timeUntilExpiry = expirationTime - now;
+
+    if (timeUntilExpiry < oneDay) {
+      console.log('[SOS 360] Token expiring soon, refreshing proactively...');
+      console.log(`[SOS 360] Time until expiry: ${Math.round(timeUntilExpiry / (1000 * 60 * 60))} hours`);
+
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        console.log('[SOS 360] Token refreshed proactively');
+        const newPayload = decodeJWT(newToken);
+        if (newPayload && newPayload.exp) {
+          const newExpiry = new Date(newPayload.exp * 1000);
+          console.log('[SOS 360] New token expires at:', newExpiry.toISOString());
+        }
+      } else {
+        console.warn('[SOS 360] Proactive token refresh failed');
+      }
+    } else {
+      console.log('[SOS 360] Token is still valid, no refresh needed');
+      const daysRemaining = Math.round(timeUntilExpiry / (1000 * 60 * 60 * 24));
+      console.log(`[SOS 360] Token expires in ${daysRemaining} days`);
+    }
+  }
+}
+
+// Listen for token refresh alarm (extends the existing alarm listener)
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'tokenRefresh') {
+    await checkAndRefreshToken();
+  }
+});
+
+// Also check token on service worker wake
+(async () => {
+  console.log('[SOS 360] Checking token status on wake...');
+  await checkAndRefreshToken();
 })();
 

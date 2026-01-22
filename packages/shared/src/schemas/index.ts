@@ -76,6 +76,23 @@ export const refreshTokenSchema = z.object({
 export const platformSchema = z.enum(PLATFORMS);
 export const leadStatusSchema = z.enum(LEAD_STATUSES);
 
+// New lead enum schemas
+export const leadGenderSchema = z.enum(['male', 'female', 'other', 'unknown']);
+export const leadPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
+export const companySizeSchema = z.enum([
+  'SIZE_1_10', 'SIZE_11_50', 'SIZE_51_200', 'SIZE_201_500',
+  'SIZE_501_1000', 'SIZE_1001_5000', 'SIZE_5001_10000', 'SIZE_10001_PLUS'
+]);
+
+// Lead address schema
+export const leadAddressSchema = z.object({
+  street: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  zipCode: z.string().nullable().optional(),
+  country: z.string().length(2).nullable().optional(), // ISO 2-letter code
+});
+
 export const createLeadSchema = z.object({
   platform: platformSchema,
   username: z.string().max(100).optional(),
@@ -91,6 +108,12 @@ export const createLeadSchema = z.object({
   followingCount: z.number().int().min(0).optional(),
   tags: z.array(z.string()).optional(),
   customFields: z.record(z.unknown()).optional(),
+  // New fields
+  gender: leadGenderSchema.optional(),
+  priority: leadPrioritySchema.optional(),
+  jobTitle: z.string().max(200).optional(),
+  companySize: companySizeSchema.optional(),
+  address: leadAddressSchema.optional(),
 });
 
 export const updateLeadSchema = z.object({
@@ -101,6 +124,12 @@ export const updateLeadSchema = z.object({
   phone: z.string().max(50).optional(),
   pipelineStageId: z.string().optional(),
   customFields: z.record(z.unknown()).optional(),
+  // New fields
+  gender: leadGenderSchema.optional(),
+  priority: leadPrioritySchema.optional(),
+  jobTitle: z.string().max(200).optional(),
+  companySize: companySizeSchema.optional(),
+  address: leadAddressSchema.optional(),
 });
 
 // Helper to validate URL, empty string, or null
@@ -143,6 +172,12 @@ export const importLeadDataSchema = z.object({
   analysisReason: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   // Enrichment data (LinkedIn deep extraction)
   enrichment: z.any().optional(), // Will be validated by linkedInEnrichmentPayloadSchema when present
+  // New fields for expanded lead data
+  gender: z.union([leadGenderSchema, z.null(), z.undefined()]).optional(),
+  priority: z.union([leadPrioritySchema, z.null(), z.undefined()]).optional(),
+  jobTitle: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  companySize: z.union([companySizeSchema, z.null(), z.undefined()]).optional(),
+  address: leadAddressSchema.nullable().optional(),
 });
 
 export const importLeadsSchema = z.object({
@@ -159,6 +194,27 @@ export const importLeadsSchema = z.object({
   autoAssign: z.boolean().optional(),
   audienceId: z.string().optional(), // ID da audiência para associar os leads
   pipelineStageId: z.string().optional(), // ID do estágio do pipeline para importar os leads diretamente
+});
+
+// Instagram Post data schema
+export const instagramPostDataSchema = z.object({
+  postUrl: z.string().url(),
+  caption: z.string().optional(),
+  imageUrls: z.array(z.string().url()).optional(),
+  likesCount: z.number().int().min(0).optional(),
+  commentsCount: z.number().int().min(0).optional(),
+  authorUsername: z.string(),
+  authorFullName: z.string().optional(),
+  authorAvatarUrl: z.string().url().optional(),
+  extractedAt: z.string().optional(),
+});
+
+// Import Post schema - for importing post data only (not the lead itself)
+export const importPostSchema = z.object({
+  platform: z.literal('instagram'),
+  postData: instagramPostDataSchema,
+  tags: z.array(z.string()).optional(),
+  pipelineStageId: z.string().optional(),
 });
 
 // Tag schemas

@@ -49,6 +49,8 @@ export default function DashboardLayout({
   // Wait for client-side mount to avoid hydration issues
   useEffect(() => {
     setMounted(true);
+    // Initialize API client refresh after mount
+    api.initializeRefresh();
   }, []);
 
   useEffect(() => {

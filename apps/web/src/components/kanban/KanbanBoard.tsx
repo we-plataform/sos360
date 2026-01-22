@@ -27,6 +27,13 @@ export interface KanbanLead {
     username: string | null;
     avatarUrl: string | null;
     position: number;
+    email: string | null;
+    phone: string | null;
+    followersCount: number | null;
+    connectionCount: number | null;
+    status: string;
+    score: number;
+    platform: string | null;
     assignedTo?: {
         id: string;
         fullName: string;
@@ -34,6 +41,8 @@ export interface KanbanLead {
     } | null;
     socialProfiles?: {
         platform: string;
+        profileUrl: string | null;
+        followersCount: number | null;
     }[];
 }
 

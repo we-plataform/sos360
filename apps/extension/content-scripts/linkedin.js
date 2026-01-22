@@ -521,6 +521,34 @@
     const industryEl = document.querySelector('.pv-text-details__left-panel span[class*="industry"]');
     industry = getTextContent(industryEl);
 
+    // Extract jobTitle from headline (parse "Title at Company" pattern)
+    let jobTitle = null;
+    if (headline) {
+      // Try to extract job title - usually before "at/em" or first part before "|"
+      const atMatch = headline.match(/^(.+?)\s+(?:at|@|em|na)\s+/i);
+      const pipeMatch = headline.match(/^(.+?)\s*[|·•]/);
+      if (atMatch) {
+        jobTitle = atMatch[1].trim();
+      } else if (pipeMatch) {
+        jobTitle = pipeMatch[1].trim();
+      } else if (currentPosition) {
+        jobTitle = currentPosition;
+      }
+    }
+
+    // Parse location into address components
+    let address = null;
+    if (location) {
+      const parts = location.split(',').map(p => p.trim());
+      if (parts.length >= 3) {
+        address = { city: parts[0], state: parts[1], country: parts[2] };
+      } else if (parts.length === 2) {
+        address = { city: parts[0], country: parts[1] };
+      } else if (parts.length === 1) {
+        address = { city: parts[0] };
+      }
+    }
+
     return {
       username,
       fullName,
@@ -535,7 +563,10 @@
       followersCount: followersCount || 0,
       followingCount: connectionCount || 0, // LinkedIn "Connections" mapped to followingCount for backward compatibility
       postsCount: recentPosts.length, // We don't have total count easily, just count what we found
-      posts: recentPosts
+      posts: recentPosts,
+      // New expanded fields
+      jobTitle,      // Parsed from headline or position
+      address        // Parsed from location
     };
   }
 
@@ -1296,6 +1327,12 @@
     }
 
     console.log(`[SOS 360] Enrichment complete. Extracted ${extractedCount} sections.`);
+
+    // Extract jobTitle from first experience if available
+    if (results.experiences && results.experiences.length > 0) {
+      results.jobTitle = results.experiences[0].roleTitle || null;
+    }
+
     return results;
   }
 
@@ -2188,116 +2225,208 @@
 
   // --- Core Logic ---
   function scanConnections() {
-    // Nova Estratégia v3.1: Extração Posicional baseada em Âncoras
-    // Ignora classes ofuscadas e foca na estrutura do DOM
+    // Estratégia v4.0: Detecção automática de contexto (Conexões vs Busca)
+    // Suporta tanto página de conexões quanto página de busca de pessoas
 
-    // 1. Encontrar todas as âncoras de título (Nome do Lead) que são estáveis
-    const titleAnchors = Array.from(document.querySelectorAll('[data-view-name="search-result-lockup-title"]'));
+    const isConnectionsPage = window.location.pathname.includes('/connections');
+    const isSearchPage = window.location.pathname.includes('/search/results');
+
+    console.log(`[SOS 360] Detectando contexto: Conexões=${isConnectionsPage}, Busca=${isSearchPage}`);
+
+    let profileElements = [];
+
+    if (isConnectionsPage) {
+      // PÁGINA DE CONEXÕES: Usar seletor específico
+      profileElements = Array.from(document.querySelectorAll('[data-view-name="connections-profile"]'));
+      console.log(`[SOS 360] Página de Conexões - Encontrados ${profileElements.length} perfis via connections-profile`);
+    } else {
+      // PÁGINA DE BUSCA: Usar seletor de busca
+      profileElements = Array.from(document.querySelectorAll('[data-view-name="search-result-lockup-title"]'));
+      console.log(`[SOS 360] Página de Busca - Encontrados ${profileElements.length} perfis via search-result-lockup-title`);
+    }
+
+    // Fallback: Se nenhum seletor específico funcionar, tentar links genéricos de perfil
+    if (profileElements.length === 0) {
+      const allProfileLinks = Array.from(document.querySelectorAll('a[href*="/in/"]'));
+      // Filtrar links de navegação/header
+      profileElements = allProfileLinks.filter(link => {
+        return !link.closest('header') && !link.closest('nav') && !link.closest('.global-nav');
+      });
+      console.log(`[SOS 360] Fallback genérico - Encontrados ${profileElements.length} links de perfil`);
+    }
 
     // Atualiza total = histórico de outras páginas + leads encontrados nesta página
-    state.totalConnectionsFound = state.scannedHistoryCount + titleAnchors.length;
+    state.totalConnectionsFound = state.scannedHistoryCount + profileElements.length;
 
-    console.log(`[SOS 360] Scan iniciado. Anchors nesta pág: ${titleAnchors.length}. Total Global: ${state.totalConnectionsFound}`);
+    console.log(`[SOS 360] Scan iniciado. Perfis nesta pág: ${profileElements.length}. Total Global: ${state.totalConnectionsFound}`);
     console.log('[SOS 360] Estado:', {
       audience: state.selectedAudience?.name,
       keywords: state.keywords,
       bulk: state.isBulkScanning
     });
 
-    titleAnchors.forEach(nameEl => {
+    profileElements.forEach(linkEl => {
       try {
         // Validar se é um link de perfil real
-        const profileUrl = nameEl.href;
+        const profileUrl = linkEl.href;
         if (!profileUrl || !profileUrl.includes('/in/')) return;
 
-        // Determinar container do card para controle de estado (dataset)
-        // Sobe até achar um li ou container genérico de lista (funciona para People Search e Connections)
-        const card = nameEl.closest('li') || nameEl.closest('[role="listitem"]') || nameEl.closest('.reusable-search__result-container');
+        // Determinar container do card
+        let card = null;
+
+        if (isConnectionsPage) {
+          // Para página de conexões: subir no DOM até encontrar container com múltiplos filhos
+          let parent = linkEl.parentElement;
+          let depth = 0;
+          while (parent && depth < 10) {
+            const childCount = parent.children.length;
+            const hasButton = parent.querySelector('button');
+            // Card típico tem: avatar, info, botões (3+ filhos)
+            if (childCount >= 3 && hasButton) {
+              card = parent;
+              break;
+            }
+            parent = parent.parentElement;
+            depth++;
+          }
+          // Fallback: usar o ancestral mais próximo com altura significativa
+          if (!card) {
+            parent = linkEl.parentElement;
+            depth = 0;
+            while (parent && depth < 8) {
+              if (parent.offsetHeight > 50) {
+                card = parent;
+                break;
+              }
+              parent = parent.parentElement;
+              depth++;
+            }
+          }
+        } else {
+          // Para página de busca: usar lógica original
+          card = linkEl.closest('li') || linkEl.closest('[role="listitem"]') || linkEl.closest('.reusable-search__result-container');
+        }
+
+        if (!card) {
+          // Último fallback
+          card = linkEl.parentElement?.parentElement?.parentElement;
+        }
 
         if (!card) return;
 
         // Evita reprocessar se já extraímos e VALIDAMOS este lead
-        if (state.qualifiedLeads.has(profileUrl.split('?')[0]) || card.dataset.sosProcessed) {
+        const cleanUrl = profileUrl.split('?')[0];
+        if (state.qualifiedLeads.has(cleanUrl) || card.dataset.sosProcessed) {
           return;
         }
 
         const username = parseLinkedInUrl(profileUrl);
         if (!username) return;
 
-        // --- EXTRAÇÃO POSICIONAL ---
-
-        // 1. Nome (innerText do link é geralmente o melhor, mas limpando espaços extras)
-        const spanHidden = nameEl.querySelector('span[aria-hidden="true"]');
-        let fullName = (spanHidden ? spanHidden.innerText : nameEl.innerText).trim();
-
-        // 2. Navegação para Bio e Location (Sibling Traversal)
-        // Encontra o bloco do título (entity-result__title-text)
-        let anchorBlock = nameEl.closest('.entity-result__title-text');
-
-        if (!anchorBlock) {
-          // Fallback para views onde o link é direto filho de um container inline
-          let p = nameEl.parentElement;
-          if (p && getComputedStyle(p).display === 'inline') p = p.parentElement;
-          anchorBlock = p;
-        }
-
+        // --- EXTRAÇÃO DE DADOS ---
+        let fullName = '';
         let bio = '';
         let location = '';
+        let avatarUrl = null;
 
-        if (anchorBlock) {
-          // Irmão 1: Cargo (Bio)
-          const bioEl = anchorBlock.nextElementSibling;
-          if (bioEl) {
-            bio = bioEl.innerText.trim();
-            // Limpeza agressiva de conectores e metadados de 2º grau
-            bio = bio.replace(/^(?:\d+[º°] grau|•|·|\s)+/i, '');
+        if (isConnectionsPage) {
+          // EXTRAÇÃO PARA PÁGINA DE CONEXÕES (baseada em innerText posicional)
+          const cardText = card.innerText || '';
+          const lines = cardText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-            // Irmão 2: Localização (geralmente vizinho do bio)
-            const locEl = bioEl.nextElementSibling;
-            if (locEl) {
-              location = locEl.innerText.trim();
+          // Estrutura típica: [Nome, Headline, "Connected on...", "Message"]
+          if (lines.length >= 1) {
+            fullName = lines[0];
+          }
+          if (lines.length >= 2) {
+            bio = lines[1];
+            // Limpar se for data de conexão
+            if (bio.toLowerCase().includes('connected on') || bio.toLowerCase().includes('conectado em')) {
+              bio = '';
             }
           }
-        }
+          if (lines.length >= 3 && !bio) {
+            // Se linha 2 era data, talvez linha 1 era o bio
+            bio = lines[1];
+          }
 
-        // --- FALLBACK DE SEGURANÇA (Se posicional falhar) ---
-        if (!bio || bio.length < 3) {
-          const fullText = card.innerText;
-          // Remove nome do texto completo para achar o bio
-          const nameC = fullName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const cleanText = fullText.replace(new RegExp(nameC, 'gi'), '');
-          const lines = cleanText.split('\n').filter(l => l.trim().length > 3);
+          // Avatar: buscar img com src do LinkedIn CDN
+          const img = card.querySelector('img[src*="licdn.com"]');
+          avatarUrl = img?.src || null;
 
-          // Pega a primeira linha que não parece lixo de navegação
-          for (const line of lines) {
-            const l = line.toLowerCase();
-            if (!l.includes('ligações') && !l.includes('seguidores') && !l.includes('conectar') && !l.includes('connect')) {
-              bio = line.trim();
-              break;
+          // Location: geralmente não está visível no card de conexões, mas tentar
+          const locationLine = lines.find(l => {
+            const lower = l.toLowerCase();
+            return (lower.includes(',') && !lower.includes('connected') && !lower.includes('message'));
+          });
+          if (locationLine && locationLine !== fullName && locationLine !== bio) {
+            location = locationLine;
+          }
+
+        } else {
+          // EXTRAÇÃO PARA PÁGINA DE BUSCA (lógica original)
+          const spanHidden = linkEl.querySelector('span[aria-hidden="true"]');
+          fullName = (spanHidden ? spanHidden.innerText : linkEl.innerText).trim();
+
+          let anchorBlock = linkEl.closest('.entity-result__title-text');
+          if (!anchorBlock) {
+            let p = linkEl.parentElement;
+            if (p && getComputedStyle(p).display === 'inline') p = p.parentElement;
+            anchorBlock = p;
+          }
+
+          if (anchorBlock) {
+            const bioEl = anchorBlock.nextElementSibling;
+            if (bioEl) {
+              bio = bioEl.innerText.trim();
+              bio = bio.replace(/^(?:\d+[º°] grau|•|·|\s)+/i, '');
+
+              const locEl = bioEl.nextElementSibling;
+              if (locEl) {
+                location = locEl.innerText.trim();
+              }
             }
           }
+
+          // Fallback de segurança
+          if (!bio || bio.length < 3) {
+            const fullText = card.innerText;
+            const nameC = fullName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const cleanText = fullText.replace(new RegExp(nameC, 'gi'), '');
+            const textLines = cleanText.split('\n').filter(l => l.trim().length > 3);
+
+            for (const line of textLines) {
+              const l = line.toLowerCase();
+              if (!l.includes('ligações') && !l.includes('seguidores') && !l.includes('conectar') && !l.includes('connect')) {
+                bio = line.trim();
+                break;
+              }
+            }
+          }
+
+          const img = card.querySelector('img[src*="licdn.com/dms/image"]');
+          avatarUrl = img?.src || null;
         }
 
         // Limpeza Final da Bio
         bio = bio.replace(/(?:é uma conexão|conexão em comum|seguidores| • ).*/gi, '').trim();
 
-        // --- FIM DA EXTRAÇÃO ---
+        // Fallback para nome se vazio
+        if (!fullName) {
+          fullName = formatUsernameAsName(username) || username;
+        }
 
         // Parse company (tentativa simples)
         let company = null;
-        let headline = bio;
+        const headline = bio;
 
         const atMatch = bio.match(/(?:at|@|em|na)\s+(.+?)(?:\s*[|·•]|$)/i);
         if (atMatch) company = atMatch[1].trim();
 
-        // Avatar Extraction (Reutilizando lógica simples, mas aprimorada)
-        const img = card.querySelector('img[src*="licdn.com/dms/image"]');
-        const avatarUrl = img ? img.src : null;
-
         const lead = {
           username,
           fullName,
-          profileUrl,
+          profileUrl: cleanUrl,
           headline,
           bio,
           company,
@@ -2351,7 +2480,7 @@
         card.dataset.sosProcessed = 'true';
 
       } catch (e) {
-        console.error('[SOS 360] Erro card:', e);
+        console.error('[SOS 360] Erro ao processar card:', e);
       }
     });
 
@@ -2479,58 +2608,6 @@
   }
 
   // --- Action Handlers ---
-  function importQualifiedLeads() {
-    const leads = Array.from(state.qualifiedLeads.values());
-    if (leads.length === 0) {
-      alert('Nenhum lead qualificado para importar.');
-      return;
-    }
-
-    // Capture Pipeline Selection
-    const pipelineSelect = document.getElementById('sos-pipeline-select');
-    const stageSelect = document.getElementById('sos-stage-select');
-
-    const pipelineId = pipelineSelect ? pipelineSelect.value : null;
-    const stageId = stageSelect ? stageSelect.value : null;
-
-    if (!pipelineId || !stageId) {
-      alert('Por favor, selecione um pipeline e uma etapa para importar.');
-      return;
-    }
-
-    console.log(`[SOS 360] Importing ${leads.length} leads to pipeline ${pipelineId}, stage ${stageId}`);
-
-    try {
-      if (!chrome.runtime?.id) {
-        alert('Extensão desconectada. Recarregue a página e tente novamente.');
-        return;
-      }
-
-      chrome.runtime.sendMessage({
-        action: 'importLeads',
-        leads: leads,
-        pipelineId: pipelineId,
-        pipelineStageId: stageId
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('[SOS 360] Import error:', chrome.runtime.lastError.message);
-          alert('Erro de conexão com a extensão. Recarregue a página e tente novamente.');
-          return;
-        }
-
-        if (response && response.success) {
-          const count = response.data?.count || leads.length;
-          alert(`${count} Leads importados com sucesso!`);
-          clearState();
-        } else {
-          alert('Erro ao importar leads: ' + (response?.error || 'Desconhecido'));
-        }
-      });
-    } catch (error) {
-      console.error('[SOS 360] Failed to send import message:', error);
-      alert('Erro de conexão com a extensão. Recarregue a página e tente novamente.');
-    }
-  }
   function stopAutoScroll(userInitiated = false) {
     state.isAutoScrolling = false;
     updateUI();

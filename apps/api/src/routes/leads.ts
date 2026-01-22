@@ -4,6 +4,7 @@ import {
   createLeadSchema,
   updateLeadSchema,
   importLeadsSchema,
+  importPostSchema,
   leadFiltersSchema,
   PAGINATION_DEFAULTS,
   calculateOffset,
@@ -83,6 +84,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
             },
           },
           socialProfiles: true,
+          address: true,
         },
         orderBy: { [sortField]: sortDirection },
         skip: calculateOffset(page, limit),
@@ -116,7 +118,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
 leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(createLeadSchema), async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
-    const { tags, ...leadData } = req.body;
+    const { tags, address, ...leadData } = req.body;
 
     const profileUrl = leadData.profileUrl || (leadData.username ? `${leadData.platform}:${leadData.username}` : null);
     if (!profileUrl) {
@@ -214,6 +216,11 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
               create: tags.map((tagId: string) => ({ tagId })),
             },
           }),
+          ...(address && Object.values(address).some(v => v !== null) && {
+            address: {
+              create: address
+            },
+          }),
         },
         include: {
           assignedTo: {
@@ -224,7 +231,8 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
               tag: { select: { id: true, name: true, color: true } },
             },
           },
-          socialProfiles: true
+          socialProfiles: true,
+          address: true,
         },
       });
     }
@@ -468,7 +476,16 @@ leadsRouter.post(
             company: leadData.company || null,
             industry: leadData.industry || null,
             connectionCount: leadData.connectionCount || null,
+
+            // New expanded fields
+            gender: leadData.gender || null,
+            priority: leadData.priority || null,
+            jobTitle: leadData.jobTitle || null,
+            companySize: leadData.companySize || null,
           };
+
+          // Process address if provided
+          const addressData = leadData.address;
 
           // Ensure profileUrl exists
           const profileUrl = cleanedLeadData.profileUrl || `${platform}:${cleanedLeadData.username || 'unknown'}`;
@@ -541,6 +558,11 @@ leadsRouter.post(
                     create: tags.map((tagId: string) => ({ tagId })),
                   },
                 }),
+                ...(addressData && Object.values(addressData).some(v => v !== null) && {
+                  address: {
+                    create: addressData
+                  },
+                }),
               }
             });
           }
@@ -585,6 +607,153 @@ leadsRouter.post(
   }
 );
 
+// POST /leads/import-post - Import Instagram post data
+// This creates a LeadPost entry for an existing lead (the post author)
+leadsRouter.post(
+  '/import-post',
+  authorize('owner', 'admin', 'manager', 'agent'),
+  validate(importPostSchema),
+  async (req, res, next) => {
+    try {
+      const workspaceId = req.user!.workspaceId;
+      const { platform, postData, tags, pipelineStageId } = req.body;
+
+      // Find the author's lead by Instagram username
+      const authorUsername = postData.authorUsername;
+      const profileUrl = `https://instagram.com/${authorUsername}`;
+
+      const existingLead = await prisma.lead.findFirst({
+        where: {
+          workspaceId,
+          OR: [
+            { socialProfiles: { some: { platform, profileUrl } } },
+            { platform, profileUrl },
+          ]
+        },
+        include: {
+          socialProfiles: true,
+          leadPosts: true,
+        }
+      });
+
+      if (!existingLead) {
+        return res.status(404).json({
+          success: false,
+          error: `Lead not found for Instagram user @${authorUsername}. Please import the author's profile first.`,
+        });
+      }
+
+      // Check if this post already exists for this lead
+      const existingPost = await prisma.leadPost.findFirst({
+        where: {
+          leadId: existingLead.id,
+          postUrl: postData.postUrl,
+        }
+      });
+
+      if (existingPost) {
+        // Update existing post
+        await prisma.leadPost.update({
+          where: { id: existingPost.id },
+          data: {
+            content: postData.caption || null,
+            date: new Date().toISOString().split('T')[0], // Today's date
+            likes: postData.likesCount,
+            comments: postData.commentsCount,
+            imageUrls: postData.imageUrls || [],
+            postUrl: postData.postUrl,
+            postType: 'post',
+          }
+        });
+      } else {
+        // Create new LeadPost
+        await prisma.leadPost.create({
+          data: {
+            leadId: existingLead.id,
+            content: postData.caption || null,
+            date: new Date().toISOString().split('T')[0], // Today's date
+            likes: postData.likesCount,
+            comments: postData.commentsCount,
+            imageUrls: postData.imageUrls || [],
+            linkedUrl: postData.postUrl,
+            postUrl: postData.postUrl,
+            postType: 'post',
+          }
+        });
+      }
+
+      // Add tags if provided
+      if (tags?.length) {
+        for (const tagId of tags) {
+          await prisma.leadTag.upsert({
+            where: { leadId_tagId: { leadId: existingLead.id, tagId } },
+            create: { leadId: existingLead.id, tagId },
+            update: {},
+          });
+        }
+      }
+
+      // Update pipeline stage if provided
+      if (pipelineStageId) {
+        await prisma.lead.update({
+          where: { id: existingLead.id },
+          data: { pipelineStageId },
+        });
+      }
+
+      // Fetch updated lead
+      const updatedLead = await prisma.lead.findUnique({
+        where: { id: existingLead.id },
+        include: {
+          assignedTo: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          tags: {
+            include: {
+              tag: { select: { id: true, name: true, color: true } },
+            },
+          },
+          socialProfiles: true,
+          leadPosts: {
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          },
+        },
+      });
+
+      // Emit socket event
+      const io = req.app.get('io') as Server;
+      io.to(`workspace:${workspaceId}`).emit('lead:updated', {
+        ...updatedLead,
+        tags: updatedLead?.tags?.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag) || [],
+      });
+
+      // Create activity
+      await prisma.activity.create({
+        data: {
+          type: 'lead_updated',
+          leadId: existingLead.id,
+          userId: req.user!.id,
+          description: `Post data imported from Instagram`,
+          metadata: { postUrl: postData.postUrl, platform: 'instagram' },
+        },
+      });
+
+      res.json({
+        success: true,
+        data: {
+          leadId: existingLead.id,
+          message: 'Post data imported successfully',
+          postUrl: postData.postUrl,
+        },
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /leads/:id - Get single lead
 leadsRouter.get('/:id', async (req, res, next) => {
   try {
@@ -604,6 +773,7 @@ leadsRouter.get('/:id', async (req, res, next) => {
         },
         socialProfiles: true,
         behavior: true,
+        address: true,
         activities: {
           orderBy: { createdAt: 'desc' },
           take: 20,
@@ -663,10 +833,10 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
   try {
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
-    const updates = req.body;
+    const { address, ...updates } = req.body;
 
     // DEBUG: Log the incoming update request
-    console.log('[DEBUG] PATCH /leads/:id - Received:', { id, workspaceId, updates });
+    console.log('[DEBUG] PATCH /leads/:id - Received:', { id, workspaceId, updates, address });
 
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
@@ -682,9 +852,21 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
       throw new NotFoundError('Lead');
     }
 
+    // Build update data with address upsert if provided
+    const updateData: Record<string, unknown> = { ...updates };
+
+    if (address && Object.values(address).some(v => v !== null)) {
+      updateData.address = {
+        upsert: {
+          create: address,
+          update: address,
+        },
+      };
+    }
+
     const lead = await prisma.lead.update({
       where: { id },
-      data: updates,
+      data: updateData,
       include: {
         assignedTo: {
           select: { id: true, fullName: true, avatarUrl: true },
@@ -695,6 +877,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
           },
         },
         socialProfiles: true,
+        address: true,
       },
     });
 
@@ -762,8 +945,38 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
     const {
       experiences, educations, certifications, skills, languages,
       recommendations, volunteers, publications, patents, projects,
-      courses, honors, organizations, featured, contactInfo, posts
+      courses, honors, organizations, featured, contactInfo, posts,
+      companySize, jobTitle, address
     } = enrichment;
+
+    // Process company size mapping from LinkedIn text (e.g., "1,001-5,000 employees")
+    const mapCompanySize = (sizeText: string | undefined | null): string | null => {
+      if (!sizeText) return null;
+      const text = sizeText.toLowerCase().replace(/,/g, '');
+      if (text.includes('10001') || text.includes('10000+') || text.includes('10001+')) return 'SIZE_10001_PLUS';
+      if (text.includes('5001') || text.includes('5000')) return 'SIZE_5001_10000';
+      if (text.includes('1001') || text.includes('1000')) return 'SIZE_1001_5000';
+      if (text.includes('501') || text.includes('500')) return 'SIZE_501_1000';
+      if (text.includes('201') || text.includes('200')) return 'SIZE_201_500';
+      if (text.includes('51') || text.includes('50')) return 'SIZE_51_200';
+      if (text.includes('11')) return 'SIZE_11_50';
+      if (text.includes('1-10') || text.includes('1 - 10') || text.match(/^[1-9]$/)) return 'SIZE_1_10';
+      return null;
+    };
+
+    // Parse location string to address components (e.g., "São Paulo, São Paulo, Brasil")
+    const parseLocationToAddress = (locationStr: string | undefined | null): { city?: string; state?: string; country?: string } | null => {
+      if (!locationStr) return null;
+      const parts = locationStr.split(',').map(p => p.trim());
+      if (parts.length >= 3) {
+        return { city: parts[0], state: parts[1], country: parts[2] };
+      } else if (parts.length === 2) {
+        return { city: parts[0], country: parts[1] };
+      } else if (parts.length === 1) {
+        return { city: parts[0] };
+      }
+      return null;
+    };
 
     // Experiences
     if (experiences?.length) {
@@ -1039,13 +1252,42 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
     // Update lead enrichment metadata
     const enrichmentStatus = enrichedSections >= 4 ? 'complete' : enrichedSections > 0 ? 'partial' : 'none';
 
+    // Prepare lead update data
+    const leadUpdateData: Record<string, unknown> = {
+      enrichedAt: new Date(),
+      enrichmentStatus
+    };
+
+    // Extract jobTitle from first experience if not provided directly
+    const extractedJobTitle = jobTitle || (experiences?.length > 0 ? experiences[0].roleTitle : null);
+    if (extractedJobTitle) {
+      leadUpdateData.jobTitle = extractedJobTitle;
+      enrichedSections++;
+    }
+
+    // Process companySize
+    const mappedCompanySize = mapCompanySize(companySize);
+    if (mappedCompanySize) {
+      leadUpdateData.companySize = mappedCompanySize;
+      enrichedSections++;
+    }
+
+    // Update lead
     await prisma.lead.update({
       where: { id },
-      data: {
-        enrichedAt: new Date(),
-        enrichmentStatus
-      }
+      data: leadUpdateData
     });
+
+    // Process address - either from explicit address object or parsed from location
+    const addressData = address || parseLocationToAddress(existingLead.location);
+    if (addressData && Object.values(addressData).some(v => v !== null && v !== undefined)) {
+      await prisma.leadAddress.upsert({
+        where: { leadId: id },
+        create: { leadId: id, ...addressData },
+        update: addressData
+      });
+      enrichedSections++;
+    }
 
     // Create activity
     await prisma.activity.create({

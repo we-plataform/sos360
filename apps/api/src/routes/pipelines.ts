@@ -92,13 +92,24 @@ pipelinesRouter.get('/:id', async (req, res, next) => {
                         automations: true,
                         leads: {
                             orderBy: { position: 'asc' },
-                            include: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                                username: true,
+                                avatarUrl: true,
+                                position: true,
+                                email: true,
+                                phone: true,
+                                followersCount: true,
+                                connectionCount: true,
+                                status: true,
+                                score: true,
+                                platform: true,
                                 assignedTo: {
                                     select: { id: true, fullName: true, avatarUrl: true },
                                 },
                                 socialProfiles: {
-                                    select: { platform: true },
-                                    take: 1,
+                                    select: { platform: true, profileUrl: true, followersCount: true },
                                 },
                             },
                         },

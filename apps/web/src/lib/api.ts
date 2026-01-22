@@ -2,11 +2,90 @@ import type { ApiResponse } from '@sos360/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// --- JWT HELPERS ---
+// Helper to decode JWT without verification (for expiration check only)
+function decodeJWT(token: string): { exp?: number } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch (e) {
+    console.error('[API] Failed to decode JWT:', e);
+    return null;
+  }
+}
+
+// Check if token is expiring soon (within 1 day)
+function isTokenExpiringSoon(token: string): boolean {
+  const payload = decodeJWT(token);
+  if (!payload || !payload.exp) return true;
+
+  const expirationTime = payload.exp * 1000; // Convert to milliseconds
+  const now = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  // Return true if token expires within 1 day
+  return expirationTime - now < oneDay;
+}
+
+// Get token expiration time in milliseconds
+function getTokenExpirationTime(token: string): number {
+  const payload = decodeJWT(token);
+  if (!payload || !payload.exp) return 0;
+  return payload.exp * 1000;
+}
+
 class ApiClient {
   private baseUrl: string;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private refreshInitialized = false;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+  }
+
+  // Initialize proactive refresh - must be called from client-side component
+  initializeRefresh() {
+    if (typeof window === 'undefined' || this.refreshInitialized) {
+      return;
+    }
+    this.refreshInitialized = true;
+    this.startProactiveRefresh();
+  }
+
+  private startProactiveRefresh() {
+    // Check every 30 minutes
+    this.refreshInterval = setInterval(async () => {
+      const token = this.getToken();
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (token && refreshToken && isTokenExpiringSoon(token)) {
+        console.log('[API] Token expiring soon, refreshing proactively...');
+        const expirationTime = getTokenExpirationTime(token);
+        const now = Date.now();
+        const hoursRemaining = Math.round((expirationTime - now) / (1000 * 60 * 60));
+        console.log(`[API] Time until expiry: ${hoursRemaining} hours`);
+
+        await this.refreshToken();
+      }
+    }, 30 * 60 * 1000); // Every 30 minutes
+
+    // Also check immediately on init
+    setTimeout(async () => {
+      const token = this.getToken();
+      if (token && isTokenExpiringSoon(token)) {
+        console.log('[API] Token expiring soon on init, refreshing...');
+        await this.refreshToken();
+      }
+    }, 1000); // Check after 1 second
+  }
+
+  private stopProactiveRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
   private getToken(): string | null {

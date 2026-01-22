@@ -1,1 +1,2 @@
-export { LeadDetailModal } from './LeadDetailModal';
+export * from './LeadDetailModal';
+export * from './CreatePipelineDialog';

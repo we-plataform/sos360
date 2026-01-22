@@ -116,12 +116,12 @@ authRouter.post(
       });
       const refreshToken = signRefreshToken(user.id);
 
-      // Store refresh token
+      // Store refresh token (expires in 365 days to match token expiration)
       await storage.set(
         `refresh:${user.id}:${refreshToken.slice(-10)}`,
         refreshToken,
         'EX',
-        7 * 24 * 60 * 60
+        365 * 24 * 60 * 60
       );
 
       res.status(201).json({
@@ -231,12 +231,12 @@ authRouter.post('/login', authRateLimit, validate(loginSchema), async (req, res,
       });
       const refreshToken = signRefreshToken(user.id);
 
-      // Store refresh token
+      // Store refresh token (expires in 365 days to match token expiration)
       await storage.set(
         `refresh:${user.id}:${refreshToken.slice(-10)}`,
         refreshToken,
         'EX',
-        7 * 24 * 60 * 60
+        365 * 24 * 60 * 60
       );
 
       return res.json({

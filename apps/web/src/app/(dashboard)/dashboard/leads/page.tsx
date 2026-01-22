@@ -2,30 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Plus, Search, LayoutGrid, List, Settings, RefreshCw } from 'lucide-react';
+import { Plus, Settings, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
 import { KanbanBoard, KanbanPipeline, StageManager } from '@/components/kanban';
-import { LeadDetailModal } from '@/components/leads';
+import { LeadDetailModal, CreatePipelineDialog } from '@/components/leads';
 import { api } from '@/lib/api';
-import { formatNumber, formatRelativeTime } from '@/lib/utils';
 import { socket } from '@/lib/socket';
-import { PLATFORM_COLORS, STATUS_COLORS } from '@sos360/shared';
-
-type ViewMode = 'list' | 'kanban';
 
 export default function LeadsPage() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [platform, setPlatform] = useState('');
-  const [status, setStatus] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
+  const [isCreatePipelineOpen, setIsCreatePipelineOpen] = useState(false);
 
   // Fetch pipelines
   const { data: pipelinesData } = useQuery({
@@ -47,14 +37,7 @@ export default function LeadsPage() {
   const { data: pipelineData, isLoading: isPipelineLoading } = useQuery({
     queryKey: ['pipeline', selectedPipelineId],
     queryFn: () => api.getPipeline(selectedPipelineId!) as any,
-    enabled: !!selectedPipelineId && viewMode === 'kanban',
-  });
-
-  // Fetch leads (for list view)
-  const { data: leadsData, isLoading: isLeadsLoading } = useQuery({
-    queryKey: ['leads', { search, platform, status }],
-    queryFn: () => api.getLeads({ search, platform, status, limit: 50 }) as any,
-    enabled: viewMode === 'list',
+    enabled: !!selectedPipelineId,
   });
 
   // Move lead mutation
@@ -113,13 +96,21 @@ export default function LeadsPage() {
     };
   }, [queryClient, selectedPipelineId]);
 
-  const leads = leadsData || [];
-  const isLoading = viewMode === 'list' ? isLeadsLoading : isPipelineLoading;
+  const isLoading = isPipelineLoading;
   const currentPipeline = pipelines.find((p: any) => p.id === selectedPipelineId);
 
-  // Check if there are leads not in pipeline
-  const hasUnmigratedLeads = pipelineData?.stages?.every((s: any) => s.leads.length === 0) &&
-    (leadsData?.length > 0 || leadsData?.pagination?.total > 0);
+  // Check if there are leads not in pipeline - requires a separate check now since we removed leadsData
+  // We can fetch a small count or similar if needed, but the original logic relied on leadsData.
+  // The original logic:
+  // const hasUnmigratedLeads = pipelineData?.stages?.every((s: any) => s.leads.length === 0) &&
+  //   (leadsData?.length > 0 || leadsData?.pagination?.total > 0);
+
+  // Since we removed leadsData (which fetched all leads), we might lose this "unmigrated leads" check capability 
+  // without a specific query. However, purely removing the list view shouldn't necessarily break this if it's critical.
+  // But given standard Kanban usage, if leads aren't in a stage, they aren't in the pipeline.
+  // I will comment out the hasUnmigratedLeads logic for now as it depended on the list-view query.
+  // If the user wants to keep this feature, we'd need a lightweight 'getUnmigratedLeadsCount' query.
+  const hasUnmigratedLeads = false;
 
   const handleMoveLead = (leadId: string, stageId: string, position: number) => {
     moveLeadMutation.mutate({ leadId, stageId, position });
@@ -127,6 +118,15 @@ export default function LeadsPage() {
 
   const handleLeadClick = (leadId: string) => {
     setSelectedLeadId(leadId);
+  };
+
+  const handlePipelineChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'create_new') {
+      setIsCreatePipelineOpen(true);
+    } else {
+      setSelectedPipelineId(value);
+    }
   };
 
   return (
@@ -139,43 +139,21 @@ export default function LeadsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center rounded-lg border bg-white p-1">
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${viewMode === 'kanban'
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Kanban
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${viewMode === 'list'
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              <List className="h-4 w-4" />
-              Lista
-            </button>
-          </div>
-
           {/* Pipeline Selector */}
-          {viewMode === 'kanban' && pipelines.length > 0 && (
+          {pipelines.length > 0 && (
             <>
               <select
-                className="rounded-md border px-3 py-2 text-sm"
+                className="rounded-md border px-3 py-2 text-sm max-w-[200px]"
                 value={selectedPipelineId || ''}
-                onChange={(e) => setSelectedPipelineId(e.target.value)}
+                onChange={handlePipelineChange}
               >
                 {pipelines.map((p: any) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
+                <option disabled>──────────</option>
+                <option value="create_new">+ Criar Novo Pipeline</option>
               </select>
 
               {/* Stage Manager Button */}
@@ -196,8 +174,8 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Migration Banner */}
-      {viewMode === 'kanban' && hasUnmigratedLeads && (
+      {/* Migration Banner - Disabled for now as logic depended on list query */}
+      {/* {hasUnmigratedLeads && (
         <Card className="mb-6 p-4 bg-amber-50 border-amber-200">
           <div className="flex items-center justify-between">
             <div>
@@ -220,176 +198,33 @@ export default function LeadsPage() {
             </Button>
           </div>
         </Card>
-      )}
-
-      {/* Filters (List view only) */}
-      {viewMode === 'list' && (
-        <Card className="mb-6 p-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Buscar por nome, username ou email..."
-                className="pl-10"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <select
-              className="rounded-md border px-3 py-2 text-sm"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-            >
-              <option value="">Todas as plataformas</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="twitter">Twitter</option>
-            </select>
-            <select
-              className="rounded-md border px-3 py-2 text-sm"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">Todos os status</option>
-              <option value="new">Novo</option>
-              <option value="contacted">Contatado</option>
-              <option value="responded">Respondeu</option>
-              <option value="qualified">Qualificado</option>
-              <option value="scheduled">Agendado</option>
-              <option value="closed">Fechado</option>
-            </select>
-          </div>
-        </Card>
-      )}
+      )} */}
 
       {/* Content */}
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
         </div>
-      ) : viewMode === 'kanban' ? (
-        pipelineData ? (
-          <KanbanBoard
-            pipeline={pipelineData as KanbanPipeline}
-            onMoveLead={handleMoveLead}
-            onLeadClick={handleLeadClick}
-          />
-        ) : (
-          <Card className="flex h-64 flex-col items-center justify-center">
-            <p className="text-gray-500">Nenhum pipeline encontrado</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => createPipelineMutation.mutate()}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Criar Pipeline
-            </Button>
-          </Card>
-        )
-      ) : leads.length === 0 ? (
+      ) : pipelineData ? (
+        <KanbanBoard
+          pipeline={pipelineData as KanbanPipeline}
+          onMoveLead={handleMoveLead}
+          onLeadClick={handleLeadClick}
+        />
+      ) : (
         <Card className="flex h-64 flex-col items-center justify-center">
-          <p className="text-gray-500">Nenhum lead encontrado</p>
-          <Button variant="outline" className="mt-4">
+          <p className="text-gray-500">Nenhum pipeline encontrado</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => createPipelineMutation.mutate()}
+          >
             <Plus className="mr-2 h-4 w-4" />
-            Importar Leads
+            Criar Pipeline
           </Button>
         </Card>
-      ) : (
-        <div className="space-y-3">
-          {leads.map((lead: any) => (
-            <Card
-              key={lead.id}
-              className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleLeadClick(lead.id)}
-            >
-              <div className="flex items-center gap-4">
-                <Avatar src={lead.avatarUrl} fallback={lead.fullName || lead.username} size="lg" />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium truncate">
-                      {lead.fullName || lead.username}
-                    </h3>
-                    {lead.verified && (
-                      <Badge variant="secondary" className="text-xs">Verificado</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 truncate">
-                    @{lead.username} • {lead.email || 'Sem email'}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1 flex-wrap">
-                    {/* Social Profiles */}
-                    {lead.socialProfiles?.length > 0 ? (
-                      lead.socialProfiles.map((profile: any) => (
-                        <span
-                          key={profile.id}
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{
-                            backgroundColor: (PLATFORM_COLORS[profile.platform] || '#6366F1') + '20',
-                            color: PLATFORM_COLORS[profile.platform] || '#6366F1'
-                          }}
-                        >
-                          {profile.platform}
-                        </span>
-                      ))
-                    ) : lead.platform ? (
-                      <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                        style={{
-                          backgroundColor: (PLATFORM_COLORS[lead.platform] || '#6366F1') + '20',
-                          color: PLATFORM_COLORS[lead.platform] || '#6366F1'
-                        }}
-                      >
-                        {lead.platform}
-                      </span>
-                    ) : null}
-
-                    {/* Status Badge */}
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: (STATUS_COLORS[lead.status] || '#6366F1') + '20',
-                        color: STATUS_COLORS[lead.status] || '#6366F1'
-                      }}
-                    >
-                      {lead.status}
-                    </span>
-
-                    {/* Tags */}
-                    {lead.tags?.map((tag: any) => (
-                      <span
-                        key={tag.id}
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                        style={{
-                          backgroundColor: tag.color + '20',
-                          color: tag.color
-                        }}
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="flex items-center gap-1 text-sm">
-                    <span className="font-medium">{formatNumber(lead.followersCount || 0)}</span>
-                    <span className="text-gray-500">seguidores</span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Score: {lead.score}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {formatRelativeTime(lead.createdAt)}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+      )
+      }
 
       {/* Lead Detail Modal */}
       <LeadDetailModal
@@ -406,6 +241,14 @@ export default function LeadsPage() {
           onClose={() => setIsStageManagerOpen(false)}
         />
       )}
+
+      {/* Create Pipeline Dialog */}
+      <CreatePipelineDialog
+        open={isCreatePipelineOpen}
+        onOpenChange={setIsCreatePipelineOpen}
+        onSuccess={(id) => setSelectedPipelineId(id)}
+      />
     </div>
   );
 }
+

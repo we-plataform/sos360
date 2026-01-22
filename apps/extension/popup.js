@@ -112,6 +112,12 @@ function isInstagramProfilePage(url) {
   return /^[a-zA-Z0-9_.]+$/.test(firstPart);
 }
 
+// Detect if URL is an Instagram post page
+function isInstagramPostPage(url) {
+  const path = url.pathname;
+  return /\/p\/[\w-]+\/?$/.test(path);
+}
+
 async function checkCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tab;
@@ -150,6 +156,12 @@ async function checkCurrentTab() {
       if (platform === 'linkedin' && tab.url.includes('/mynetwork/invite-connect/connections/')) {
         importBtn.textContent = 'Abrir Painel de Conexões';
         importBtn.dataset.action = 'open-overlay';
+        importBtn.disabled = false;
+      }
+      // Special logic for Instagram Post page
+      else if (platform === 'instagram' && isInstagramPostPage(url)) {
+        importBtn.textContent = '📥 Importar do Post';
+        importBtn.dataset.action = 'open-post-import';
         importBtn.disabled = false;
       }
       // Special logic for Instagram Profile page
@@ -275,13 +287,27 @@ loginForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
 
   loginBtn.disabled = true;
-  loginBtn.textContent = 'Entrando...';
+  loginBtn.textContent = 'Testando conexão...';
   loginError.style.display = 'none';
 
   // Set the API URL first
   if (apiUrl) {
     await chrome.runtime.sendMessage({ action: 'setApiUrl', url: apiUrl });
   }
+
+  // Test connectivity before attempting login
+  const connectivityTest = await chrome.runtime.sendMessage({ action: 'testApiConnectivity' });
+
+  if (!connectivityTest.success || !connectivityTest.isConnected) {
+    loginError.textContent = `Não foi possível conectar à API em: ${connectivityTest.apiUrl}\n\nVerifique se:\n1. A API está rodando (execute 'npm run api:dev')\n2. A URL está correta\n3. Não há bloqueio de rede/CORS`;
+    loginError.style.display = 'block';
+    loginError.style.whiteSpace = 'pre-line';
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Entrar';
+    return;
+  }
+
+  loginBtn.textContent = 'Entrando...';
 
   const response = await chrome.runtime.sendMessage({
     action: 'login',
@@ -303,6 +329,18 @@ loginForm.addEventListener('submit', async (e) => {
 
 importBtn.addEventListener('click', async () => {
   if (!currentPlatform || !currentTab) return;
+
+  // Special Action: Open Post Import Overlay
+  if (importBtn.dataset.action === 'open-post-import') {
+    try {
+      await chrome.tabs.sendMessage(currentTab.id, { action: 'openPostImportOverlay' });
+      window.close(); // Close popup so user sees the overlay
+    } catch (e) {
+      console.error('Failed to open post import overlay', e);
+      showMessage('error', 'Erro ao abrir painel. Recarregue a página.');
+    }
+    return;
+  }
 
   // Special Action: Open Overlay
   if (importBtn.dataset.action === 'open-overlay') {
