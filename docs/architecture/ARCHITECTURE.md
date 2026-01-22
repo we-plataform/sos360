@@ -31,7 +31,7 @@ Este documento descreve a arquitetura técnica do sistema de prospecção outbou
 | **Monorepo** | Turborepo | Builds incrementais, cache compartilhado, gestão simplificada |
 | **Backend** | Node.js 20 + Express | Ecossistema maduro, performance adequada, equipe familiarizada |
 | **ORM** | Prisma | Type-safety, migrations, DX excelente |
-| **Banco Relacional** | Supabase (PostgreSQL 15) | ACID, JSONB, managed, extensões |
+| **Banco Relacional** | Neon (PostgreSQL) | ACID, JSONB, serverless, extensões |
 | **Cache/Queue** | Redis 7 (opcional) | In-memory rápido, fallback para memória |
 | **Frontend** | Next.js 14 (App Router) | SSR/SSG, RSC, ecossistema React |
 | **UI** | Tailwind CSS + shadcn/ui | Customizável, componentes acessíveis |

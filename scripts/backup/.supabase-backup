@@ -1,0 +1,14 @@
+# Supabase Backup - Migrated to Neon on 2025-01-21
+# Original Supabase connection strings for emergency rollback
+
+SUPABASE_DATABASE_URL=postgres://postgres:Farinelli%4063@db.doewttvwknkhjzhzceub.supabase.co:6543/postgres
+SUPABASE_DIRECT_URL=postgresql://postgres:Farinelli%4063@db.doewttvwknkhjzhzceub.supabase.co:5432/postgres?sslmode=require
+SUPABASE_HOST=db.doewttvwknkhjzhzceub.supabase.co
+SUPABASE_PROJECT=doewttvwknkhjzhzceub
+
+# Current Neon Connection:
+NEON_DATABASE_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+# Migration Date: 2025-01-21
+# Migration Status: SUCCESSFUL
+# Keep this backup for 30 days, then safely delete

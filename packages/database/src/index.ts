@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { createClient } from '@supabase/supabase-js';
 
 // ============================================
 // CONFIGURAÇÃO E VALIDAÇÃO DE DATABASE_URL
@@ -72,8 +71,8 @@ if (!databaseUrlValidation.valid) {
   console.error('[Database] Expected format:');
   console.error('[Database]   postgresql://user:password@host:port/database');
   console.error('[Database]');
-  console.error('[Database] For Supabase with pgbouncer:');
-  console.error('[Database]   postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true');
+  console.error('[Database] For Neon:');
+  console.error('[Database]   postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require');
   console.error('[Database]');
   console.error('[Database] Current value preview:', rawDatabaseUrl ? rawDatabaseUrl.substring(0, 50) + '...' : 'NOT SET');
   console.error('[Database] ========================================');
@@ -118,7 +117,7 @@ try {
     ? ['query', 'error', 'warn'] as const
     : ['error'] as const;
 
-  // Auto-fix connection string for Supabase Transaction Pooler
+  // Auto-fix connection string for Neon connection pooling
   let connectionUrl = rawDatabaseUrl!.trim();
   if (connectionUrl.includes(':6543') && !connectionUrl.includes('pgbouncer=true')) {
     console.log('[Database] Automatically appending ?pgbouncer=true to connection string for Transaction Pooler');
@@ -263,34 +262,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export const prisma = prismaInstance;
-
-// ============================================
-// SUPABASE CLIENT (OPTIONAL)
-// ============================================
-
-const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
-
-let supabase: ReturnType<typeof createClient> | null = null;
-
-if (supabaseUrl && supabaseKey) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-    console.log('[Database] Supabase Client initialized');
-  } catch (error) {
-    console.warn('[Database] Supabase initialization failed:', error);
-    supabase = null;
-  }
-} else {
-  console.log('[Database] Supabase not configured (optional)');
-}
-
-export { supabase };
 
 // ============================================
 // EXPORTS

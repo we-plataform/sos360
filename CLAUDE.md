@@ -76,9 +76,9 @@ Three-level hierarchy: **Company → Workspace → User**
 - Shared schemas between API and frontend
 
 ### Database
-- PostgreSQL hosted on Supabase (connection pooling via pgBouncer)
-- `DATABASE_URL`: pooled connection (port 6543)
-- `DIRECT_URL`: direct connection for migrations (port 5432)
+- PostgreSQL hosted on Neon (serverless PostgreSQL)
+- `DATABASE_URL`: primary connection with SSL
+- `DIRECT_URL`: direct connection for migrations (same as DATABASE_URL for Neon)
 - Redis optional (falls back to in-memory for cache/rate-limiting)
 
 ## Key Files
@@ -93,8 +93,8 @@ Three-level hierarchy: **Company → Workspace → User**
 
 Required for development:
 ```env
-DATABASE_URL=postgresql://...      # Pooled connection
-DIRECT_URL=postgresql://...        # Direct for migrations
+DATABASE_URL=postgresql://...      # Neon connection string
+DIRECT_URL=postgresql://...        # Same as DATABASE_URL for Neon
 JWT_SECRET=<min 32 chars>
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
@@ -207,8 +207,8 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
 
 1. **Database Connection Issues**:
    - Ensure Docker containers running: `npm run docker:up`
-   - Check DATABASE_URL uses port 6543 (pooled)
-   - Check DIRECT_URL uses port 5432 (direct)
+   - Check DATABASE_URL includes ?sslmode=require
+   - Check DIRECT_URL matches DATABASE_URL for Neon
 
 2. **Extension Not Connecting**:
    - Check API is running: `npm run api:dev`

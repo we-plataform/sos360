@@ -7,8 +7,7 @@ console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
   k.startsWith('CORS') ||
   k.startsWith('NODE') ||
   k.startsWith('PORT') ||
-  k.startsWith('REDIS') ||
-  k.startsWith('SUPABASE')
+  k.startsWith('REDIS')
 ).join(', '));
 
 const envSchema = z.object({
@@ -28,14 +27,12 @@ const envSchema = z.object({
   DIRECT_URL: z.string().optional(),
   REDIS_URL: z.string().default(''),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  JWT_EXPIRES_IN: z.string().default('15m'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('7d'),
+  JWT_EXPIRES_IN: z.string().default('30d'),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default('365d'),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
     .transform((val) => val.split(',')),
-  SUPABASE_URL: z.string().optional(),
-  SUPABASE_SERVICE_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
 });
 

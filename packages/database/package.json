@@ -15,8 +15,7 @@
     "studio": "dotenv -e ../../.env -- prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^5.9.1",
-    "@supabase/supabase-js": "^2.39.3"
+    "@prisma/client": "^5.9.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.5",

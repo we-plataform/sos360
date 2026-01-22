@@ -12,12 +12,9 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// NOTE: For Supabase with pgbouncer, ensure:
-// - DATABASE_URL uses port 6543 with ?pgbouncer=true
-// - DIRECT_URL uses port 5432 without pgbouncer params
-// Example:
-// DATABASE_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
-// DIRECT_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
+// NOTE: For Neon, ensure:
+// DATABASE_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
+// DIRECT_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
 
 // ============================================
 // COMPANY (NEW - Multi-workspace support)

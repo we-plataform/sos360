@@ -7,7 +7,7 @@ Sistema completo de prospecção outbound que permite importar, gerenciar, engaj
 - **Monorepo**: Turborepo
 - **Backend**: Node.js + Express + Prisma + Socket.io
 - **Frontend**: Next.js 14 + Tailwind CSS + TanStack Query
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Neon (PostgreSQL)
 - **Cache**: Redis (opcional, fallback para memória)
 - **Extension**: Chrome Manifest V3
 
@@ -20,25 +20,25 @@ sos360/
 │   ├── web/           # Frontend Next.js
 │   └── extension/     # Chrome Extension
 ├── packages/
-│   ├── database/      # Prisma schema + Supabase client
+│   ├── database/      # Prisma schema + Neon client
 │   └── shared/        # Types, utils, constants
 ├── docs/
 │   └── architecture/  # Documentação técnica
-└── docker-compose.yml # Apenas Redis (banco no Supabase)
+└── docker-compose.yml # Apenas Redis (banco no Neon)
 ```
 
 ## Pré-requisitos
 
 - Node.js 20+
 - npm 9+
-- Docker Desktop (recomendado) ou conta no Supabase
+- Docker Desktop (recomendado) ou conta no Neon
 
 ### Opção 1: Docker (Recomendado para desenvolvimento local)
 - ✅ Funciona offline
 - ✅ Ambiente isolado
 - ✅ Controle total
 
-### Opção 2: Supabase (Para produção/cloud)
+### Opção 2: Neon (Para produção/cloud)
 - ✅ Managed service
 - ✅ Sem instalação local
 
@@ -93,31 +93,30 @@ npm run web:dev    # Web em http://localhost:3000
 
 ---
 
-### Opção B: Supabase ☁️
+### Opção B: Neon ☁️
 
-#### 1. Configurar Supabase
+#### 1. Configurar Neon
 
-1. Crie um projeto no [Supabase Dashboard](https://app.supabase.com)
-2. Vá em **Settings > Database** para obter as credenciais
+1. Crie um projeto no [Neon Console](https://console.neon.tech)
+2. Vá em **Project Details** para obter as credenciais
 3. Copie o arquivo de exemplo e configure:
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais do Supabase:
+Edite o `.env` com suas credenciais do Neon:
 
 ```env
-# Supabase
-SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_SERVICE_KEY=sua-service-key
+# Neon
+NEON_URL=postgresql://[user]:[password]@[region].neon.tech/neondb
 
-# Database URLs (encontre em Settings > Database > Connection String)
-DATABASE_URL=postgresql://postgres.[ref]:[senha]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.[ref]:[senha]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+# Database URLs (encontre no Neon Console)
+DATABASE_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
+DIRECT_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
 
-# JWT (pode usar a service key do Supabase)
-JWT_SECRET=sua-service-key-ou-outro-secret
+# JWT
+JWT_SECRET=seu-secret-minimo-32-caracteres
 ```
 
 ### 3. Configurar banco de dados
@@ -126,7 +125,7 @@ JWT_SECRET=sua-service-key-ou-outro-secret
 # Gerar cliente Prisma
 npm run db:generate
 
-# Aplicar schema ao Supabase
+# Aplicar schema ao Neon
 npm run db:push
 ```
 
@@ -196,12 +195,12 @@ npm run lint             # Executa linter
 npm run format           # Formata código com Prettier
 ```
 
-## Verificar conexão com Supabase
+## Verificar conexão com Neon
 
 Após configurar, teste a conexão:
 
 ```bash
-# Abrir Prisma Studio (conecta ao Supabase)
+# Abrir Prisma Studio (conecta ao Neon)
 npm run db:studio
 ```
 
@@ -229,7 +228,7 @@ A documentação completa da API está em `/docs/architecture/API-SPEC.md`.
 - [x] Inbox unificado de conversas
 - [x] Analytics básico
 - [x] Extensão Chrome (Instagram, Facebook, LinkedIn)
-- [x] Integração com Supabase
+- [x] Integração com Neon
 
 ## Documentação
 

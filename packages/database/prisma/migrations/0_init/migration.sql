@@ -1,6 +1,6 @@
 -- ============================================
 -- SOS 360 - Database Schema
--- Execute este SQL no SQL Editor do Supabase
+-- Execute este SQL no Neon Console ou via Prisma
 -- ============================================
 
 -- Habilitar extensão para busca full-text (opcional, mas recomendado)
