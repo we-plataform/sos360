@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sos360-api
+    name: lia360-api
     env: node
     region: oregon
     plan: free
