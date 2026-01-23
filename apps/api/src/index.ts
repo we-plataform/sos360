@@ -21,6 +21,7 @@ console.log(`Environment: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`PORT env: ${process.env.PORT || 'not set'}`);
 console.log(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
 console.log(`JWT_SECRET set: ${!!process.env.JWT_SECRET}`);
+console.log(`CORS_ORIGINS: ${process.env.CORS_ORIGINS || 'NOT SET (will use default)'}`);
 
 // Handle uncaught errors - log to both console and logger
 process.on('uncaughtException', (error) => {
@@ -62,54 +63,53 @@ try {
   process.exit(1);
 }
 
-// Middleware - Helmet with relaxed settings for Chrome extensions
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: false, // Disable CSP for API (not needed for REST API)
-}));
-
-// CORS configuration - allow Chrome extensions and configured origins
+// CORS configuration - MUST be before Helmet to handle preflight requests
+// This prevents Helmet from interfering with OPTIONS requests
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps, Postman, curl, or Chrome extensions in some cases)
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Allow Chrome extensions (chrome-extension://)
     if (origin.startsWith('chrome-extension://')) {
       return callback(null, true);
     }
-    
+
     // Check if origin matches any configured origin (exact match or wildcard)
     const isAllowed = env.CORS_ORIGINS.some((allowedOrigin) => {
       // Exact match
       if (allowedOrigin === origin) {
         return true;
       }
-      
+
       // Wildcard match (e.g., https://*.vercel.app)
       if (allowedOrigin.includes('*')) {
         const pattern = allowedOrigin.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         return regex.test(origin);
       }
-      
+
       return false;
     });
-    
+
     if (isAllowed || env.CORS_ORIGINS.includes('*')) {
       return callback(null, true);
     }
-    
+
     // In development, allow all localhost origins
     if (env.NODE_ENV === 'development') {
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         return callback(null, true);
       }
     }
-    
+
+    // Log rejected origins in production for debugging
+    if (env.NODE_ENV === 'production') {
+      logger.warn({ origin, allowedOrigins: env.CORS_ORIGINS }, 'CORS: Origin rejected');
+    }
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -118,7 +118,16 @@ const corsOptions = {
   exposedHeaders: ['Content-Length', 'Content-Type'],
 };
 
+// Apply CORS first - critical for preflight (OPTIONS) requests
 app.use(cors(corsOptions));
+
+// Middleware - Helmet with relaxed settings for Chrome extensions
+// Applied AFTER CORS to prevent interference with preflight requests
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false, // Disable CSP for API (not needed for REST API)
+}));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
