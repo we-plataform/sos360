@@ -1,50 +1,31 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Bell, Search, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { GlobalSearchDialog } from '@/components/search/global-search-dialog';
 
 export function Header() {
-    const pathname = usePathname();
+    const [searchOpen, setSearchOpen] = useState(false);
 
-    // Simple breadcrumb logic: just showing the current page name prettified
-    // In a real app we might want more complex breadcrumbs based on the path segments
-    const getPageTitle = (path: string) => {
-        const segments = path.split('/').filter(Boolean);
-        const lastSegment = segments[segments.length - 1];
-        if (!lastSegment) return 'Dashboard';
+    // Global keyboard shortcut for search
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+        };
 
-        // Capitalize and replace hyphens
-        return lastSegment
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    };
-
-    const title = getPageTitle(pathname);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     return (
-        <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border/40 bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            {/* Left: Breadcrumbs / Title */}
-            <div className="flex items-center text-sm text-muted-foreground">
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-4">
-                {/* Search Bar - hidden on very small screens */}
-                <div className="relative hidden w-full max-w-[300px] md:flex">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Buscar..."
-                        className="w-full rounded-full bg-background pl-9 md:w-[200px] lg:w-[300px]"
-                    />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
+        <>
+            <header className="sticky top-0 z-40 h-16 w-full border-b border-border/40 bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                {/* Right: Actions */}
+                <div className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-2">
                     <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
                         <Bell className="h-5 w-5" />
                         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-indigo-600" />
@@ -55,7 +36,24 @@ export function Header() {
                         <span className="sr-only">Configurações</span>
                     </Button>
                 </div>
+            </header>
+
+            {/* Search Button - fixed to viewport center */}
+            <div className="fixed left-1/2 top-0 z-50 hidden h-16 -translate-x-1/2 items-center md:flex">
+                <Button
+                    variant="outline"
+                    className="h-9 w-[200px] justify-start rounded-full bg-background pl-3 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:w-[300px]"
+                    onClick={() => setSearchOpen(true)}
+                >
+                    <Search className="mr-2 h-4 w-4" />
+                    <span className="flex-1 text-left">Buscar...</span>
+                    <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+                        <span className="text-xs">⌘</span>K
+                    </kbd>
+                </Button>
             </div>
-        </header>
+
+            <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+        </>
     );
 }
