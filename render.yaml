@@ -5,10 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: npm install && npm run build:api
-    # Opção 1: Usar workspace (preferido)
-    startCommand: npm run start --workspace=@sos360/api
-    # Opção 2: Caminho direto (alternativa se workspace não funcionar)
-    # startCommand: node apps/api/dist/index.js
+    startCommand: npm run start --workspace=@lia360/api
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
