@@ -32,7 +32,7 @@ const envSchema = z.object({
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
-    .transform((val) => val.split(',')),
+    .transform((val) => val.split(',').map((origin) => origin.trim()).filter(Boolean)),
   OPENAI_API_KEY: z.string().optional(),
 });
 
