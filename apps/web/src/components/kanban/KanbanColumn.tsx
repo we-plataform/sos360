@@ -5,7 +5,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
 import type { KanbanStage } from './KanbanBoard';
-import { Zap, Play, Settings, Info } from 'lucide-react';
+import { Play, Settings, Info, DollarSign, Database, Edit2, MoreVertical, AlignLeft } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { AutomationConfigModal } from './AutomationConfigModal';
@@ -13,10 +13,20 @@ import { RunAutomationModal } from './RunAutomationModal';
 
 interface KanbanColumnProps {
   stage: KanbanStage;
+  index: number;
   onLeadClick?: (leadId: string) => void;
 }
 
-export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
+// Stage configuration based on index
+const STAGE_CONFIGS = [
+  { bg: 'bg-[#84CC63]', text: 'white', border: 'border-[#70BE51]', icon: Database }, // 01 - Qualified
+  { bg: 'bg-[#F9D41F]', text: 'white', border: 'border-[#E6C21C]', icon: Edit2 }, // 02 - Connection Sent
+  { bg: 'bg-[#A2D879]', text: 'white', border: 'border-[#8EC766]', icon: AlignLeft }, // 03 - Accepted
+  { bg: 'bg-[#43B8D6]', text: 'white', border: 'border-[#3AA6C2]', icon: Edit2 }, // 04 - Message Sent
+  { bg: 'bg-[#5ECBE5]', text: 'white', border: 'border-[#4DBBD4]', icon: Edit2 }  // 05 - Follow Up
+];
+
+export function KanbanColumn({ stage, index, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -41,28 +51,21 @@ export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
   const handleConfirmRun = async (config: { maxLeads: number; interval: string }) => {
     try {
       const result = await api.triggerAutomation(automation.id, config);
-
-      // Show detailed success message
       toast.success(
-        `Automação criada com ${(result as any)?.data?.message || 'sucesso'}! A extensão SOS 360 irá processar automaticamente. Certifique-se de que está logado na extensão.`,
+        `Automação criada com ${(result as any)?.data?.message || 'sucesso'}!`,
         {
           duration: 8000,
-          description: 'A extensão verifica novos jobs a cada 12 segundos. Mantenha o navegador aberto.'
+          description: 'A extensão irá processar automaticamente.'
         }
       );
 
-      // Try to trigger immediate poll via extension (if extension ID is known)
-      // This uses a fallback approach - posting to window for content script to relay
       try {
         const jobId = (result as any)?.jobId || (result as any)?.data?.jobId;
-        console.log('Dispatching trigger event for job:', jobId);
-
         window.postMessage({
           type: 'SOS360_TRIGGER_AUTOMATION',
           jobId: jobId
         }, '*');
       } catch (e) {
-        // Silent fail - extension will pick up via polling
         console.error('Error dispatching trigger event:', e);
       }
 
@@ -72,69 +75,84 @@ export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
     }
   };
 
+  // Get style config based on index or default
+  const styleConfig = STAGE_CONFIGS[index % STAGE_CONFIGS.length];
+  const StageIcon = styleConfig.icon;
+
+  // Calculate total value
+  const totalValue = stage.leads.reduce((sum, lead) => sum + (lead.dealValue || 0), 0);
+  const formattedIndex = (index + 1).toString().padStart(2, '0');
+
   return (
     <div
       ref={setNodeRef}
-      className={`kanban-column ${isOver ? 'kanban-column--over' : ''}`}
+      className={`kanban-column ${isOver ? 'kanban-column--over' : ''} ${index === 0 ? 'kanban-column--first' : 'kanban-column--middle'}`}
     >
-      <div className={`kanban-column__header ${automation ? 'kanban-column__header--automated' : ''}`}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            {stage.name}
-            <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-              {stage.leads.length}
-            </span>
-          </h3>
-          <div className="flex items-center gap-1">
-            {automation && (
-              <button
-                onClick={handleRunClick}
-                className="p-1.5 hover:bg-white/20 rounded-md transition-colors text-white"
-                title="Run Automation"
-              >
-                <Play className="w-4 h-4 fill-current" />
-              </button>
-            )}
-            <button
-              className="kanban-column__settings-btn"
-              onClick={() => setIsAutomationModalOpen(true)}
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="kanban-column__automation-bar">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-xs font-medium text-gray-700">
-              <Zap className={`h-3 w-3 ${automation ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
-              <span>Automation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-xs text-gray-500 cursor-pointer hover:text-gray-800"
-                onClick={() => setIsAutomationModalOpen(true)}
-              >
-                {automation ? 'Edit' : 'Config'}
-              </span>
-              <Info className="h-3 w-3 text-gray-400" />
-            </div>
-          </div>
-
-          {automation && automation.enabled && (
-            <div className="flex gap-1">
-              <button
-                className="p-1 hover:bg-white/20 rounded transition-colors text-white"
-                onClick={handleRunClick}
-                title="Run Now"
-              >
-                <Play className="h-3 w-3 fill-white" />
-              </button>
-            </div>
-          )}
+      {/* Header Colored Top */}
+      <div className={`kanban-column__header-top ${styleConfig.bg}`}>
+        <div className="flex items-center gap-2 text-white font-bold text-sm">
+          <span className="opacity-90">{formattedIndex} - </span>
+          {StageIcon && <StageIcon size={14} className="opacity-90" />}
+          <span className="truncate">{stage.name}</span>
         </div>
       </div>
 
+      {/* Header Metrics */}
+      <div className="kanban-column__metrics">
+        <div className="flex items-center gap-1">
+          <span className="font-bold text-gray-700">{stage.leads.length}</span>
+          <span className="text-gray-500 text-xs">Leads</span>
+        </div>
+        <div className="flex gap-2">
+          <Settings size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => setIsAutomationModalOpen(true)} />
+          <MoreVertical size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+        </div>
+      </div>
+      <div className="kanban-column__value-row">
+        <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
+          <div className="bg-pink-600 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center text-[9px]">$</div>
+          <span>${totalValue}</span>
+        </div>
+      </div>
+
+      {/* Automation Bar */}
+      <div className={`px-2 py-1.5 flex items-center justify-between text-xs font-medium transition-colors ${automation ? 'bg-[#666] text-white' : 'bg-[#9CA3AF] text-white'}`}>
+        {automation ? (
+          <>
+            <span>Automation</span>
+            <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200" onClick={() => setIsAutomationModalOpen(true)}>
+              <span>Edit</span>
+              <Info size={12} />
+            </div>
+          </>
+        ) : (
+          <span className="w-full text-center">No Automation Defined</span>
+        )}
+      </div>
+
+      {/* Action Button: Run Now OR Add Automation */}
+      {automation && automation.enabled ? (
+        <button
+          onClick={handleRunClick}
+          className="w-full bg-[#EC008C] hover:bg-[#D4007D] text-white py-1.5 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wide transition-colors"
+        >
+          <Play size={10} fill="currentColor" />
+          Run Now
+        </button>
+      ) : (
+        <button
+          onClick={() => setIsAutomationModalOpen(true)}
+          className="w-full bg-white hover:bg-gray-50 text-gray-500 py-1.5 flex items-center justify-center gap-1 font-medium text-xs border-b border-x border-gray-200"
+        >
+          <span className="text-lg leading-none mb-0.5">+</span>
+          Add Automation
+        </button>
+      )}
+
+      {/* Downward Arrow Indicator */}
+      <div className={`kanban-column__header-indicator ${!automation ? 'kanban-column__header-indicator--no-auto' : ''}`}></div>
+
+      {/* Content */}
       <SortableContext
         items={stage.leads.map((l) => l.id)}
         strategy={verticalListSortingStrategy}
@@ -172,14 +190,14 @@ export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
 
       <style jsx>{`
         .kanban-column {
-          flex: 0 0 300px;
-          background: #f8fafc;
-          border-radius: 12px;
+          flex: 0 0 280px;
+          background: #EBF8FC; 
+          border-radius: 4px;
           display: flex;
           flex-direction: column;
           max-height: 100%;
-          transition: background-color 0.2s;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #ddd;
+          overflow: hidden;
         }
 
         .kanban-column--over {
@@ -187,91 +205,87 @@ export function KanbanColumn({ stage, onLeadClick }: KanbanColumnProps) {
           border-color: #3b82f6;
         }
 
-        .kanban-column__header {
-          display: flex;
-          flex-direction: column;
-          padding: 1rem;
-          border-bottom: 1px solid #e2e8f0;
-          background: white;
-          border-radius: 12px 12px 0 0;
+        .kanban-column__header-top {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            /* Arrow pointing right */
+            clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+            /* If it's not the first column, we might want a notch on the left too, 
+               but for now let's just make them point right. 
+               To truly interlock, we'd need:
+               clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%, 5% 50%);
+               And padding-left to compensate. */
+             
+             /* Dynamic clip-path is safer inline or via class if index varies */
+             min-height: 40px;
+             display: flex;
+             align-items: center;
         }
         
-        .kanban-column__header--automated {
-            background: linear-gradient(to bottom, #fff, #fefce8);
-        }
-
-        .kanban-column__indicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-        }
-
-        .kanban-column__title {
-          flex: 1;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: #1e293b;
-          margin: 0;
-        }
-
-        .kanban-column__count {
-          background: #e2e8f0;
-          color: #64748b;
-          padding: 0.125rem 0.5rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
+        /* Specific interlocking shape classes */
+        .kanban-column--first .kanban-column__header-top {
+             clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
         }
         
-        .kanban-column__settings-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-            color: #94a3b8;
-            margin-left: 4px;
+        .kanban-column--middle .kanban-column__header-top {
+             clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%, 5% 50%);
+             padding-left: 20px; /* Compensate for left notch */
         }
         
-        .kanban-column__settings-btn:hover {
-            color: #475569;
-        }
-
-        .kanban-column__automation-bar {
-            background: rgba(0,0,0,0.03);
-            border-radius: 6px;
-            padding: 8px;
-            margin-top: 4px;
-        }
-        
-        .kanban-column__run-btn {
-            width: 100%;
-            margin-top: 8px;
-            background: #ec4899;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
+        /* Downward Chevron Indicator container */
+        .kanban-column__header-indicator {
+            height: 12px;
+            background: #EBF8FC; 
+            position: relative;
             display: flex;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s;
+            align-items: flex-start;
+            z-index: 10;
         }
         
-        .kanban-column__run-btn:hover {
-            background: #db2777;
+        .kanban-column__header-indicator::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #666; /* Gray to match automation bar */
+        }
+        
+        .kanban-column__header-indicator--no-auto::after {
+            border-top-color: #9CA3AF;
+        }
+
+        .kanban-column__metrics {
+            padding: 6px 10px 2px 10px;
+            background: #EBF8FC;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .kanban-column__value-row {
+            padding: 0 10px 8px 10px;
+            background: #EBF8FC;
         }
 
         .kanban-column__content {
           flex: 1;
-          padding: 0.5rem;
+          padding: 8px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
-          background: #f8fafc;
+          gap: 8px;
+          /* Custom scrollbar */
+        }
+        
+        .kanban-column__content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .kanban-column__content::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
         }
       `}</style>
     </div>

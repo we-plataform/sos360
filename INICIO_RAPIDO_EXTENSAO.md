@@ -26,7 +26,7 @@ A API deve estar rodando em `http://localhost:3001`
 curl -X POST http://localhost:3001/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "teste@sos360.com",
+    "email": "teste@lia360.com",
     "password": "senha123",
     "fullName": "Teste User",
     "workspaceName": "Meu Workspace"

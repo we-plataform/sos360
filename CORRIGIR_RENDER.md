@@ -82,7 +82,7 @@ Ou use este gerador online: https://generate-secret.vercel.app/64
    
    Ou alternativamente:
    ```bash
-   npm install && npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+   npm install && npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
    ```
 
 #### 2.3 Verificar Start Command
@@ -90,21 +90,21 @@ Ou use este gerador online: https://generate-secret.vercel.app/64
 1. Na mesma página **Build & Deploy**
 2. **Start Command** deve ser:
    ```bash
-   npm run start --workspace=@sos360/api
+   npm run start --workspace=@lia360/api
    ```
 
 #### 2.4 Verificar se o Build está gerando dist/
 
 Após o build, verifique nos logs se aparece algo como:
 ```
-> @sos360/api@0.0.1 build
+> @lia360/api@0.0.1 build
 > tsc
 ```
 
 E se o arquivo `dist/index.js` foi criado. Se não aparecer, o problema pode ser:
 
 - **TypeScript não está compilando**: Verifique se há erros de TypeScript nos logs
-- **Dependências não foram buildadas**: Verifique se `@sos360/shared` e `@sos360/database` foram buildados antes
+- **Dependências não foram buildadas**: Verifique se `@lia360/shared` e `@lia360/database` foram buildados antes
 
 ---
 
@@ -124,7 +124,7 @@ cd apps/api && node dist/index.js
 
 **Start Command (Alternativa 3 - se estiver na raiz):**
 ```bash
-npm run start --workspace=@sos360/api
+npm run start --workspace=@lia360/api
 ```
 
 > 💡 **Recomendação**: Tente primeiro `node apps/api/dist/index.js` que é mais direto e não depende de workspaces.
@@ -136,9 +136,9 @@ npm run start --workspace=@sos360/api
 Nos logs do build, procure por mensagens como:
 
 ```
-✓ Built @sos360/shared
-✓ Built @sos360/database  
-✓ Built @sos360/api
+✓ Built @lia360/shared
+✓ Built @lia360/database  
+✓ Built @lia360/api
 ```
 
 E verifique se o diretório `apps/api/dist/` foi criado.
@@ -158,7 +158,7 @@ npm run build:api
 ls -la apps/api/dist/index.js
 
 # Testar start
-npm run start --workspace=@sos360/api
+npm run start --workspace=@lia360/api
 ```
 
 Se funcionar localmente mas não no Render, o problema é de configuração do Render.
@@ -170,7 +170,7 @@ Se funcionar localmente mas não no Render, o problema é de configuração do R
 - [ ] **JWT_SECRET atualizado** com pelo menos 32 caracteres
 - [ ] **Root Directory** está vazio ou `.` (não `apps/api`)
 - [ ] **Build Command** está correto: `npm install && npm run build:api`
-- [ ] **Start Command** está correto: `npm run start --workspace=@sos360/api`
+- [ ] **Start Command** está correto: `npm run start --workspace=@lia360/api`
 - [ ] Build local funciona (`npm run build:api`)
 - [ ] `dist/index.js` existe após build local
 - [ ] Todas as variáveis de ambiente estão configuradas
@@ -207,10 +207,10 @@ Crie um arquivo `render.yaml` na raiz do projeto:
 ```yaml
 services:
   - type: web
-    name: sos360-api
+    name: lia360-api
     env: node
     buildCommand: npm install && npm run build:api
-    startCommand: npm run start --workspace=@sos360/api
+    startCommand: npm run start --workspace=@lia360/api
     envVars:
       - key: NODE_ENV
         value: production

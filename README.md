@@ -1,4 +1,4 @@
-# SOS 360 - Plataforma de Prospecção Outbound
+# Lia 360 - Plataforma de Prospecção Outbound
 
 Sistema completo de prospecção outbound que permite importar, gerenciar, engajar e converter leads das principais redes sociais.
 
@@ -14,7 +14,7 @@ Sistema completo de prospecção outbound que permite importar, gerenciar, engaj
 ## Estrutura do Projeto
 
 ```
-sos360/
+lia360/
 ├── apps/
 │   ├── api/           # Backend Express
 │   ├── web/           # Frontend Next.js
@@ -244,10 +244,10 @@ A documentação completa da API está em `/docs/architecture/API-SPEC.md`.
 
 ```bash
 # Build
-npm run build --workspace=@sos360/api
+npm run build --workspace=@lia360/api
 
 # Start
-npm run start --workspace=@sos360/api
+npm run start --workspace=@lia360/api
 ```
 
 ### Frontend (Vercel)
@@ -261,4 +261,4 @@ vercel
 ## Licença
 
 Proprietary - Todos os direitos reservados.
-# sos360
+# lia360

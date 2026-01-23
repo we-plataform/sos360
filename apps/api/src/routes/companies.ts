@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import {
     createCompanySchema,
     updateCompanySchema,
     inviteToCompanySchema,
-} from '@sos360/shared';
+} from '@lia360/shared';
 import { validate } from '../middleware/validate.js';
 import { authenticate, authorizeCompany } from '../middleware/auth.js';
 import { NotFoundError, ForbiddenError, ConflictError } from '../lib/errors.js';
-import type { CompanyRole, WorkspaceRole } from '@sos360/shared';
+import type { CompanyRole, WorkspaceRole } from '@lia360/shared';
 
 export const companiesRouter = Router();
 

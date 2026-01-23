@@ -1,0 +1,125 @@
+
+import React from 'react';
+
+interface IconProps extends React.SVGProps<SVGSVGElement> {
+    size?: number;
+}
+
+export const FacebookIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#1877F2' }}
+        {...props}
+    >
+        <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047v-2.6c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.438C19.612 23.094 24 18.1 24 12.073z" />
+    </svg>
+);
+
+export const LinkedInIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#0A66C2' }}
+        {...props}
+    >
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+);
+
+export const InstagramIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#E4405F' }}
+        {...props}
+    >
+        <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
+export const XIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#000000' }}
+        {...props}
+    >
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z" />
+    </svg>
+);
+
+export const TikTokIcon = ({ size = 20, ...props }: IconProps) => (
+    <img
+        src="https://hborzizlepmqlkio.public.blob.vercel-storage.com/tiktok-solo-icon.svg"
+        width={size}
+        height={size}
+        alt="TikTok"
+        className={props.className}
+        style={props.style}
+    />
+);
+
+export const SkypeIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#00AFF0' }}
+        {...props}
+    >
+        <path d="M12.016 1.125c-2.3 0-6.195.844-4.805 7.406-.937.586-1.546 1.593-1.546 2.742 0 1.804 1.453 3.257 3.234 3.257.094 0 .164-.023.234-.023.094 2.883 2.484 3.375 7.359 4.312 2.133.422 2.133 2.086 0 2.226-5.461.352-6.562-1.898-6.187-4.101h-5c-.75 3.328 1.71 8.32 11.21 8.32 10.71 0 10.97-5.719 3.774-7.407.96-.585 1.593-1.64 1.593-2.835 0-1.805-1.453-3.258-3.258-3.258-.093 0-.187.024-.28.024-.094-2.883-2.461-3.375-7.313-4.336-2.086-.422-2.109-2.039.023-2.203 5.438-.352 6.54 1.898 6.164 4.078h5.04c.75-3.305-1.711-8.297-10.235-8.297z" />
+    </svg>
+);
+
+export const SkIcon = ({ size = 20, ...props }: IconProps) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <rect width="24" height="24" rx="4" fill="#E4405F" />
+        <path d="M7 16V8h4.5a3.5 3.5 0 0 1 0 7H7zm2-2h2.5a1.5 1.5 0 0 0 0-3H9v3zM15 16l-3-4h-1v4h-2V8h2v3l2.5-3H16l-2.5 3L17 16h-2z" fill="white" />
+        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="white" fontWeight="bold" fontSize="14" fontFamily="Arial">
+            sk
+        </text>
+    </svg>
+);
+
+export const SocialPlatforms = ({ visible = ['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk'] }: { visible?: string[] }) => {
+    const show = (p: string) => visible.includes(p);
+    return (
+        <div className="flex items-center gap-2 mt-3 mb-2">
+            <span className="text-sm text-gray-500">Aplicado em:</span>
+            <div className="flex gap-1.5">
+                {show('facebook') && <FacebookIcon size={16} />}
+                {show('linkedin') && <LinkedInIcon size={16} />}
+                {show('instagram') && <InstagramIcon size={16} />}
+                {show('x') && <XIcon size={16} />}
+                {show('tiktok') && <TikTokIcon size={16} />}
+            </div>
+        </div>
+    );
+};

@@ -11,7 +11,7 @@ postgresql://[usuario]:[senha]@[host]:[porta]/[database]?[opcoes]
 
 **Exemplo Render PostgreSQL:**
 ```
-postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **Exemplo Supabase:**
@@ -52,7 +52,7 @@ https://url-frontend.vercel.app,https://*.vercel.app,chrome-extension://*
 
 **Exemplo:**
 ```
-https://sos360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **⚠️ IMPORTANTE:**
@@ -138,7 +138,7 @@ redis://localhost:6379
 Após configurar, verifique os logs. Deve aparecer:
 
 ```
-=== SOS360 API Starting ===
+=== Lia360 API Starting ===
 DATABASE_URL set: true
 JWT_SECRET set: true
 [Config] Environment validated successfully

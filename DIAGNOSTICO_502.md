@@ -78,7 +78,7 @@ Na aba **Build Logs**, verifique:
    ```
 2. Ou configure explicitamente:
    ```bash
-   npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+   npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
    ```
 
 ### Problema 3: Porta incorreta

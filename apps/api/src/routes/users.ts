@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
-import { updateWorkspaceMemberSchema } from '@sos360/shared';
+import { prisma } from '@lia360/database';
+import { updateWorkspaceMemberSchema } from '@lia360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { NotFoundError, ForbiddenError } from '../lib/errors.js';
-import type { WorkspaceRole } from '@sos360/shared';
+import type { WorkspaceRole } from '@lia360/shared';
 
 export const usersRouter = Router();
 

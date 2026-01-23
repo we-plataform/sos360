@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Bell, ChevronRight, Search, Settings } from 'lucide-react';
+import { Bell, Search, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,10 +28,7 @@ export function Header() {
     return (
         <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border/40 bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             {/* Left: Breadcrumbs / Title */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="hidden font-medium text-foreground sm:inline-block">Dashboard</span>
-                <ChevronRight className="h-4 w-4" />
-                <h1 className="font-semibold text-foreground">{title}</h1>
+            <div className="flex items-center text-sm text-muted-foreground">
             </div>
 
             {/* Right: Actions */}

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
@@ -104,6 +104,7 @@ pipelinesRouter.get('/:id', async (req, res, next) => {
                                 connectionCount: true,
                                 status: true,
                                 score: true,
+                                verified: true,
                                 platform: true,
                                 assignedTo: {
                                     select: { id: true, fullName: true, avatarUrl: true },
@@ -160,12 +161,12 @@ pipelinesRouter.post(
                         }
                         : {
                             create: [
-                                { name: 'Novo', color: '#6366F1', order: 0 },
-                                { name: 'Contatado', color: '#8B5CF6', order: 1 },
-                                { name: 'Respondeu', color: '#EC4899', order: 2 },
-                                { name: 'Qualificado', color: '#F59E0B', order: 3 },
-                                { name: 'Agendado', color: '#10B981', order: 4 },
-                                { name: 'Fechado', color: '#22C55E', order: 5 },
+                                { name: '01 - Leads Qualificados', color: '#F59E0B', order: 0 },
+                                { name: '02 - Conexão Enviada', color: '#6366F1', order: 1 },
+                                { name: '03 - Conexão Aceita', color: '#8B5CF6', order: 2 },
+                                { name: '04 - Mensagem Inicial Enviada', color: '#3B82F6', order: 3 },
+                                { name: '05 - Mensagem Inicial Follow-up', color: '#EC4899', order: 4 },
+                                { name: '06 - Resposta Recebida', color: '#10B981', order: 5 },
                             ],
                         },
                 },

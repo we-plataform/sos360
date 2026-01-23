@@ -1,4 +1,4 @@
-# 🚀 Início Rápido - SOS 360
+# 🚀 Início Rápido - Lia 360
 
 ## Escolha sua opção
 

@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import { verifyAccessToken } from '../lib/jwt.js';
 import { UnauthorizedError, ForbiddenError } from '../lib/errors.js';
-import type { JwtPayload, CompanyRole, WorkspaceRole } from '@sos360/shared';
+import type { JwtPayload, CompanyRole, WorkspaceRole } from '@lia360/shared';
 
 declare global {
   namespace Express {

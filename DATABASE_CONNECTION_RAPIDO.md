@@ -18,7 +18,7 @@ postgresql://usuario:senha@host:5432/database
 
 **Exemplo:**
 ```
-postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 ### 3. Verificar nos Logs

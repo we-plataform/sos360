@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import { prisma } from '@sos360/database';
-import { loginSchema, registerSchema, refreshTokenSchema, selectContextSchema } from '@sos360/shared';
+import { prisma } from '@lia360/database';
+import { loginSchema, registerSchema, refreshTokenSchema, selectContextSchema } from '@lia360/shared';
 import { validate } from '../middleware/validate.js';
 import { authenticate } from '../middleware/auth.js';
 import { authRateLimit } from '../middleware/rate-limit.js';
@@ -15,7 +15,7 @@ import {
 } from '../lib/jwt.js';
 import { storage } from '../lib/redis.js';
 import { UnauthorizedError, ConflictError, ForbiddenError } from '../lib/errors.js';
-import type { CompanyRole, WorkspaceRole } from '@sos360/shared';
+import type { CompanyRole, WorkspaceRole } from '@lia360/shared';
 
 export const authRouter = Router();
 

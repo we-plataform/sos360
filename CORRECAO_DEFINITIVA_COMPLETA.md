@@ -45,7 +45,7 @@ postgresql://usuario:senha@hostname:5432/database
 
 **Exemplo Render PostgreSQL:**
 ```
-postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **⚠️ IMPORTANTE:**
@@ -64,7 +64,7 @@ Após fazer deploy das correções e configurar `DATABASE_URL`, verifique os log
 ### ✅ Logs Esperados (Sucesso)
 
 ```
-=== SOS360 API Starting ===
+=== Lia360 API Starting ===
 DATABASE_URL set: true
 JWT_SECRET set: true
 [Config] Environment validated successfully

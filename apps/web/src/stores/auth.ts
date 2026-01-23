@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { AuthUser, CompanyContext, WorkspaceContext, CompanyWithWorkspaces } from '@sos360/shared';
+import type { AuthUser, CompanyContext, WorkspaceContext, CompanyWithWorkspaces } from '@lia360/shared';
 import { api } from '../lib/api';
 
 interface AuthState {

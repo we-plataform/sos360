@@ -1,7 +1,7 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import type { StringValue } from 'ms';
 import { env } from '../config/env.js';
-import type { JwtPayload, SelectionTokenPayload } from '@sos360/shared';
+import type { JwtPayload, SelectionTokenPayload } from '@lia360/shared';
 
 /**
  * Sign an access token with company and workspace context

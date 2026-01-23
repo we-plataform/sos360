@@ -56,7 +56,7 @@ Este diretório contém a documentação técnica completa para o MVP de 3 meses
 ## Estrutura do Monorepo
 
 ```
-sos360/
+lia360/
 ├── apps/
 │   ├── web/           # Next.js frontend
 │   ├── api/           # Express backend

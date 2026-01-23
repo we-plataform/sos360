@@ -10,6 +10,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { countries, searchCountries } from '@/lib/countries';
+import {
+    SocialPlatforms
+} from '@/components/ui/social-icons';
+import { LabelWithTooltip } from '@/components/ui/label-with-tooltip';
 
 interface AudienceFormData {
     name: string;
@@ -197,14 +201,14 @@ export default function NewAudiencePage() {
     const renderStep1 = () => (
         <div className="space-y-4">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <LabelWithTooltip tooltip="Nome interno para identificar esta audiência nos seus relatórios e listagens.">
                     Nome da Audiência *
-                </label>
+                </LabelWithTooltip>
                 <Input
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Ex: Profissionais de Marketing no Brasil"
-                    className={`text-lg ${errors.name ? 'border-red-500' : ''}`}
+                    className={`text-sm ${errors.name ? 'border-red-500' : ''}`}
                 />
                 {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -220,7 +224,9 @@ export default function NewAudiencePage() {
         <div className="space-y-6">
             {/* Gênero */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gênero</label>
+                <LabelWithTooltip tooltip="Selecione o gênero dos perfis que deseja incluir na busca.">
+                    Gênero
+                </LabelWithTooltip>
                 <div className="flex gap-3">
                     <button
                         type="button"
@@ -243,7 +249,10 @@ export default function NewAudiencePage() {
                         Mulher
                     </button>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer mt-3">
+
+                <SocialPlatforms />
+
+                <label className="flex items-center gap-2 cursor-pointer mt-1">
                     <input
                         type="checkbox"
                         checked={formData.ignoreGenderIfUnknown}
@@ -256,7 +265,9 @@ export default function NewAudiencePage() {
 
             {/* Países */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Países</label>
+                <LabelWithTooltip tooltip="Filtre perfis baseados na localização geográfica (País).">
+                    Países
+                </LabelWithTooltip>
                 <div className="relative">
                     <Input
                         value={countrySearch}
@@ -297,6 +308,7 @@ export default function NewAudiencePage() {
                         })}
                     </div>
                 )}
+                <SocialPlatforms />
                 <label className="flex items-center gap-2 cursor-pointer mt-3">
                     <input
                         type="checkbox"
@@ -310,7 +322,9 @@ export default function NewAudiencePage() {
 
             {/* Tipo de Perfil */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Perfil</label>
+                <LabelWithTooltip tooltip="Defina critérios de exclusão para refinar a qualidade dos perfis encontrados.">
+                    Tipo de Perfil
+                </LabelWithTooltip>
                 <div className="space-y-2">
                     {[
                         { key: 'excludePrivate', label: 'Excluir perfis privados' },
@@ -329,30 +343,33 @@ export default function NewAudiencePage() {
                         </label>
                     ))}
                 </div>
+                <SocialPlatforms visible={['facebook', 'linkedin', 'instagram', 'x']} />
             </div>
 
             {/* Perfil Verificado */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Perfil Verificado</label>
-                <div className="flex flex-wrap gap-3">
+                <LabelWithTooltip tooltip="Filtre por status de verificação da conta (selo azul).">
+                    Perfil Verificado
+                </LabelWithTooltip>
+                <div className="space-y-2">
                     {[
                         { value: 'any', label: 'Qualquer tipo' },
                         { value: 'verified_only', label: 'Somente verificados' },
                         { value: 'unverified_only', label: 'Somente não verificados' },
                     ].map(({ value, label }) => (
-                        <button
-                            key={value}
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, verifiedFilter: value as AudienceFormData['verifiedFilter'] }))}
-                            className={`px-4 py-2 rounded-lg border transition-colors ${formData.verifiedFilter === value
-                                ? 'bg-indigo-100 border-indigo-500 text-indigo-700'
-                                : 'border-gray-300 hover:border-gray-400'
-                                }`}
-                        >
-                            {label}
-                        </button>
+                        <label key={value} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="verifiedFilter"
+                                checked={formData.verifiedFilter === value}
+                                onChange={() => setFormData(prev => ({ ...prev, verifiedFilter: value as AudienceFormData['verifiedFilter'] }))}
+                                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700">{label}</span>
+                        </label>
                     ))}
                 </div>
+                <SocialPlatforms visible={['facebook', 'linkedin', 'instagram', 'x', 'tiktok']} />
             </div>
         </div>
     );
@@ -360,7 +377,9 @@ export default function NewAudiencePage() {
     const renderStep3 = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amigos/Conexões</label>
+                <LabelWithTooltip tooltip="Defina o intervalo de conexões ou amigos que o perfil deve ter.">
+                    Amigos/Conexões
+                </LabelWithTooltip>
                 <div className="flex gap-2">
                     <Input
                         type="number"
@@ -375,10 +394,13 @@ export default function NewAudiencePage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, friendsMax: e.target.value ? parseInt(e.target.value) : null }))}
                     />
                 </div>
+                <SocialPlatforms visible={['facebook', 'linkedin']} />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amigos em Comum</label>
+                <LabelWithTooltip tooltip="Filtre perfis com base no número de amigos em comum com a conta utilizada para busca.">
+                    Amigos em Comum
+                </LabelWithTooltip>
                 <div className="flex gap-2">
                     <Input
                         type="number"
@@ -393,10 +415,13 @@ export default function NewAudiencePage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, mutualFriendsMax: e.target.value ? parseInt(e.target.value) : null }))}
                     />
                 </div>
+                <SocialPlatforms visible={['facebook']} />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Seguidores</label>
+                <LabelWithTooltip tooltip="Defina o intervalo de seguidores que o perfil deve possuir.">
+                    Seguidores
+                </LabelWithTooltip>
                 <div className="flex gap-2">
                     <Input
                         type="number"
@@ -411,10 +436,13 @@ export default function NewAudiencePage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, followersMax: e.target.value ? parseInt(e.target.value) : null }))}
                     />
                 </div>
+                <SocialPlatforms visible={['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk']} />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Posts Recentes</label>
+                <LabelWithTooltip tooltip="Filtre perfis pela quantidade de posts recentes (atividade).">
+                    Posts Recentes
+                </LabelWithTooltip>
                 <div className="flex gap-2">
                     <Input
                         type="number"
@@ -429,6 +457,7 @@ export default function NewAudiencePage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, postsMax: e.target.value ? parseInt(e.target.value) : null }))}
                     />
                 </div>
+                <SocialPlatforms visible={['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk']} />
             </div>
         </div>
     );
@@ -436,10 +465,14 @@ export default function NewAudiencePage() {
     const renderKeywordField = (
         label: string,
         includeField: keyof typeof keywordInputs,
-        excludeField: keyof typeof keywordInputs
+        excludeField: keyof typeof keywordInputs,
+        visibleIcons?: string[],
+        tooltipText?: string
     ) => (
         <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+            <LabelWithTooltip tooltip={tooltipText || "Adicione palavras-chave para incluir ou excluir perfis."}>
+                {label}
+            </LabelWithTooltip>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <p className="text-xs text-gray-500 mb-1">Incluir</p>
@@ -491,14 +524,33 @@ export default function NewAudiencePage() {
                     </div>
                 </div>
             </div>
+            {visibleIcons && <SocialPlatforms visible={visibleIcons} />}
         </div>
     );
 
     const renderStep4 = () => (
         <div className="space-y-6">
-            {renderKeywordField('Job Title Keywords', 'jobTitleInclude', 'jobTitleExclude')}
-            {renderKeywordField('Profile Information Keywords', 'profileInfoInclude', 'profileInfoExclude')}
-            {renderKeywordField('Post Content Keywords', 'postContentInclude', 'postContentExclude')}
+            {renderKeywordField(
+                'Palavras-chave de Cargo',
+                'jobTitleInclude',
+                'jobTitleExclude',
+                ['facebook', 'linkedin'],
+                'Filtre perfis com base em cargos específicos atuais ou passados.'
+            )}
+            {renderKeywordField(
+                'Palavras-chave de Informações do Perfil',
+                'profileInfoInclude',
+                'profileInfoExclude',
+                ['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk'],
+                'Busque palavras-chave na biografia, "sobre" ou descrição do perfil.'
+            )}
+            {renderKeywordField(
+                'Palavras-chave de Conteúdo do Post',
+                'postContentInclude',
+                'postContentExclude',
+                ['facebook', 'linkedin', 'instagram', 'x', 'tiktok'],
+                'Filtre perfis que publicaram conteúdo contendo estas palavras-chave.'
+            )}
         </div>
     );
 
@@ -513,50 +565,49 @@ export default function NewAudiencePage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Nova Audiência</h1>
                 <p className="text-gray-600">Defina os critérios de segmentação para mineração de leads</p>
             </div>
 
-            {/* Step Indicator */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    {STEPS.map((step, index) => (
-                        <div key={step.id} className="flex items-center flex-1">
-                            <div className="flex flex-col items-center">
-                                <div
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${currentStep > step.id
-                                        ? 'bg-green-500 text-white'
-                                        : currentStep === step.id
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-200 text-gray-500'
-                                        }`}
-                                >
-                                    {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
-                                </div>
-                                <div className="mt-2 text-center">
-                                    <p className={`text-sm font-medium ${currentStep === step.id ? 'text-indigo-600' : 'text-gray-500'}`}>
-                                        {step.title}
-                                    </p>
-                                    <p className="text-xs text-gray-400 hidden md:block">{step.description}</p>
-                                </div>
-                            </div>
-                            {index < STEPS.length - 1 && (
-                                <div
-                                    className={`flex-1 h-1 mx-4 rounded ${currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
-                                        }`}
-                                />
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
             {/* Step Content */}
             <Card className="p-6 mb-6 min-h-[300px]">
-                <h2 className="text-lg font-semibold mb-6">{STEPS[currentStep - 1].title}</h2>
+                {/* Step Indicator */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between">
+                        {STEPS.map((step, index) => (
+                            <div key={step.id} className={`flex items-center ${index === STEPS.length - 1 ? '' : 'flex-1'}`}>
+                                <div className="flex flex-col items-center">
+                                    <div
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${currentStep > step.id
+                                            ? 'bg-green-500 text-white'
+                                            : currentStep === step.id
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-gray-200 text-gray-500'
+                                            }`}
+                                    >
+                                        {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
+                                    </div>
+                                    <div className="mt-2 text-center">
+                                        <p className={`text-sm font-medium ${currentStep === step.id ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                            {step.title}
+                                        </p>
+                                        <p className="text-xs text-gray-400 hidden md:block">{step.description}</p>
+                                    </div>
+                                </div>
+                                {index < STEPS.length - 1 && (
+                                    <div
+                                        className={`flex-1 h-1 mx-4 rounded ${currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
+                                            }`}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {renderCurrentStep()}
             </Card>
 

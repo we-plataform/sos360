@@ -14,7 +14,7 @@
 ### Passo 1: Executar SQL no Neon (5 min)
 
 1. Acesse: https://console.neon.tech
-2. Selecione o projeto SOS360
+2. Selecione o projeto Lia360
 3. Vá em **SQL Editor**
 4. Copie todo o conteúdo de `rls_implementation.sql`
 5. Cole e execute

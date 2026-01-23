@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SOS360 is a lead management and outbound prospecting SaaS platform. It captures leads from social media platforms via a Chrome extension, manages them through a Kanban-style pipeline, and enables automated outreach.
+Lia360 is a lead management and outbound prospecting SaaS platform. It captures leads from social media platforms via a Chrome extension, manages them through a Kanban-style pipeline, and enables automated outreach.
 
 **Core Features**:
 - Lead capture from social platforms (LinkedIn, Instagram, Facebook, X)

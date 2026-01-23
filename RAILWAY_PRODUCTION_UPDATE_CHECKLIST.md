@@ -11,7 +11,7 @@
 
 ### Update Steps (5 minutes)
 
-- [ ] Go to Railway → Select `sos360api-production` project
+- [ ] Go to Railway → Select `lia360api-production` project
 - [ ] Click on API service
 - [ ] Go to **Variables** tab
 - [ ] Update `DATABASE_URL`:
@@ -42,12 +42,12 @@
   ```
 - [ ] Test health endpoint:
   ```bash
-  curl https://sos360api-production.up.railway.app/health
+  curl https://lia360api-production.up.railway.app/health
   ```
   Expected: `{"status":"ok","timestamp":"..."}`
 - [ ] Test authentication (use real credentials):
   ```bash
-  curl -X POST https://sos360api-production.up.railway.app/api/v1/auth/login \
+  curl -X POST https://lia360api-production.up.railway.app/api/v1/auth/login \
     -H "Content-Type: application/json" \
     -d '{"email":"your-email@example.com","password":"your-password"}'
   ```
@@ -103,6 +103,6 @@ DIRECT_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-po
 
 ## Current Production Status
 
-**URL**: https://sos360api-production.up.railway.app
+**URL**: https://lia360api-production.up.railway.app
 **Current Status**: ❌ 502 Bad Gateway (database connection failed)
 **After Update**: ✅ Should return `{"status":"ok"}`

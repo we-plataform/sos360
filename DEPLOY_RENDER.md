@@ -1,4 +1,4 @@
-# 🚀 Guia Completo: Deploy da API SOS360 no Render
+# 🚀 Guia Completo: Deploy da API Lia360 no Render
 
 Este guia detalha passo a passo como fazer deploy da API no Render, incluindo todas as configurações necessárias para um monorepo com workspaces.
 
@@ -21,7 +21,7 @@ Antes de começar, certifique-se de ter:
 ### Estrutura do Projeto
 
 ```
-sos360/
+lia360/
 ├── apps/
 │   └── api/          # API principal
 ├── packages/
@@ -33,14 +33,14 @@ sos360/
 ### Dependências de Build
 
 A API depende de dois pacotes que precisam ser buildados antes:
-1. `@sos360/shared` → primeiro
-2. `@sos360/database` → segundo (executa `prisma generate`)
-3. `@sos360/api` → por último
+1. `@lia360/shared` → primeiro
+2. `@lia360/database` → segundo (executa `prisma generate`)
+3. `@lia360/api` → por último
 
 ### Scripts Importantes
 
-- **Build**: `npm run build:api` (do root) ou `npm run build --workspace=@sos360/api` (que executa prebuild automaticamente)
-- **Start**: `npm run start --workspace=@sos360/api` (executa `node dist/index.js`)
+- **Build**: `npm run build:api` (do root) ou `npm run build --workspace=@lia360/api` (que executa prebuild automaticamente)
+- **Start**: `npm run start --workspace=@lia360/api` (executa `node dist/index.js`)
 
 ---
 
@@ -106,7 +106,7 @@ REDIS_URL=
 ### 2.2 Conectar Repositório
 
 1. Se for a primeira vez, autorize o Render a acessar seus repositórios GitHub
-2. Selecione o repositório `sos360`
+2. Selecione o repositório `lia360`
 3. Clique em **"Connect"**
 
 ### 2.3 Configurar o Serviço
@@ -115,7 +115,7 @@ Preencha os seguintes campos:
 
 #### Informações Básicas
 
-- **Name**: `sos360-api` (ou o nome que preferir)
+- **Name**: `lia360-api` (ou o nome que preferir)
 - **Region**: Escolha a região mais próxima (ex: `Oregon (US West)` ou `Frankfurt (EU)` para melhor latência)
 - **Branch**: `main` (ou a branch que você usa para produção)
 - **Root Directory**: **DEIXE VAZIO** ou use `.` (raiz do projeto)
@@ -130,12 +130,12 @@ Preencha os seguintes campos:
   ```
   Ou alternativamente:
   ```bash
-  npm install && npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+  npm install && npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
   ```
 
 - **Start Command**: 
   ```bash
-  npm run start --workspace=@sos360/api
+  npm run start --workspace=@lia360/api
   ```
 
 #### Instância
@@ -185,13 +185,13 @@ Se você tem um arquivo `.env.production`, pode copiar e colar as variáveis dir
 2. O Render iniciará automaticamente:
    - Instalação de dependências (`npm install`)
    - Build do projeto (`npm run build:api`)
-   - Start do servidor (`npm run start --workspace=@sos360/api`)
+   - Start do servidor (`npm run start --workspace=@lia360/api`)
 
 ### 4.2 Monitorar o Deploy
 
 1. Na aba **"Logs"**, acompanhe o progresso:
    - ✅ Instalação de dependências
-   - ✅ Build dos pacotes (`@sos360/shared`, `@sos360/database`, `@sos360/api`)
+   - ✅ Build dos pacotes (`@lia360/shared`, `@lia360/database`, `@lia360/api`)
    - ✅ Geração do Prisma Client (`prisma generate`)
    - ✅ Compilação TypeScript
    - ✅ Inicialização do servidor
@@ -222,7 +222,7 @@ Veja a seção de **Troubleshooting** abaixo.
 
 1. No painel do Render, vá em **"Settings"**
 2. Role até **"Public Networking"**
-3. Copie a **"Public URL"** (algo como `https://sos360-api.onrender.com`)
+3. Copie a **"Public URL"** (algo como `https://lia360-api.onrender.com`)
 
 ### 5.2 Atualizar Frontend (Vercel)
 
@@ -233,9 +233,9 @@ Se você tem um frontend na Vercel:
 3. Adicione/atualize:
 
 ```env
-NEXT_PUBLIC_API_URL=https://sos360-api.onrender.com
-NEXT_PUBLIC_WS_URL=wss://sos360-api.onrender.com
-API_URL=https://sos360-api.onrender.com
+NEXT_PUBLIC_API_URL=https://lia360-api.onrender.com
+NEXT_PUBLIC_WS_URL=wss://lia360-api.onrender.com
+API_URL=https://lia360-api.onrender.com
 ```
 
 > ⚠️ **Importante**: Use `wss://` (WebSocket seguro) para `NEXT_PUBLIC_WS_URL`, não `ws://`
@@ -260,7 +260,7 @@ Se você adicionou uma nova URL do frontend, atualize `CORS_ORIGINS` no Render:
 Teste se a API está respondendo:
 
 ```bash
-curl https://sos360-api.onrender.com/health
+curl https://lia360-api.onrender.com/health
 ```
 
 Deve retornar:
@@ -271,13 +271,13 @@ Deve retornar:
 ### 6.2 Testar Endpoint Root
 
 ```bash
-curl https://sos360-api.onrender.com/
+curl https://lia360-api.onrender.com/
 ```
 
 Deve retornar:
 ```json
 {
-  "name": "SOS360 API",
+  "name": "Lia360 API",
   "version": "0.0.1",
   "status": "running",
   "timestamp": "2025-01-15T10:30:00.000Z"
@@ -289,7 +289,7 @@ Deve retornar:
 No console do navegador (no frontend), teste:
 
 ```javascript
-fetch('https://sos360-api.onrender.com/api/v1/auth/me', {
+fetch('https://lia360-api.onrender.com/api/v1/auth/me', {
   headers: {
     'Authorization': 'Bearer seu-token'
   }
@@ -308,7 +308,7 @@ Se você usa Socket.io, teste a conexão:
 ```javascript
 import io from 'socket.io-client';
 
-const socket = io('https://sos360-api.onrender.com', {
+const socket = io('https://lia360-api.onrender.com', {
   auth: { token: 'Bearer seu-token' }
 });
 
@@ -331,13 +331,13 @@ Error: @prisma/client did not initialize yet. Please run "prisma generate"
 **Solução:**
 
 1. Verifique se o **Root Directory** está vazio ou como `.` (não `apps/api`)
-2. Verifique se o **Build Command** inclui o build do `@sos360/database`:
+2. Verifique se o **Build Command** inclui o build do `@lia360/database`:
    ```bash
    npm install && npm run build:api
    ```
 3. Verifique os logs do build - deve aparecer:
    ```
-   > @sos360/database@0.0.1 prebuild
+   > @lia360/database@0.0.1 prebuild
    > prisma generate --schema=packages/database/prisma/schema.prisma
    ```
 
@@ -345,7 +345,7 @@ Error: @prisma/client did not initialize yet. Please run "prisma generate"
 
 **Erro:**
 ```
-npm ERR! Could not resolve workspace: @sos360/shared
+npm ERR! Could not resolve workspace: @lia360/shared
 ```
 
 **Solução:**
@@ -370,7 +370,7 @@ Error: listen EADDRINUSE: address already in use :::3001
 
 **Erro:**
 ```
-Access to fetch at 'https://sos360-api.onrender.com/...' from origin 'https://seu-app.vercel.app' has been blocked by CORS policy
+Access to fetch at 'https://lia360-api.onrender.com/...' from origin 'https://seu-app.vercel.app' has been blocked by CORS policy
 ```
 
 **Solução:**
@@ -511,7 +511,7 @@ Antes de considerar o deploy completo:
 - [ ] ✅ Serviço criado no Render
 - [ ] ✅ Root Directory configurado como `.` (raiz)
 - [ ] ✅ Build Command configurado: `npm install && npm run build:api`
-- [ ] ✅ Start Command configurado: `npm run start --workspace=@sos360/api`
+- [ ] ✅ Start Command configurado: `npm run start --workspace=@lia360/api`
 - [ ] ✅ Todas as variáveis de ambiente configuradas
 - [ ] ✅ `CORS_ORIGINS` inclui URL do frontend
 - [ ] ✅ Deploy bem-sucedido (ver logs)
@@ -529,7 +529,7 @@ Após deploy bem-sucedido:
 
 1. **Configure domínio customizado** (opcional):
    - No Render, vá em **Settings** > **Custom Domain**
-   - Adicione seu domínio (ex: `api.sos360.com`)
+   - Adicione seu domínio (ex: `api.lia360.com`)
 
 2. **Configure monitoramento**:
    - Integre com serviços como Sentry, Datadog, etc.

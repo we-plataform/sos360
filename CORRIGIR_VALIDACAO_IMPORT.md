@@ -70,7 +70,7 @@ O schema `importLeadDataSchema` agora aceita corretamente:
 
 1. **Reconstruir o pacote shared:**
    ```bash
-   npm run build --workspace=@sos360/shared
+   npm run build --workspace=@lia360/shared
    ```
 
 2. **Reiniciar a API:**
@@ -80,7 +80,7 @@ O schema `importLeadDataSchema` agora aceita corretamente:
 
 3. **Recarregar a extensão no Chrome:**
    - Vá para `chrome://extensions/`
-   - Clique em "Recarregar" na extensão SOS 360
+   - Clique em "Recarregar" na extensão Lia 360
 
 4. **Testar importação:**
    - Faça login na extensão

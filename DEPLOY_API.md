@@ -1,4 +1,4 @@
-# Deploy da API SOS360 para Produção
+# Deploy da API Lia360 para Produção
 
 Este guia explica como fazer deploy da API em produção para que o frontend na Vercel possa se conectar.
 
@@ -62,7 +62,7 @@ Railway é a opção mais simples para monorepos.
 
 1. Clique em "New Project"
 2. Selecione "Deploy from GitHub repo"
-3. Escolha o repositório `sos360`
+3. Escolha o repositório `lia360`
 
 ### 3. Configurar serviço
 
@@ -70,8 +70,8 @@ Railway é a opção mais simples para monorepos.
 2. Selecione o **Root Directory**: `/apps/api`
 3. Ou use o botão "Add Service" > "GitHub Repo" > Configure:
    - **Root Directory**: `apps/api`
-   - **Build Command**: `npm install && npm run build --workspace=@sos360/api`
-   - **Start Command**: `npm run start --workspace=@sos360/api`
+   - **Build Command**: `npm install && npm run build --workspace=@lia360/api`
+   - **Start Command**: `npm run start --workspace=@lia360/api`
 
 ### 4. Configurar variáveis de ambiente
 
@@ -81,7 +81,7 @@ No Railway, vá em "Variables" e adicione todas as variáveis listadas acima.
 
 Railway faz deploy automaticamente após cada push no GitHub. A URL será algo como:
 ```
-https://sos360-api-production.up.railway.app
+https://lia360-api-production.up.railway.app
 ```
 
 ### 6. Obter URL e atualizar frontend
@@ -90,7 +90,7 @@ https://sos360-api-production.up.railway.app
 2. No **Vercel**, vá em Settings > Environment Variables
 3. Adicione/atualize:
    ```
-   NEXT_PUBLIC_API_URL=https://sos360-api-production.up.railway.app
+   NEXT_PUBLIC_API_URL=https://lia360-api-production.up.railway.app
    ```
 4. Faça redeploy do frontend na Vercel
 
@@ -109,18 +109,18 @@ Render oferece plano gratuito limitado.
 ### 2. Criar novo Web Service
 
 1. Clique em "New" > "Web Service"
-2. Conecte o repositório `sos360`
+2. Conecte o repositório `lia360`
 3. Configure:
-   - **Name**: `sos360-api`
+   - **Name**: `lia360-api`
    - **Root Directory**: `apps/api`
    - **Environment**: `Node`
    - **Build Command**: 
      ```bash
-     npm install && npm run build --workspace=@sos360/api
+     npm install && npm run build --workspace=@lia360/api
      ```
    - **Start Command**: 
      ```bash
-     npm run start --workspace=@sos360/api
+     npm run start --workspace=@lia360/api
      ```
    - **Instance Type**: Free (ou pago para mais recursos)
 
@@ -132,7 +132,7 @@ No painel do Render, vá em "Environment" e adicione todas as variáveis.
 
 Render faz deploy automaticamente. A URL será:
 ```
-https://sos360-api.onrender.com
+https://lia360-api.onrender.com
 ```
 
 **Nota:** No plano gratuito, o serviço "dorme" após 15min de inatividade. A primeira requisição pode demorar ~30s para acordar.
@@ -141,7 +141,7 @@ https://sos360-api.onrender.com
 
 Adicione a variável no Vercel:
 ```
-NEXT_PUBLIC_API_URL=https://sos360-api.onrender.com
+NEXT_PUBLIC_API_URL=https://lia360-api.onrender.com
 ```
 
 ---
@@ -174,7 +174,7 @@ flyctl launch
 ```
 
 Responda as perguntas:
-- App name: `sos360-api` (ou o que preferir)
+- App name: `lia360-api` (ou o que preferir)
 - Region: escolha próximo ao Brasil (ex: `gru`)
 - PostgreSQL: Não (você já usa Supabase)
 - Redis: Não (opcional)
@@ -184,7 +184,7 @@ Responda as perguntas:
 O Fly.io pode gerar automaticamente, mas você pode ajustar:
 
 ```toml
-app = "sos360-api"
+app = "lia360-api"
 primary_region = "gru"
 
 [build]
@@ -241,13 +241,13 @@ flyctl deploy --config apps/api/fly.toml
 
 A URL será:
 ```
-https://sos360-api.fly.dev
+https://lia360-api.fly.dev
 ```
 
 ### 7. Atualizar frontend Vercel
 
 ```
-NEXT_PUBLIC_API_URL=https://sos360-api.fly.dev
+NEXT_PUBLIC_API_URL=https://lia360-api.fly.dev
 ```
 
 ---
@@ -302,7 +302,7 @@ Não deve ter erros de CORS.
 
 - **Railway**: Aba "Deployments" > Selecione deployment > Ver logs
 - **Render**: Aba "Logs"
-- **Fly.io**: `flyctl logs -a sos360-api`
+- **Fly.io**: `flyctl logs -a lia360-api`
 
 ---
 
@@ -344,7 +344,7 @@ Não deve ter erros de CORS.
 **Solução:**
 1. Certifique-se de que o build funciona localmente:
    ```bash
-   npm run build --workspace=@sos360/api
+   npm run build --workspace=@lia360/api
    ```
 2. Verifique se todas as dependências estão no `package.json`
 3. Monorepos podem precisar de configuração especial - use `--workspace`

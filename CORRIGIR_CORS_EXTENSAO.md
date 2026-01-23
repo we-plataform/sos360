@@ -31,15 +31,15 @@ A extensão agora loga:
 ### 1. Verificar Service Worker Console
 
 1. Abra `chrome://extensions`
-2. Encontre "SOS 360"
+2. Encontre "Lia 360"
 3. Clique em "service worker" (link azul)
 4. Tente fazer login
 5. Veja os logs no console
 
 **Logs esperados:**
 ```
-[SOS 360] API Request: http://localhost:3001/api/v1/auth/login { method: 'POST' }
-[SOS 360] API Response: 200 OK
+[Lia 360] API Request: http://localhost:3001/api/v1/auth/login { method: 'POST' }
+[Lia 360] API Response: 200 OK
 ```
 
 ### 2. Verificar API está Respondendo
@@ -86,7 +86,7 @@ Na saída da API, procure por:
 
 ### Verificar Console do Service Worker
 
-1. `chrome://extensions` → SOS 360 → "service worker"
+1. `chrome://extensions` → Lia 360 → "service worker"
 2. Veja erros específicos
 3. Copie mensagem de erro completa
 

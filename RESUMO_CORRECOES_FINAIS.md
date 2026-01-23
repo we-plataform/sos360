@@ -46,7 +46,7 @@ postgresql://usuario:senha@hostname:5432/database
 
 **Exemplo:**
 ```
-postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **Como obter DATABASE_URL do Render PostgreSQL:**

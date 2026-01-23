@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SOS 360 - Lead Importer",
+  "name": "Lia 360 - Lead Importer",
   "version": "1.0.1",
-  "description": "Importe leads de redes sociais para o SOS 360",
+  "description": "Importe leads de redes sociais para a Lia 360",
   "permissions": [
     "storage",
     "activeTab",

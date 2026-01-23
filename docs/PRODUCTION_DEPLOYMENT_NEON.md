@@ -2,7 +2,7 @@
 
 ## Production Deployment Status
 
-**Current Production URL**: `https://sos360api-production.up.railway.app`
+**Current Production URL**: `https://lia360api-production.up.railway.app`
 
 **Status**: Currently returning 502 errors (database connection issue)
 
@@ -25,7 +25,7 @@ The production deployment is currently failing with 502 errors. This is likely b
 
 1. Go to: https://railway.app/
 2. Login to your account
-3. Select project: `sos360api-production`
+3. Select project: `lia360api-production`
 
 ### Step 2: Update Database Variables
 
@@ -87,7 +87,7 @@ PrismaClientInitializationError: Connection refused
 ### 2. Test Production Health Endpoint
 
 ```bash
-curl https://sos360api-production.up.railway.app/health
+curl https://lia360api-production.up.railway.app/health
 ```
 
 **Expected response:**
@@ -98,7 +98,7 @@ curl https://sos360api-production.up.railway.app/health
 ### 3. Test Authentication
 
 ```bash
-curl -X POST https://sos360api-production.up.railway.app/api/v1/auth/login \
+curl -X POST https://lia360api-production.up.railway.app/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email":"your-email@example.com",
@@ -122,7 +122,7 @@ curl -X POST https://sos360api-production.up.railway.app/api/v1/auth/login \
 ### 4. Test a Protected Endpoint
 
 ```bash
-curl https://sos360api-production.up.railway.app/api/v1/pipelines \
+curl https://lia360api-production.up.railway.app/api/v1/pipelines \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
@@ -286,7 +286,7 @@ DATABASE_URL="..." npx prisma db push --skip-generate
 3. **API Health**:
    ```bash
    # Continuous health check
-   watch -n 30 'curl -s https://sos360api-production.up.railway.app/health | jq'
+   watch -n 30 'curl -s https://lia360api-production.up.railway.app/health | jq'
    ```
 
 ---

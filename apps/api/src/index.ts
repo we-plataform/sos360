@@ -15,7 +15,7 @@ import { setupRoutes } from './routes/index.js';
 import { setupSocket } from './socket/index.js';
 
 // Log startup information immediately
-console.log('=== SOS360 API Starting ===');
+console.log('=== Lia360 API Starting ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`PORT env: ${process.env.PORT || 'not set'}`);
@@ -149,7 +149,7 @@ app.get('/health', async (_, res) => {
 // Root endpoint
 app.get('/', (_, res) => {
   res.json({ 
-    name: 'SOS360 API',
+    name: 'Lia360 API',
     version: '0.0.1',
     status: 'running',
     timestamp: new Date().toISOString()

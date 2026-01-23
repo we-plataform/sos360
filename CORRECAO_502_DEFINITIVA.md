@@ -44,7 +44,7 @@
 
 2. **Teste o Health Check**:
    ```bash
-   curl https://sos360api-production.up.railway.app/health
+   curl https://lia360api-production.up.railway.app/health
    ```
    Deve retornar: `{"status":"ok","timestamp":"..."}`
 

@@ -4,7 +4,7 @@
 
 ### 1. Criar Web Service
 - **New +** → **Web Service**
-- Conecte repositório `sos360`
+- Conecte repositório `lia360`
 - **Root Directory**: `.` (vazio/raiz) ⚠️ **NÃO** `apps/api`
 
 ### 2. Build & Start Commands
@@ -16,7 +16,7 @@ npm install && npm run build:api
 
 **Start Command:**
 ```bash
-npm run start --workspace=@sos360/api
+npm run start --workspace=@lia360/api
 ```
 
 ### 3. Variáveis de Ambiente Obrigatórias
@@ -29,7 +29,7 @@ DIRECT_URL=postgresql://...
 JWT_SECRET=sua-chave-32-caracteres-minimo
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=7d
-CORS_ORIGINS=https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 ### 4. Variáveis Opcionais
@@ -63,7 +63,7 @@ curl https://sua-api.onrender.com/health
 
 - [ ] Root Directory = `.`
 - [ ] Build Command = `npm install && npm run build:api`
-- [ ] Start Command = `npm run start --workspace=@sos360/api`
+- [ ] Start Command = `npm run start --workspace=@lia360/api`
 - [ ] Todas variáveis configuradas
 - [ ] Health check OK
 - [ ] Frontend atualizado com URL da API

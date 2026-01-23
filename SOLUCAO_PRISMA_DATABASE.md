@@ -39,7 +39,7 @@ postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.co
 ### 2. Configurar no Render
 
 1. Acesse [dashboard.render.com](https://dashboard.render.com)
-2. Selecione seu serviço **sos360-api**
+2. Selecione seu serviço **lia360-api**
 3. Vá em **Environment** (menu lateral)
 4. Configure as seguintes variáveis:
 
@@ -49,7 +49,7 @@ postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.co
 | `DIRECT_URL` | `postgresql://postgres.[REF]:[SENHA]@aws-0-[REGION].pooler.supabase.com:5432/postgres` | ⚠️ Recomendado |
 | `JWT_SECRET` | (string com 32+ caracteres) | ✅ Sim |
 | `NODE_ENV` | `production` | ✅ Sim |
-| `CORS_ORIGINS` | `https://sos360-web-black.vercel.app,https://*.vercel.app` | ✅ Sim |
+| `CORS_ORIGINS` | `https://lia360-web-black.vercel.app,https://*.vercel.app` | ✅ Sim |
 
 ### 3. Verificar a Senha
 

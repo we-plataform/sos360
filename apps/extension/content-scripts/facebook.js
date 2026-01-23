@@ -149,5 +149,5 @@
     return true;
   });
 
-  console.log('SOS 360 Facebook content script loaded');
+  console.log('Lia 360 Facebook content script loaded');
 })();

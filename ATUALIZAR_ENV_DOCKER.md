@@ -15,8 +15,8 @@ cp .env .env.supabase.backup
 # Criar novo .env para Docker
 cat > .env << 'EOF'
 # Database (PostgreSQL via Docker)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
-DIRECT_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
 
 # Redis (via Docker)
 REDIS_URL=redis://localhost:6379
@@ -59,8 +59,8 @@ DIRECT_URL=postgresql://postgres.doewttvwknkhjzhzceub:...
 REDIS_URL=
 
 # Depois (Docker)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
-DIRECT_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
 REDIS_URL=redis://localhost:6379
 ```
 
@@ -72,7 +72,7 @@ REDIS_URL=redis://localhost:6379
 docker-compose ps
 ```
 
-Deve mostrar `sos360-postgres` e `sos360-redis` como `Up (healthy)`
+Deve mostrar `lia360-postgres` e `lia360-redis` como `Up (healthy)`
 
 ### 2. Criar tabelas no banco Docker
 
@@ -108,7 +108,7 @@ Acesse `http://localhost:3000/register` e tente criar uma conta.
 
 ```bash
 # Verificar tabelas
-docker exec sos360-postgres psql -U postgres -d sos360 -c "\dt"
+docker exec lia360-postgres psql -U postgres -d lia360 -c "\dt"
 
 # Deve listar todas as tabelas criadas
 ```

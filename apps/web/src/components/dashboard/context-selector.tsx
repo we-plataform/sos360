@@ -40,7 +40,7 @@ export function ContextSelector({ collapsed = false }: { collapsed?: boolean }) 
                     )}
                 >
                     {collapsed ? (
-                        <div className="flex items-center justify-center p-1 rounded-sm bg-indigo-50 text-indigo-700 font-bold shrink-0">
+                        <div className="flex items-center justify-center p-1 rounded-sm bg-primary/10 text-primary font-bold shrink-0">
                             {currentWorkspace.name.substring(0, 2).toUpperCase()}
                         </div>
                     ) : (

@@ -1,4 +1,4 @@
-# 🧩 Extensão Chrome - SOS 360
+# 🧩 Extensão Chrome - Lia 360
 
 ## 📦 Estrutura
 

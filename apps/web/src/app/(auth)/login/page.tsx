@@ -50,7 +50,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Entrar no SOS 360</CardTitle>
+          <CardTitle className="text-2xl">Entrar na Lia 360</CardTitle>
           <CardDescription>
             Digite suas credenciais para acessar sua conta
           </CardDescription>

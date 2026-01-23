@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import {
   createLeadSchema,
   updateLeadSchema,
@@ -10,7 +10,7 @@ import {
   calculateOffset,
   calculateTotalPages,
   parseSort,
-} from '@sos360/shared';
+} from '@lia360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { importRateLimit } from '../middleware/rate-limit.js';

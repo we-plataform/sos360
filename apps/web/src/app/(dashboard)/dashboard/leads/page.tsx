@@ -6,7 +6,7 @@ import { Plus, Settings, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { KanbanBoard, KanbanPipeline, StageManager } from '@/components/kanban';
-import { LeadDetailModal, CreatePipelineDialog } from '@/components/leads';
+import { LeadDetailModal, CreatePipelineDialog, CreateLeadDialog } from '@/components/leads';
 import { api } from '@/lib/api';
 import { socket } from '@/lib/socket';
 
@@ -16,6 +16,7 @@ export default function LeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
   const [isCreatePipelineOpen, setIsCreatePipelineOpen] = useState(false);
+  const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
 
   // Fetch pipelines
   const { data: pipelinesData } = useQuery({
@@ -167,7 +168,7 @@ export default function LeadsPage() {
             </>
           )}
 
-          <Button>
+          <Button onClick={() => setIsCreateLeadOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Lead
           </Button>
@@ -248,6 +249,16 @@ export default function LeadsPage() {
         onOpenChange={setIsCreatePipelineOpen}
         onSuccess={(id) => setSelectedPipelineId(id)}
       />
+
+      {/* Create Lead Dialog */}
+      {selectedPipelineId && pipelineData?.stages && (
+        <CreateLeadDialog
+          open={isCreateLeadOpen}
+          onOpenChange={setIsCreateLeadOpen}
+          pipelineId={selectedPipelineId}
+          stages={pipelineData.stages}
+        />
+      )}
     </div>
   );
 }

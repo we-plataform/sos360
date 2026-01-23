@@ -1,4 +1,4 @@
-# Setup - SOS 360 com Supabase
+# Setup - Lia 360 com Supabase
 
 ## 1. Configuração do Supabase
 

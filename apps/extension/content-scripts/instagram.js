@@ -1,23 +1,23 @@
-// Instagram content script - SOS 360
+// Instagram content script - Lia 360
 // Version 3 - With Post Import Support
 
 (function () {
   'use strict';
 
   // CRITICAL: Log immediately when script loads
-  console.log('[SOS 360] ========================================');
-  console.log('[SOS 360] Instagram Content Script Loaded v3.0');
-  console.log('[SOS 360] Current URL:', window.location.href);
-  console.log('[SOS 360] ========================================');
+  console.log('[Lia 360] ========================================');
+  console.log('[Lia 360] Instagram Content Script Loaded v3.0');
+  console.log('[Lia 360] Current URL:', window.location.href);
+  console.log('[Lia 360] ========================================');
 
   // Global error handler to catch any script errors
   window.addEventListener('error', (event) => {
-    console.error('[SOS 360] SCRIPT ERROR:', event.error);
+    console.error('[Lia 360] SCRIPT ERROR:', event.error);
   });
 
   // Global unhandled promise rejection handler
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('[SOS 360] UNHANDLED PROMISE REJECTION:', event.reason);
+    console.error('[Lia 360] UNHANDLED PROMISE REJECTION:', event.reason);
   });
 
   // Visual indicator that script is loaded (small badge in corner)
@@ -39,7 +39,7 @@
   `;
   debugBadge.textContent = 'SOS360 v3.0 ✓';
   document.documentElement.appendChild(debugBadge);
-  console.log('[SOS 360] Debug badge added to page');
+  console.log('[Lia 360] Debug badge added to page');
 
   const UI_ID = 'sos360-instagram-overlay';
   const POST_UI_ID = 'sos360-post-overlay';
@@ -260,10 +260,10 @@
             clientX: x, clientY: y, button: 0
           }));
 
-          console.log('[SOS 360] Simulated realistic click at', { x: Math.round(x), y: Math.round(y) });
+          console.log('[Lia 360] Simulated realistic click at', { x: Math.round(x), y: Math.round(y) });
           return true;
         } catch (error) {
-          console.error('[SOS 360] Error simulating click:', error);
+          console.error('[Lia 360] Error simulating click:', error);
           return false;
         }
       },
@@ -295,10 +295,10 @@
             await sleep(80 + Math.random() * 40);
           }
 
-          console.log('[SOS 360] Simulated wheel scroll:', { steps, totalDistance: distance });
+          console.log('[Lia 360] Simulated wheel scroll:', { steps, totalDistance: distance });
           return true;
         } catch (error) {
-          console.error('[SOS 360] Error simulating wheel scroll:', error);
+          console.error('[Lia 360] Error simulating wheel scroll:', error);
           return false;
         }
       }
@@ -307,9 +307,14 @@
 
   /**
    * Get scroll target comment for scrollIntoView (works with virtual scrolling)
+   * @param {HTMLElement} scrollContainer - The container to search within
    */
-  function getScrollTargetComment() {
-    const comments = document.querySelectorAll(SELECTORS.commentItem);
+  function getScrollTargetComment(scrollContainer) {
+    // CRITICAL FIX: Only query comments INSIDE the scroll container
+    // This prevents picking up navigation elements or comments from other parts of the DOM
+    const context = scrollContainer || document;
+    const comments = context.querySelectorAll(SELECTORS.commentItem);
+
     if (comments.length === 0) return null;
 
     // Get currently visible comments
@@ -319,7 +324,7 @@
       return isInViewport;
     });
 
-    console.log(`[SOS 360] Found ${comments.length} total comments, ${visibleComments.length} visible`);
+    console.log(`[Lia 360] Found ${comments.length} total comments, ${visibleComments.length} visible inside container`);
 
     // If we have non-visible comments, target one below the visible area
     if (visibleComments.length < comments.length) {
@@ -331,12 +336,12 @@
       const jumpSize = 3 + Math.floor(Math.random() * 3);
       const targetIndex = Math.min(lastVisibleIndex + jumpSize, comments.length - 1);
 
-      console.log(`[SOS 360] Targeting comment ${targetIndex} (jump size: ${jumpSize})`);
+      console.log(`[Lia 360] Targeting comment ${targetIndex} (jump size: ${jumpSize})`);
       return comments[targetIndex];
     }
 
     // If all visible, target the last one (will trigger load more)
-    console.log('[SOS 360] All comments visible, targeting last comment');
+    console.log('[Lia 360] All comments visible, targeting last comment');
     return comments[comments.length - 1];
   }
 
@@ -346,14 +351,14 @@
    */
   async function scrollToNextComments(scrollContainer) {
     if (!scrollContainer) {
-      console.log('[SOS 360] No scroll container provided');
+      console.log('[Lia 360] No scroll container provided');
       return false;
     }
 
-    const targetComment = getScrollTargetComment();
+    const targetComment = getScrollTargetComment(scrollContainer);
 
     if (!targetComment) {
-      console.log('[SOS 360] No target comment found for scrolling');
+      console.log('[Lia 360] No target comment found for scrolling');
       return false;
     }
 
@@ -367,7 +372,7 @@
       const currentScroll = scrollContainer.scrollTop;
       const targetScroll = currentScroll + relativeTop - (containerRect.height * 0.3); // Position at 30% from top
 
-      console.log('[SOS 360] Scrolling container:', {
+      console.log('[Lia 360] Scrolling container:', {
         currentScroll,
         targetScroll,
         scrollDelta: targetScroll - currentScroll
@@ -385,7 +390,7 @@
       const scrollHappened = Math.abs(actualScroll - currentScroll) > 1;
 
       if (!scrollHappened) {
-        console.warn('[SOS 360] Scroll did NOT happen! Container may not be scrollable.', {
+        console.warn('[Lia 360] Scroll did NOT happen! Container may not be scrollable.', {
           currentScroll,
           actualScroll,
           scrollHeight: scrollContainer.scrollHeight,
@@ -394,14 +399,14 @@
         return false;
       }
 
-      console.log('[SOS 360] Scrolled container successfully to target comment');
+      console.log('[Lia 360] Scrolled container successfully to target comment');
 
       // Wait for scroll to complete and new content to load
       await sleep(300 + Math.random() * 200);
 
       return true;
     } catch (error) {
-      console.error('[SOS 360] Container scroll failed:', error);
+      console.error('[Lia 360] Container scroll failed:', error);
       return false;
     }
   }
@@ -411,13 +416,13 @@
    */
   async function scrollProgressively(scrollContainer) {
     if (!scrollContainer) {
-      console.log('[SOS 360] No scroll container provided');
+      console.log('[Lia 360] No scroll container provided');
       return false;
     }
 
     const comments = document.querySelectorAll(SELECTORS.commentItem);
     if (comments.length < 5) {
-      console.log('[SOS 360] Too few comments for progressive scroll');
+      console.log('[Lia 360] Too few comments for progressive scroll');
       return false;
     }
 
@@ -425,7 +430,7 @@
     const startIndex = Math.floor(comments.length * 0.7);
     const batchSize = 2 + Math.floor(Math.random() * 2);  // 2-3 comments
 
-    console.log(`[SOS 360] Progressive scroll: ${batchSize} comments starting at index ${startIndex}`);
+    console.log(`[Lia 360] Progressive scroll: ${batchSize} comments starting at index ${startIndex}`);
 
     const containerRect = scrollContainer.getBoundingClientRect();
     const currentScroll = scrollContainer.scrollTop;
@@ -575,12 +580,12 @@
         extractedAt: new Date().toISOString(),
       };
 
-      console.log('[SOS 360] Post data extracted:', postData);
+      console.log('[Lia 360] Post data extracted:', postData);
       state.postData = postData;
       return postData;
 
     } catch (error) {
-      console.error('[SOS 360] Error extracting post data:', error);
+      console.error('[Lia 360] Error extracting post data:', error);
       return null;
     }
   }
@@ -655,11 +660,11 @@
         state.commentAuthors.set(username, authorData);
 
       } catch (error) {
-        console.error('[SOS 360] Error extracting comment author:', error);
+        console.error('[Lia 360] Error extracting comment author:', error);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${commentAuthors.length} comment authors`);
+    console.log(`[Lia 360] Extracted ${commentAuthors.length} comment authors`);
     return commentAuthors;
   }
 
@@ -672,7 +677,7 @@
     if (commentSvg) {
       const btn = commentSvg.closest('button, div[role="button"], span[role="button"]');
       if (btn) {
-        console.log('[SOS 360] Clicking comment button via SVG');
+        console.log('[Lia 360] Clicking comment button via SVG');
         btn.click();
         await sleep(2000);
         return;
@@ -682,7 +687,7 @@
     // Strategy 2: Find link to /comments/
     const commentsLink = document.querySelector('a[href*="/comments/"]');
     if (commentsLink) {
-      console.log('[SOS 360] Clicking comments link');
+      console.log('[Lia 360] Clicking comments link');
       commentsLink.click();
       await sleep(2000);
       return;
@@ -692,7 +697,7 @@
     const viewAllBtn = findElementByText('span', ['view all', 'ver todos', 'comments', 'comentários']);
     if (viewAllBtn) {
       const clickable = viewAllBtn.closest('button, div[role="button"], a') || viewAllBtn;
-      console.log('[SOS 360] Clicking view all comments');
+      console.log('[Lia 360] Clicking view all comments');
       clickable.click();
       await sleep(2000);
     }
@@ -712,7 +717,7 @@
     if (ulByClass) {
       const style = window.getComputedStyle(ulByClass);
       if (style.overflowY === 'scroll' || style.overflowY === 'auto') {
-        console.log('[SOS 360] Found UL comment container by class');
+        console.log('[Lia 360] Found UL comment container by class');
         return ulByClass;
       }
     }
@@ -727,7 +732,7 @@
 
       if (isScrollable && hasHeight && hasComments) {
         const commentLinks = ul.querySelectorAll('a[href^="/"]:not([href*="/explore/"]):not([href*="/p/"])');
-        console.log(`[SOS 360] Found UL comment container with ${commentLinks.length} profile links`);
+        console.log(`[Lia 360] Found UL comment container with ${commentLinks.length} profile links`);
         return ul;
       }
     }
@@ -740,7 +745,7 @@
       const commentLinks = ul.querySelectorAll('a[href^="/"]:not([href*="/explore/"]):not([href*="/p/"])');
 
       if (isScrollable && hasHeight && commentLinks.length > 3) {
-        console.log(`[SOS 360] Found UL container with ${commentLinks.length} links (fallback)`);
+        console.log(`[Lia 360] Found UL container with ${commentLinks.length} links (fallback)`);
         return ul;
       }
     }
@@ -754,12 +759,12 @@
       const commentLinks = div.querySelectorAll('a[href^="/"]:not([href*="/explore/"]):not([href*="/p/"])');
 
       if (isScrollable && hasHeight && commentLinks.length > 5) {
-        console.log(`[SOS 360] Found DIV comment container with ${commentLinks.length} links`);
+        console.log(`[Lia 360] Found DIV comment container with ${commentLinks.length} links`);
         return div;
       }
     }
 
-    console.log('[SOS 360] No comment scroll container found in dialog');
+    console.log('[Lia 360] No comment scroll container found in dialog');
     return null;
   }
 
@@ -786,7 +791,7 @@
       if (svg) {
         const btn = svg.closest('button') || svg.closest('div[role="button"]');
         if (btn) {
-          console.log('[SOS 360] Found load more button via SVG:', selector);
+          console.log('[Lia 360] Found load more button via SVG:', selector);
           return btn;
         }
       }
@@ -799,7 +804,7 @@
     for (const btn of buttons) {
       const text = btn.textContent?.toLowerCase() || '';
       if (textPatterns.some(p => text.includes(p))) {
-        console.log('[SOS 360] Found load more button via text:', text.substring(0, 30));
+        console.log('[Lia 360] Found load more button via text:', text.substring(0, 30));
         return btn;
       }
     }
@@ -807,7 +812,7 @@
     // Strategy 3: Also check "View more comments" button (existing helper)
     const viewMoreBtn = findViewMoreCommentsButton();
     if (viewMoreBtn) {
-      console.log('[SOS 360] Found view more comments button');
+      console.log('[Lia 360] Found view more comments button');
       return viewMoreBtn;
     }
 
@@ -828,7 +833,7 @@
         // Could be a load more button
         const path = svg.querySelector('path');
         if (path) {
-          console.log('[SOS 360] Found potential expand button');
+          console.log('[Lia 360] Found potential expand button');
           return parent;
         }
       }
@@ -846,7 +851,7 @@
     const loadMoreBtn = findLoadMoreButton();
 
     if (loadMoreBtn) {
-      console.log('[SOS 360] Attempting to click load more button');
+      console.log('[Lia 360] Attempting to click load more button');
       const clicked = await simulator.simulateClick(loadMoreBtn);
       if (clicked) {
         // Wait for comments to load with humanized delay
@@ -864,7 +869,7 @@
    */
   async function startCommentAutoScroll(targetCount = 300) {
     if (state.isAutoScrollingComments) {
-      console.log('[SOS 360] Already scrolling comments');
+      console.log('[Lia 360] Already scrolling comments');
       return;
     }
 
@@ -872,7 +877,7 @@
     state.targetProfileCount = targetCount;
     state.profilesScanned = 0;
 
-    console.log(`[SOS 360] Starting comment auto-scroll, target: ${targetCount}`);
+    console.log(`[Lia 360] Starting comment auto-scroll, target: ${targetCount}`);
 
     // Create human simulator for realistic interactions
     const simulator = createHumanSimulator();
@@ -894,7 +899,7 @@
       const scrollContainer = findCommentScrollContainer();
 
       // Debug logging - show current state
-      console.log('[SOS 360] Scroll iteration:', {
+      console.log('[Lia 360] Scroll iteration:', {
         containerTag: scrollContainer?.tagName || 'none',
         containerClass: scrollContainer?.className?.substring(0, 30) || 'none',
         scrollTop: scrollContainer?.scrollTop || 0,
@@ -918,7 +923,7 @@
 
       if (loadedMore) {
         // Button was clicked, extract new comments that appeared
-        console.log('[SOS 360] Load more button clicked via simulation, extracting new comments');
+        console.log('[Lia 360] Load more button clicked via simulation, extracting new comments');
         await sleep(simulator.getHumanDelay(200, 400)); // Small extra delay for DOM update
         extractCommentAuthors();
         // Update UI with filtered results
@@ -929,13 +934,13 @@
       // This is needed because Instagram uses virtual scrolling and may not load
       // new comments until you actually scroll the container
       if (scrollContainer) {
-        console.log('[SOS 360] Attempting to scroll container to trigger virtual scroll loading');
+        console.log('[Lia 360] Attempting to scroll container to trigger virtual scroll loading');
 
         // Method 1: Scroll to target comment (PRIMARY)
         scrolled = await scrollToNextComments(scrollContainer);
 
         if (!scrolled) {
-          console.log('[SOS 360] Single scroll failed, trying progressive scroll');
+          console.log('[Lia 360] Single scroll failed, trying progressive scroll');
 
           // Method 2: Progressive scroll through multiple comments
           scrolled = await scrollProgressively(scrollContainer);
@@ -945,7 +950,7 @@
         await sleep(simulator.getHumanDelay(200, 400));
       } else if (!loadedMore) {
         // No container found - log warning and try window scroll as last resort
-        console.log('[SOS 360] Warning: No scroll container found, trying window scroll');
+        console.log('[Lia 360] Warning: No scroll container found, trying window scroll');
         prevScrollTop = window.scrollY;
         window.scrollBy(0, baseScrollAmount);
         await sleep(300);
@@ -968,7 +973,7 @@
 
       if (!scrolled && !foundNew && !loadedMore) {
         noChangeCount++;
-        console.log(`[SOS 360] No progress, attempt ${noChangeCount}/${maxNoChange}`);
+        console.log(`[Lia 360] No progress, attempt ${noChangeCount}/${maxNoChange}`);
 
         // Update UI to reflect waiting state
         updatePostScrollStatus(
@@ -977,7 +982,7 @@
         );
 
         if (noChangeCount >= maxNoChange) {
-          console.log('[SOS 360] Comment auto-scroll complete - no more content');
+          console.log('[Lia 360] Comment auto-scroll complete - no more content');
           break;
         }
       } else {
@@ -999,7 +1004,7 @@
 
       // Safety check - if we've found enough, stop
       if (state.commentAuthors.size >= targetCount) {
-        console.log(`[SOS 360] Target reached: ${state.commentAuthors.size}`);
+        console.log(`[Lia 360] Target reached: ${state.commentAuthors.size}`);
         break;
       }
     }
@@ -1010,7 +1015,7 @@
       100
     );
 
-    console.log(`[SOS 360] Comment extraction complete: ${state.commentAuthors.size} profiles`);
+    console.log(`[Lia 360] Comment extraction complete: ${state.commentAuthors.size} profiles`);
   }
 
   /**
@@ -1157,7 +1162,7 @@
           throw new Error('Import failed');
         }
       } catch (error) {
-        console.error('[SOS 360] Import post error:', error);
+        console.error('[Lia 360] Import post error:', error);
         importBtn.innerHTML = '❌ Error';
         setTimeout(() => {
           importBtn.innerHTML = originalText;
@@ -1226,7 +1231,7 @@
           throw new Error(response?.error || 'Save failed');
         }
       } catch (error) {
-        console.error('[SOS 360] Save to library error:', error);
+        console.error('[Lia 360] Save to library error:', error);
         saveLibraryBtn.innerHTML = '❌ Erro';
         setTimeout(() => {
           saveLibraryBtn.innerHTML = originalText;
@@ -1278,7 +1283,7 @@
       scrollContainer.appendChild(container);
     }
 
-    console.log('[SOS 360] Post buttons injected INSIDE scroll container (sticky)');
+    console.log('[Lia 360] Post buttons injected INSIDE scroll container (sticky)');
   }
 
   /**
@@ -1308,7 +1313,7 @@
     state.isAutoScrollingComments = false;
     state.profilesScanned = 0;
 
-    console.log('[SOS 360] Post overlay closed and state reset');
+    console.log('[Lia 360] Post overlay closed and state reset');
   }
 
   /**
@@ -1741,7 +1746,7 @@
     // Attach all event listeners
     attachPostOverlayEventListeners();
 
-    console.log('[SOS 360] Post import overlay created');
+    console.log('[Lia 360] Post import overlay created');
   }
 
   /**
@@ -1837,7 +1842,7 @@
             }, 2000);
           }
         } catch (error) {
-          console.error('[SOS 360] Import post data error:', error);
+          console.error('[Lia 360] Import post data error:', error);
           btn.textContent = '❌ Error';
           setTimeout(() => {
             btn.textContent = '📥 Import This Post Data Only';
@@ -1851,7 +1856,7 @@
     if (newMenuBtn) {
       newMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        console.log('[SOS 360] Menu button clicked!');
+        console.log('[Lia 360] Menu button clicked!');
         togglePostAudienceMenu();
       });
     }
@@ -1918,7 +1923,7 @@
       confirmImportBtn.addEventListener('click', confirmPostPipelineImport);
     }
 
-    console.log('[SOS 360] Post overlay event listeners attached');
+    console.log('[Lia 360] Post overlay event listeners attached');
   }
 
   /**
@@ -1955,7 +1960,7 @@
 
     if (state.selectedAudience) {
       authors = authors.filter(author => matchesAudienceCriteria(author, state.selectedAudience));
-      console.log(`[SOS 360] Filtered ${authors.length} qualified leads from ${state.commentAuthors.size} total`);
+      console.log(`[Lia 360] Filtered ${authors.length} qualified leads from ${state.commentAuthors.size} total`);
     }
 
     if (authors.length === 0 && !state.selectedAudience) {
@@ -2307,7 +2312,7 @@
     updateUI();
     updateDebug('Iniciando scan...');
 
-    console.log('[SOS 360] Starting Instagram dialog scan');
+    console.log('[Lia 360] Starting Instagram dialog scan');
 
     let noChangeCount = 0;
     const maxNoChange = 5;
@@ -2342,7 +2347,7 @@
         updateDebug(`Sem novos usuários (${noChangeCount}/${maxNoChange})`);
 
         if (noChangeCount >= maxNoChange) {
-          console.log('[SOS 360] Scan complete - no more users to load');
+          console.log('[Lia 360] Scan complete - no more users to load');
           stopScanning();
           updateDebug('Scan completo!');
           break;
@@ -2471,7 +2476,7 @@
         }
 
       } catch (e) {
-        console.error('[SOS 360] Error extracting user:', e);
+        console.error('[Lia 360] Error extracting user:', e);
       }
     }
 
@@ -2525,7 +2530,7 @@
 
         updateDebug(`\u2705 ${response.data.qualified}/${batch.length} qualificados`);
       } else {
-        console.error('[SOS 360] AI batch analysis failed:', response?.error);
+        console.error('[Lia 360] AI batch analysis failed:', response?.error);
         updateDebug('\u26a0\ufe0f Erro na an\u00e1lise IA');
 
         // Fallback: add all to qualified if AI fails
@@ -2534,7 +2539,7 @@
         }
       }
     } catch (error) {
-      console.error('[SOS 360] AI batch error:', error);
+      console.error('[Lia 360] AI batch error:', error);
       updateDebug('\u26a0\ufe0f Erro na an\u00e1lise IA');
 
       // Fallback: add all to qualified if AI fails
@@ -2552,7 +2557,7 @@
    * Handles Instagram's changing DOM structure
    */
   function extractProfileStats() {
-    console.log('[SOS 360] Starting stats extraction...');
+    console.log('[Lia 360] Starting stats extraction...');
 
     const stats = {
       postsCount: 0,
@@ -2597,7 +2602,7 @@
     };
 
     // Strategy A: Links with /followers/, /following/ paths + UL/LI structure (MOST RELIABLE)
-    console.log('[SOS 360] Strategy A: Path-based stat links...');
+    console.log('[Lia 360] Strategy A: Path-based stat links...');
     const statLinks = Array.from(document.querySelectorAll('a[href*="/followers/"], a[href*="/following/"]'));
     for (const link of statLinks) {
       const type = getStatType(link);
@@ -2622,12 +2627,12 @@
 
     if (stats.followersCount > 0 || stats.followingCount > 0) {
       stats.method = 'path-links';
-      console.log('[SOS 360] ✓ Strategy A succeeded:', stats);
+      console.log('[Lia 360] ✓ Strategy A succeeded:', stats);
       return stats;
     }
 
     // Strategy B: Aria-label based
-    console.log('[SOS 360] Strategy B: Aria-label stats...');
+    console.log('[Lia 360] Strategy B: Aria-label stats...');
     const ariaStats = Array.from(document.querySelectorAll(
       'a[aria-label*="follower"], a[aria-label*="following"], button[aria-label*="post"]'
     ));
@@ -2640,12 +2645,12 @@
     }
     if (stats.followersCount > 0 || stats.followingCount > 0) {
       stats.method = 'aria-label';
-      console.log('[SOS 360] ✓ Strategy B succeeded:', stats);
+      console.log('[Lia 360] ✓ Strategy B succeeded:', stats);
       return stats;
     }
 
     // Strategy C: Data attributes (modern Instagram)
-    console.log('[SOS 360] Strategy C: Data attribute stats...');
+    console.log('[Lia 360] Strategy C: Data attribute stats...');
     const dataStats = document.querySelectorAll('[data-testid*="follower"], [data-testid*="following"], [data-testid*="post"]');
     for (const el of dataStats) {
       const type = getStatType(el);
@@ -2656,12 +2661,12 @@
     }
     if (stats.followersCount > 0 || stats.followingCount > 0) {
       stats.method = 'data-attr';
-      console.log('[SOS 360] ✓ Strategy C succeeded:', stats);
+      console.log('[Lia 360] ✓ Strategy C succeeded:', stats);
       return stats;
     }
 
     // Strategy D: Legacy UL > LI with intelligent span extraction
-    console.log('[SOS 360] Strategy D: Legacy UL > LI with span detection...');
+    console.log('[Lia 360] Strategy D: Legacy UL > LI with span detection...');
     const statItems = document.querySelectorAll('header section ul li');
     if (statItems.length >= 3) {
       // Use getCount which intelligently finds digit spans
@@ -2669,12 +2674,12 @@
       stats.followersCount = getCount(statItems[1]);
       stats.followingCount = getCount(statItems[2]);
       stats.method = 'legacy-ul';
-      console.log('[SOS 360] ✓ Strategy D succeeded:', stats);
+      console.log('[Lia 360] ✓ Strategy D succeeded:', stats);
       return stats;
     }
 
     // Strategy E: Generic header elements (last resort)
-    console.log('[SOS 360] Strategy E: Generic header extraction...');
+    console.log('[Lia 360] Strategy E: Generic header extraction...');
     const allHeaderEls = Array.from(document.querySelectorAll('header a, header button, header [role="button"]'))
       .filter(el => /\d+/.test(el.textContent));
 
@@ -2687,11 +2692,11 @@
     }
     if (stats.followersCount > 0 || stats.followingCount > 0) {
       stats.method = 'generic-header';
-      console.log('[SOS 360] ✓ Strategy E succeeded:', stats);
+      console.log('[Lia 360] ✓ Strategy E succeeded:', stats);
       return stats;
     }
 
-    console.warn('[SOS 360] ✗ All strategies failed - stats set to 0');
+    console.warn('[Lia 360] ✗ All strategies failed - stats set to 0');
     return stats;
   }
 
@@ -2731,8 +2736,8 @@
     // Extract stats using multi-strategy approach
     const statsData = extractProfileStats();
     const { postsCount, followersCount, followingCount } = statsData;
-    console.log('[SOS 360] Stats extracted via method:', statsData.method);
-    console.log('[SOS 360] ✅ Stats data:', {
+    console.log('[Lia 360] Stats extracted via method:', statsData.method);
+    console.log('[Lia 360] ✅ Stats data:', {
       followersCount,
       followingCount,
       postsCount,
@@ -2770,15 +2775,15 @@
       verified: verified,
     };
 
-    console.log('[SOS 360] ========================================');
-    console.log('[SOS 360] extractCurrentProfile() returning:');
-    console.log('[SOS 360] Username:', profileData.username);
-    console.log('[SOS 360] Full Name:', profileData.fullName);
-    console.log('[SOS 360] Followers:', profileData.followersCount);
-    console.log('[SOS 360] Following:', profileData.followingCount);
-    console.log('[SOS 360] Posts:', profileData.postsCount);
-    console.log('[SOS 360] Bio:', profileData.bio?.substring(0, 50) + '...');
-    console.log('[SOS 360] ========================================');
+    console.log('[Lia 360] ========================================');
+    console.log('[Lia 360] extractCurrentProfile() returning:');
+    console.log('[Lia 360] Username:', profileData.username);
+    console.log('[Lia 360] Full Name:', profileData.fullName);
+    console.log('[Lia 360] Followers:', profileData.followersCount);
+    console.log('[Lia 360] Following:', profileData.followingCount);
+    console.log('[Lia 360] Posts:', profileData.postsCount);
+    console.log('[Lia 360] Bio:', profileData.bio?.substring(0, 50) + '...');
+    console.log('[Lia 360] ========================================');
 
     return profileData;
   }
@@ -2788,7 +2793,7 @@
     const leads = Array.from(state.qualifiedLeads.values());
     if (leads.length === 0) return;
 
-    console.log('[SOS 360] Leads to import:', JSON.stringify(leads, null, 2));
+    console.log('[Lia 360] Leads to import:', JSON.stringify(leads, null, 2));
 
     const btn = document.getElementById('sos-import-btn');
     const textEl = document.getElementById('sos-import-text');
@@ -2805,7 +2810,7 @@
       if (criteria) {
         // Deep Import with AI analysis
         textEl.textContent = 'Iniciando Deep Import com IA...';
-        console.log('[SOS 360] Starting Instagram Deep Import with criteria:', criteria);
+        console.log('[Lia 360] Starting Instagram Deep Import with criteria:', criteria);
 
         updateDeepImportProgress(0, leads.length, 'Iniciando análise com IA...');
 
@@ -2820,7 +2825,7 @@
         if (response?.success) {
           textEl.textContent = 'Deep Import em andamento...';
         } else {
-          console.error('[SOS 360] Deep Import failed:', response?.error);
+          console.error('[Lia 360] Deep Import failed:', response?.error);
           alert('Falha ao iniciar Deep Import: ' + (response?.error || 'Erro desconhecido'));
           btn.disabled = false;
           textEl.textContent = originalText;
@@ -2833,14 +2838,14 @@
           sourceUrl: window.location.href,
           leads: leads
         };
-        console.log('[SOS 360] Sending import request:', JSON.stringify(importData, null, 2));
+        console.log('[Lia 360] Sending import request:', JSON.stringify(importData, null, 2));
 
         const response = await chrome.runtime.sendMessage({
           action: 'importLeads',
           data: importData
         });
 
-        console.log('[SOS 360] Import response:', response);
+        console.log('[Lia 360] Import response:', response);
 
         if (response?.success) {
           alert(`Sucesso! ${leads.length} leads importados.`);
@@ -2849,12 +2854,12 @@
           state.totalUsersFound = 0;
           updateUI();
         } else {
-          console.error('[SOS 360] Import failed:', response?.error);
+          console.error('[Lia 360] Import failed:', response?.error);
           alert('Falha na importação: ' + (response?.error || 'Erro desconhecido'));
         }
       }
     } catch (e) {
-      console.error('[SOS 360] Import exception:', e);
+      console.error('[Lia 360] Import exception:', e);
       alert('Erro: ' + e.message);
     } finally {
       btn.disabled = false;
@@ -2916,7 +2921,7 @@
       }, 5000);
     }
 
-    console.log(`[SOS 360] Instagram Deep Import Progress: ${current}/${total} - ${status}`);
+    console.log(`[Lia 360] Instagram Deep Import Progress: ${current}/${total} - ${status}`);
   }
 
   function showCompletionNotification(qualified, discarded = 0) {
@@ -2964,17 +2969,17 @@
 
   // --- Initialization ---
   function init() {
-    console.log('[SOS 360] --- init() called ---');
-    console.log('[SOS 360] Current URL:', window.location.href);
+    console.log('[Lia 360] --- init() called ---');
+    console.log('[Lia 360] Current URL:', window.location.href);
 
     const username = getCurrentProfileUsername();
     const isPost = isInstagramPostPage();
     const currentUrl = window.location.href.split('?')[0]; // Normalize URL without query params
 
-    console.log('[SOS 360] Detection results:');
-    console.log('[SOS 360] - username:', username);
-    console.log('[SOS 360] - isPost:', isPost);
-    console.log('[SOS 360] - currentUrl:', currentUrl);
+    console.log('[Lia 360] Detection results:');
+    console.log('[Lia 360] - username:', username);
+    console.log('[Lia 360] - isPost:', isPost);
+    console.log('[Lia 360] - currentUrl:', currentUrl);
 
     // Update state
     state.isPostPage = isPost;
@@ -2986,14 +2991,14 @@
 
       // Check if this is a new/different post
       if (previousPostUrl && previousPostUrl !== currentUrl) {
-        console.log('[SOS 360] Navigated to different post, closing old overlay');
+        console.log('[Lia 360] Navigated to different post, closing old overlay');
         closePostOverlay();
       }
 
       // Update current post URL
       state.currentPostUrl = currentUrl;
 
-      console.log('[SOS 360] On Instagram post page:', currentUrl);
+      console.log('[Lia 360] On Instagram post page:', currentUrl);
       // Inject the import button AND open overlay automatically
       setTimeout(() => {
         injectPostButtons();
@@ -3002,7 +3007,7 @@
     } else {
       // Not on a post page - close post overlay if it was open
       if (state.currentPostUrl) {
-        console.log('[SOS 360] Left post page, closing overlay');
+        console.log('[Lia 360] Left post page, closing overlay');
         closePostOverlay();
         removePostButtons();
         state.currentPostUrl = null;
@@ -3011,24 +3016,24 @@
       if (username) {
         // We're on a profile page
         setTimeout(() => {
-          console.log(`[SOS 360] On Instagram profile: @${username}`);
+          console.log(`[Lia 360] On Instagram profile: @${username}`);
 
           // AUTO-EXTRACT stats for debugging
-          console.log('[SOS 360] Attempting automatic stats extraction...');
+          console.log('[Lia 360] Attempting automatic stats extraction...');
           try {
             // Wait for page to fully load
             waitForInstagramProfile().then(() => {
-              console.log('[SOS 360] Profile page loaded, extracting stats...');
+              console.log('[Lia 360] Profile page loaded, extracting stats...');
 
               // Extract stats using our multi-strategy function
               const statsData = extractProfileStats();
-              console.log('[SOS 360] ========================================');
-              console.log('[SOS 360] STATS EXTRACTION RESULTS:');
-              console.log('[SOS 360] Method used:', statsData.method);
-              console.log('[SOS 360] Posts:', statsData.postsCount);
-              console.log('[SOS 360] Followers:', statsData.followersCount);
-              console.log('[SOS 360] Following:', statsData.followingCount);
-              console.log('[SOS 360] ========================================');
+              console.log('[Lia 360] ========================================');
+              console.log('[Lia 360] STATS EXTRACTION RESULTS:');
+              console.log('[Lia 360] Method used:', statsData.method);
+              console.log('[Lia 360] Posts:', statsData.postsCount);
+              console.log('[Lia 360] Followers:', statsData.followersCount);
+              console.log('[Lia 360] Following:', statsData.followingCount);
+              console.log('[Lia 360] ========================================');
 
               // Update debug badge with stats
               const badge = document.getElementById('sos360-debug-badge');
@@ -3036,10 +3041,10 @@
                 badge.innerHTML = `SOS360<br>F: ${statsData.followersCount.toLocaleString()}<br>P: ${statsData.postsCount.toLocaleString()}`;
               }
             }).catch((err) => {
-              console.error('[SOS 360] Error waiting for profile:', err);
+              console.error('[Lia 360] Error waiting for profile:', err);
             });
           } catch (error) {
-            console.error('[SOS 360] Error extracting stats:', error);
+            console.error('[Lia 360] Error extracting stats:', error);
           }
         }, 1000);
       }
@@ -3054,13 +3059,13 @@
 
   // SPA Observer - Instagram is a SPA
   let lastUrl = location.href;
-  console.log('[SOS 360] Setting up SPA URL observer. Initial URL:', lastUrl);
+  console.log('[Lia 360] Setting up SPA URL observer. Initial URL:', lastUrl);
 
   new MutationObserver(() => {
     if (location.href !== lastUrl) {
-      console.log('[SOS 360] URL changed detected!');
-      console.log('[SOS 360] Old URL:', lastUrl);
-      console.log('[SOS 360] New URL:', location.href);
+      console.log('[Lia 360] URL changed detected!');
+      console.log('[Lia 360] Old URL:', lastUrl);
+      console.log('[Lia 360] New URL:', location.href);
 
       lastUrl = location.href;
       state.currentProfileUsername = getCurrentProfileUsername();
@@ -3072,7 +3077,7 @@
         titleEl.textContent = `Import: @${state.currentProfileUsername}`;
       }
 
-      console.log('[SOS 360] Calling init() due to URL change');
+      console.log('[Lia 360] Calling init() due to URL change');
       init();
     }
   }).observe(document, { subtree: true, childList: true });
@@ -3085,7 +3090,7 @@
   });
   postObserver.observe(document.body, { childList: true, subtree: true });
 
-  console.log('[SOS 360] Calling initial init()...');
+  console.log('[Lia 360] Calling initial init()...');
   init();
 
   // --- Message Listener ---
@@ -3178,7 +3183,7 @@
           // ENRICHMENT HANDLER - Extract full profile data for imported leads
           // ============================================================
           case 'enrichInstagramProfile': {
-            console.log('[SOS 360] Enriching Instagram profile:', request.data?.username);
+            console.log('[Lia 360] Enriching Instagram profile:', request.data?.username);
 
             try {
               // Show enrichment overlay
@@ -3187,9 +3192,9 @@
               // Wait for profile to load (with timeout handling)
               try {
                 await waitForInstagramProfile();
-                console.log('[SOS 360] Profile loaded successfully, proceeding with extraction');
+                console.log('[Lia 360] Profile loaded successfully, proceeding with extraction');
               } catch (loadError) {
-                console.warn('[SOS 360] Profile load check failed, attempting extraction anyway:', loadError.message);
+                console.warn('[Lia 360] Profile load check failed, attempting extraction anyway:', loadError.message);
                 // Continue anyway - page might be partially loaded
               }
 
@@ -3197,21 +3202,21 @@
               const profileData = extractCurrentProfile();
 
               if (profileData) {
-                console.log('[SOS 360] ========================================');
-                console.log('[SOS 360] enrichInstagramProfile SUCCESS!');
-                console.log('[SOS 360] Sending back to background:');
-                console.log('[SOS 360] - username:', profileData.username);
-                console.log('[SOS 360] - fullName:', profileData.fullName);
-                console.log('[SOS 360] - followersCount:', profileData.followersCount);
-                console.log('[SOS 360] - followingCount:', profileData.followingCount);
-                console.log('[SOS 360] - postsCount:', profileData.postsCount);
-                console.log('[SOS 360] - bio:', profileData.bio?.substring(0, 50) + '...');
-                console.log('[SOS 360] - website:', profileData.website);
-                console.log('[SOS 360] - email:', profileData.email);
-                console.log('[SOS 360] - verified:', profileData.verified);
-                console.log('[SOS 360] ========================================');
+                console.log('[Lia 360] ========================================');
+                console.log('[Lia 360] enrichInstagramProfile SUCCESS!');
+                console.log('[Lia 360] Sending back to background:');
+                console.log('[Lia 360] - username:', profileData.username);
+                console.log('[Lia 360] - fullName:', profileData.fullName);
+                console.log('[Lia 360] - followersCount:', profileData.followersCount);
+                console.log('[Lia 360] - followingCount:', profileData.followingCount);
+                console.log('[Lia 360] - postsCount:', profileData.postsCount);
+                console.log('[Lia 360] - bio:', profileData.bio?.substring(0, 50) + '...');
+                console.log('[Lia 360] - website:', profileData.website);
+                console.log('[Lia 360] - email:', profileData.email);
+                console.log('[Lia 360] - verified:', profileData.verified);
+                console.log('[Lia 360] ========================================');
 
-                console.log('[SOS 360] ✓ Profile data extracted successfully:', {
+                console.log('[Lia 360] ✓ Profile data extracted successfully:', {
                   username: profileData.username,
                   fullName: profileData.fullName,
                   followersCount: profileData.followersCount,
@@ -3223,15 +3228,15 @@
                   profile: profileData
                 });
               } else {
-                console.error('[SOS 360] ✗ extractCurrentProfile returned null');
+                console.error('[Lia 360] ✗ extractCurrentProfile returned null');
                 sendResponse({
                   success: false,
                   error: 'Failed to extract profile data - extractCurrentProfile returned null'
                 });
               }
             } catch (error) {
-              console.error('[SOS 360] ✗ Error enriching profile:', error);
-              console.error('[SOS 360] Error stack:', error.stack);
+              console.error('[Lia 360] ✗ Error enriching profile:', error);
+              console.error('[Lia 360] Error stack:', error.stack);
               sendResponse({
                 success: false,
                 error: error.message
@@ -3244,7 +3249,7 @@
             sendResponse({ success: false, error: 'Unknown action' });
         }
       } catch (error) {
-        console.error('[SOS 360] Instagram content script error:', error);
+        console.error('[Lia 360] Instagram content script error:', error);
         sendResponse({ success: false, error: error.message });
       }
     })();
@@ -3262,7 +3267,7 @@
     const maxWait = 15000; // 15 seconds max (increased from 10s)
     const startTime = Date.now();
 
-    console.log('[SOS 360] Waiting for Instagram profile to load...');
+    console.log('[Lia 360] Waiting for Instagram profile to load...');
 
     while (Date.now() - startTime < maxWait) {
       // Check if we're on Instagram
@@ -3284,9 +3289,9 @@
 
         // Check 4: Username element (multiple selectors)
         () => document.querySelector('h2') ||
-                document.querySelector('h1') ||
-                document.querySelector('[role="heading"]') ||
-                document.querySelector('header section span'),
+          document.querySelector('h1') ||
+          document.querySelector('[role="heading"]') ||
+          document.querySelector('header section span'),
 
         // Check 5: Stats section (multiple selectors for robustness)
         () => {
@@ -3301,7 +3306,7 @@
           for (const selector of statSelectors) {
             const el = document.querySelector(selector);
             if (el) {
-              console.log(`[SOS 360] Stat found via: ${selector}`);
+              console.log(`[Lia 360] Stat found via: ${selector}`);
               return true;
             }
           }
@@ -3312,7 +3317,7 @@
       // If at least 3 checks pass, consider page loaded
       const passedChecks = checks.filter(check => check());
       if (passedChecks.length >= 2) {
-        console.log('[SOS 360] Profile page loaded (detected by', passedChecks.length, 'checks)');
+        console.log('[Lia 360] Profile page loaded (detected by', passedChecks.length, 'checks)');
         return;
       }
 
@@ -3320,9 +3325,9 @@
     }
 
     // Log what we found for debugging
-    console.warn('[SOS 360] Profile page load timeout. Current URL:', window.location.href);
-    console.warn('[SOS 360] Header exists:', !!document.querySelector('header'));
-    console.warn('[SOS 360] Main exists:', !!document.querySelector('main'));
+    console.warn('[Lia 360] Profile page load timeout. Current URL:', window.location.href);
+    console.warn('[Lia 360] Header exists:', !!document.querySelector('header'));
+    console.warn('[Lia 360] Main exists:', !!document.querySelector('main'));
 
     throw new Error('Profile page failed to load within timeout');
   }
@@ -3360,7 +3365,7 @@
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
         </svg>
-        <span style="font-weight: 600;">SOS 360</span>
+        <span style="font-weight: 600;">Lia 360</span>
       </div>
       <div style="font-size: 12px; opacity: 0.9;">
         Enriquecendo perfil...
@@ -3372,7 +3377,7 @@
 
   // --- Legacy Functions (for LeadNavigator compatibility) ---
   async function openSearch() {
-    console.log('[SOS 360] Opening search...');
+    console.log('[Lia 360] Opening search...');
     const searchIcon = document.querySelector('svg[aria-label="Search"], svg[aria-label="Pesquisar"]');
     if (searchIcon) {
       const button = searchIcon.closest('a') || searchIcon.closest('button') || searchIcon.closest('div[role="button"]');
@@ -3388,7 +3393,7 @@
   }
 
   async function typeSearch(keyword) {
-    console.log('[SOS 360] Typing search:', keyword);
+    console.log('[Lia 360] Typing search:', keyword);
     const input = document.querySelector(SELECTORS.searchInput);
     if (!input) return false;
 
@@ -3487,7 +3492,7 @@
         listEl.innerHTML = '<div class="sos-loading">Erro ao carregar</div>';
       }
     } catch (e) {
-      console.error('[SOS 360] Error loading audiences:', e);
+      console.error('[Lia 360] Error loading audiences:', e);
       listEl.innerHTML = '<div class="sos-loading">Erro ao carregar</div>';
     }
   }
@@ -3524,7 +3529,7 @@
     if (nameEl) nameEl.textContent = audience.name;
     if (menu) menu.style.display = 'none'; // Close menu
 
-    console.log('[SOS 360] Selected post audience:', audience.name);
+    console.log('[Lia 360] Selected post audience:', audience.name);
 
     // Re-filter list
     updatePostProfilesList();
@@ -3594,10 +3599,10 @@
         }
       } else {
         pipelineSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-        console.error('[SOS 360] Erro ao carregar pipelines:', response?.error);
+        console.error('[Lia 360] Erro ao carregar pipelines:', response?.error);
       }
     } catch (e) {
-      console.error('[SOS 360] Erro ao carregar pipelines:', e);
+      console.error('[Lia 360] Erro ao carregar pipelines:', e);
       pipelineSelect.innerHTML = '<option value="">Erro ao carregar</option>';
     }
   }
@@ -3664,7 +3669,7 @@
     confirmBtn.disabled = true;
     confirmBtn.textContent = '⏳ Importando...';
 
-    console.log(`[SOS 360] Importing ${profiles.length} QUALIFIED profiles (from ${state.commentAuthors.size} total extracted)`);
+    console.log(`[Lia 360] Importing ${profiles.length} QUALIFIED profiles (from ${state.commentAuthors.size} total extracted)`);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -3697,7 +3702,7 @@
         confirmBtn.textContent = 'Confirmar Importação';
       }
     } catch (error) {
-      console.error('[SOS 360] Import error:', error);
+      console.error('[Lia 360] Import error:', error);
       alert(`❌ Import error: ${error.message}`);
       confirmBtn.disabled = false;
       confirmBtn.textContent = 'Confirmar Importação';
@@ -3776,7 +3781,7 @@
       if (audience.verifiedFilter && audience.verifiedFilter !== 'any') {
         const isVerified = profile.verified === true;
 
-        console.log('[SOS 360] Verification check:', {
+        console.log('[Lia 360] Verification check:', {
           username: profile.username,
           verified: profile.verified,
           filter: audience.verifiedFilter,
@@ -3853,7 +3858,7 @@
     if (audience.verifiedFilter && audience.verifiedFilter !== 'any') {
       const isVerified = profile.verified === true;
 
-      console.log('[SOS 360] Verification check:', {
+      console.log('[Lia 360] Verification check:', {
         username: profile.username,
         verified: profile.verified,
         filter: audience.verifiedFilter,
@@ -3874,22 +3879,22 @@
     return true;
   }
 
-  console.log('[SOS 360] Instagram Script v3.1 Loaded (with Fixed Comment Auto-Scroll)');
-})();
-/**
- * Creates the auto-reply configuration overlay
- */
-function createAutoReplyOverlay() {
-  if (document.getElementById('sos-auto-reply-overlay')) {
-    document.getElementById('sos-auto-reply-overlay').style.display = 'block';
-    return;
-  }
+  console.log('[Lia 360] Instagram Script v3.1 Loaded (with Fixed Comment Auto-Scroll)');
+  // End of main logic, but helpers follow...
+  /**
+   * Creates the auto-reply configuration overlay
+   */
+  function createAutoReplyOverlay() {
+    if (document.getElementById('sos-auto-reply-overlay')) {
+      document.getElementById('sos-auto-reply-overlay').style.display = 'block';
+      return;
+    }
 
-  const overlay = document.createElement('div');
-  overlay.id = 'sos-auto-reply-overlay';
+    const overlay = document.createElement('div');
+    overlay.id = 'sos-auto-reply-overlay';
 
-  // HTML Structure
-  overlay.innerHTML = `
+    // HTML Structure
+    overlay.innerHTML = `
       <div class="sos-ar-header">
         <span class="sos-ar-title">Auto-Reply to Comments</span>
         <button id="sos-ar-close" class="sos-ar-close">&times;</button>
@@ -4112,285 +4117,287 @@ function createAutoReplyOverlay() {
       </style>
     `;
 
-  document.body.appendChild(overlay);
+    document.body.appendChild(overlay);
 
-  // --- Event Listeners ---
+    // --- Event Listeners ---
 
-  // Close & Cancel
-  const closeBtn = document.getElementById('sos-ar-close');
-  const cancelBtn = document.getElementById('sos-ar-cancel');
-  const closeHandler = () => overlay.remove();
-  closeBtn.addEventListener('click', closeHandler);
-  cancelBtn.addEventListener('click', closeHandler);
+    // Close & Cancel
+    const closeBtn = document.getElementById('sos-ar-close');
+    const cancelBtn = document.getElementById('sos-ar-cancel');
+    const closeHandler = () => overlay.remove();
+    closeBtn.addEventListener('click', closeHandler);
+    cancelBtn.addEventListener('click', closeHandler);
 
-  // Add Text Variation
-  const addVarBtn = document.getElementById('sos-ar-add-variation');
-  const repliesContainer = document.getElementById('sos-ar-replies-container');
+    // Add Text Variation
+    const addVarBtn = document.getElementById('sos-ar-add-variation');
+    const repliesContainer = document.getElementById('sos-ar-replies-container');
 
-  addVarBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    const count = repliesContainer.querySelectorAll('textarea').length;
-    if (count >= 5) {
-      alert('Max 5 variations allowed.');
+    addVarBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const count = repliesContainer.querySelectorAll('textarea').length;
+      if (count >= 5) {
+        alert('Max 5 variations allowed.');
+        return;
+      }
+      const newTextarea = document.createElement('textarea');
+      newTextarea.className = 'sos-ar-textarea';
+      newTextarea.placeholder = 'Write variation ' + (count + 1) + '...';
+      repliesContainer.appendChild(newTextarea);
+    });
+
+    // Start Auto-Replying
+    const startBtn = document.getElementById('sos-ar-start');
+    startBtn.addEventListener('click', () => {
+      // Gather Config
+      const config = {
+        replies: Array.from(repliesContainer.querySelectorAll('textarea')).map(t => t.value).filter(t => t.trim() !== ''),
+        sendDm: document.getElementById('sos-ar-send-dm').checked,
+        follow: document.getElementById('sos-ar-follow').checked,
+        groupChat: document.getElementById('sos-ar-group-chat').checked,
+        count: document.getElementById('sos-ar-count').value,
+        interval: document.getElementById('sos-ar-interval').value,
+        processWords: document.getElementById('sos-ar-process-words').value,
+        skipWords: document.getElementById('sos-ar-skip-words').value,
+        filters: {
+          firstLevel: document.getElementById('sos-ar-first-level').checked,
+          noReplyMy: document.getElementById('sos-ar-no-reply-my').checked,
+          noReplyAny: document.getElementById('sos-ar-no-reply-any').checked,
+          like: document.getElementById('sos-ar-like').checked,
+          importProfiles: document.getElementById('sos-ar-import-profiles').checked
+        }
+      };
+
+      console.log('[Lia 360] Starting Auto-Reply with config:', config);
+
+      if (config.replies.length === 0) {
+        alert('Please enter at least one reply message.');
+        return;
+      }
+
+      // Start logic
+      overlay.remove();
+      startAutoReply(config);
+    });
+  }
+  /**
+   * Starts the auto-reply process based on the provided configuration
+   * @param {Object} config The configuration object from the overlay
+   */
+  async function startAutoReply(config) {
+    if (state.isAutoScrollingComments) {
+      console.warn('[Lia 360] Already auto-scrolling/replying');
       return;
     }
-    const newTextarea = document.createElement('textarea');
-    newTextarea.className = 'sos-ar-textarea';
-    newTextarea.placeholder = 'Write variation ' + (count + 1) + '...';
-    repliesContainer.appendChild(newTextarea);
-  });
 
-  // Start Auto-Replying
-  const startBtn = document.getElementById('sos-ar-start');
-  startBtn.addEventListener('click', () => {
-    // Gather Config
-    const config = {
-      replies: Array.from(repliesContainer.querySelectorAll('textarea')).map(t => t.value).filter(t => t.trim() !== ''),
-      sendDm: document.getElementById('sos-ar-send-dm').checked,
-      follow: document.getElementById('sos-ar-follow').checked,
-      groupChat: document.getElementById('sos-ar-group-chat').checked,
-      count: document.getElementById('sos-ar-count').value,
-      interval: document.getElementById('sos-ar-interval').value,
-      processWords: document.getElementById('sos-ar-process-words').value,
-      skipWords: document.getElementById('sos-ar-skip-words').value,
-      filters: {
-        firstLevel: document.getElementById('sos-ar-first-level').checked,
-        noReplyMy: document.getElementById('sos-ar-no-reply-my').checked,
-        noReplyAny: document.getElementById('sos-ar-no-reply-any').checked,
-        like: document.getElementById('sos-ar-like').checked,
-        importProfiles: document.getElementById('sos-ar-import-profiles').checked
-      }
-    };
+    state.isAutoScrollingComments = true;
 
-    console.log('[SOS 360] Starting Auto-Reply with config:', config);
+    // UI Feedback: Update button text/state if possible (simplified here)
+    console.log('[Lia 360] Starting Auto-Reply Loop with config:', config);
 
-    if (config.replies.length === 0) {
-      alert('Please enter at least one reply message.');
+    // Find scroll container
+    const article = document.querySelector(SELECTORS.postContainer);
+    if (!article) {
+      alert('Could not find post container. Please reload.');
+      state.isAutoScrollingComments = false;
       return;
     }
 
-    // Start logic
-    overlay.remove();
-    startAutoReply(config);
-  });
-}
-/**
- * Starts the auto-reply process based on the provided configuration
- * @param {Object} config The configuration object from the overlay
- */
-async function startAutoReply(config) {
-  if (state.isAutoScrollingComments) {
-    console.warn('[SOS 360] Already auto-scrolling/replying');
-    return;
-  }
-
-  state.isAutoScrollingComments = true;
-
-  // UI Feedback: Update button text/state if possible (simplified here)
-  console.log('[SOS 360] Starting Auto-Reply Loop with config:', config);
-
-  // Find scroll container
-  const article = document.querySelector(SELECTORS.postContainer);
-  if (!article) {
-    alert('Could not find post container. Please reload.');
-    state.isAutoScrollingComments = false;
-    return;
-  }
-
-  let scrollContainer = article.querySelector('ul[class*="_a9z6"]');
-  if (!scrollContainer) {
-    // Fallback logic akin to injectPostButtons
-    const allDivs = article.querySelectorAll('div, ul');
-    for (const el of allDivs) {
-      const style = window.getComputedStyle(el);
-      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.clientHeight > 50) {
-        if (el.children.length > 0) scrollContainer = el;
+    let scrollContainer = article.querySelector('ul[class*="_a9z6"]');
+    if (!scrollContainer) {
+      // Fallback logic akin to injectPostButtons
+      const allDivs = article.querySelectorAll('div, ul');
+      for (const el of allDivs) {
+        const style = window.getComputedStyle(el);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.clientHeight > 50) {
+          if (el.children.length > 0) scrollContainer = el;
+        }
       }
     }
-  }
 
-  if (!scrollContainer) {
-    alert('Could not find comments section. Please expand comments.');
-    state.isAutoScrollingComments = false;
-    return;
-  }
+    if (!scrollContainer) {
+      alert('Could not find comments section. Please expand comments.');
+      state.isAutoScrollingComments = false;
+      return;
+    }
 
-  let processedCount = 0;
-  const targetCount = parseInt(config.count, 10) || 20;
-  const intervalSec = parseInt(config.interval, 10) || 10;
-  const processedComments = new Set(); // store IDs or content hash to avoid duplicate processing in this session
+    let processedCount = 0;
+    const targetCount = parseInt(config.count, 10) || 20;
+    const intervalSec = parseInt(config.interval, 10) || 10;
+    const processedComments = new Set(); // store IDs or content hash to avoid duplicate processing in this session
 
-  // Helper to check if we should stop
-  const shouldStop = () => processedCount >= targetCount || !state.isAutoScrollingComments;
+    // Helper to check if we should stop
+    const shouldStop = () => processedCount >= targetCount || !state.isAutoScrollingComments;
 
-  // Helper: Sleep
-  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    // Helper: Sleep
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-  try {
-    while (!shouldStop()) {
-      // 1. Scan visible comments
-      const comments = Array.from(scrollContainer.querySelectorAll('ul._a9ym > li, ul > li')); // Attempt standard selector
+    try {
+      while (!shouldStop()) {
+        // 1. Scan visible comments
+        const comments = Array.from(scrollContainer.querySelectorAll('ul._a9ym > li, ul > li')); // Attempt standard selector
 
-      // Refined selector for comments (look for list items with text)
-      // The specific class might change, so iteration is safer
+        // Refined selector for comments (look for list items with text)
+        // The specific class might change, so iteration is safer
 
-      let actionTakenInThisPass = false;
+        let actionTakenInThisPass = false;
 
-      for (const commentItem of comments) {
-        if (shouldStop()) break;
+        for (const commentItem of comments) {
+          if (shouldStop()) break;
 
-        // --- Validation & Filtering ---
+          // --- Validation & Filtering ---
 
-        // A. Check if already processed
-        // Using a unique identifier logic (e.g., username + part of text)
-        const usernameEl = commentItem.querySelector('h3, span[dir="auto"]'); // approximate
-        if (!usernameEl) continue;
-        const username = usernameEl.textContent.trim();
+          // A. Check if already processed
+          // Using a unique identifier logic (e.g., username + part of text)
+          const usernameEl = commentItem.querySelector('h3, span[dir="auto"]'); // approximate
+          if (!usernameEl) continue;
+          const username = usernameEl.textContent.trim();
 
-        const textEl = commentItem.querySelector('span[dir="auto"]');
-        const commentText = textEl ? textEl.textContent.trim() : '';
+          const textEl = commentItem.querySelector('span[dir="auto"]');
+          const commentText = textEl ? textEl.textContent.trim() : '';
 
-        const uniqueId = username + ':' + commentText.substring(0, 20);
-        if (processedComments.has(uniqueId)) continue;
+          const uniqueId = username + ':' + commentText.substring(0, 20);
+          if (processedComments.has(uniqueId)) continue;
 
-        // B. Filter: Keywords
-        if (config.processWords && !matchesKeywords(commentText, config.processWords.split(','))) {
-          processedComments.add(uniqueId); // Mark as processed so we don't check again
-          continue;
-        }
-        if (config.skipWords && matchesKeywords(commentText, config.skipWords.split(','))) {
-          processedComments.add(uniqueId);
-          continue;
-        }
-
-        // C. Filter: 1st Level Only
-        // Indentation usually handled by padding or nesting. 
-        // In many IG versions, replies are in a nested UL or have margin.
-        // Simplified check: If it's inside another UL that is not the main list, it's a reply.
-        if (config.filters.firstLevel) {
-          // Check hierarchy. If this LI is inside a UL that is inside another LI, it's a nested reply
-          const parentUL = commentItem.parentElement;
-          if (parentUL && parentUL.parentElement && parentUL.parentElement.tagName === 'LI') {
-            processedComments.add(uniqueId);
-            continue; // Skip nested
+          // B. Filter: Keywords
+          if (config.processWords && !matchesKeywords(commentText, config.processWords.split(','))) {
+            processedComments.add(uniqueId); // Mark as processed so we don't check again
+            continue;
           }
-        }
-
-        // D. Filter: Already Replied (by anyone or me)
-        // Look for "View replies" or similar indications if expanded
-        // This is hard to detect perfectly without opening replies. 
-        // Strategy: Look for "Reply" button. If I replied, maybe "Reply" text is different or there is a "View X replies" line
-        if (config.filters.noReplyAny) {
-          const viewRepliesBtn = findElementByText('div, span', [/View.*replies/i, /Ver.*respostas/i], commentItem);
-          if (viewRepliesBtn) {
+          if (config.skipWords && matchesKeywords(commentText, config.skipWords.split(','))) {
             processedComments.add(uniqueId);
             continue;
           }
-        }
 
-        // E. Filter: Already replied by ME
-        // This usually requires checking the sub-comments. 
-        // Optimization: Skip for now unless we enforce expanding all replies (which is slow).
-        // Or check if "Reply" button is active? IG doesn't change button state usually.
-        // We'll trust the session set `processedComments` for immediate duplication prevention.
-
-        // --- Execution ---
-
-        console.log(`[SOS 360] Processing comment by ${username}: "${commentText}"`);
-
-        // Scroll into view comfortably
-        commentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await wait(1000);
-
-        // 2. Click "Reply" Button on the comment
-        const replyBtn = findElementByText('button, div[role="button"]', [/Reply/i, /Responder/i], commentItem);
-
-        if (replyBtn) {
-          await createHumanSimulator.simulateClick(replyBtn);
-          await wait(1500 + Math.random() * 1000);
-
-          // 3. Type Reply
-          // Finding the textarea. It usually appears near the comment or at bottom.
-          // When clicking reply on a comment, the main comment box often gets focused with "@username "
-          const commentBox = document.querySelector('textarea[aria-label*="Add a comment"], textarea[placeholder*="Add a comment"]');
-          if (commentBox) {
-            // Pick random variation
-            const replyText = config.replies[Math.floor(Math.random() * config.replies.length)];
-
-            // IG usually puts "@username " automatically. We append.
-            // We need to trigger input events for React to pick it up.
-
-            // Focus
-            commentBox.focus();
-            await wait(500);
-
-            // Type
-            // Simple implementation: execCommand (deprecated but works) or value setter + event dispatch
-            // Better: simulate typing
-            const existingVal = commentBox.value;
-            const newVal = existingVal + replyText;
-
-            // React value setter hack
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-            nativeInputValueSetter.call(commentBox, newVal);
-            commentBox.dispatchEvent(new Event('input', { bubbles: true }));
-
-            await wait(1000 + replyText.length * 50); // Typing delay mimic
-
-            // 4. Send (Post)
-            // Find the "Post" button. It usually activates after text.
-            const postBtn = findElementByText('div[role="button"], button', [/Post/i, /Publicar/i], commentBox.parentElement.parentElement.parentElement);
-            if (postBtn) {
-              // UNCOMMENT TO ACTUALLY POST
-              // await createHumanSimulator.simulateClick(postBtn);
-              console.log('[SOS 360] (Simulated) Sent reply:', replyText);
-              processedCount++;
-              actionTakenInThisPass = true;
-
-              // Update UI Count if possible
-              // ...
-            } else {
-              console.warn('[SOS 360] Could not find Post button');
+          // C. Filter: 1st Level Only
+          // Indentation usually handled by padding or nesting. 
+          // In many IG versions, replies are in a nested UL or have margin.
+          // Simplified check: If it's inside another UL that is not the main list, it's a reply.
+          if (config.filters.firstLevel) {
+            // Check hierarchy. If this LI is inside a UL that is inside another LI, it's a nested reply
+            const parentUL = commentItem.parentElement;
+            if (parentUL && parentUL.parentElement && parentUL.parentElement.tagName === 'LI') {
+              processedComments.add(uniqueId);
+              continue; // Skip nested
             }
           }
+
+          // D. Filter: Already Replied (by anyone or me)
+          // Look for "View replies" or similar indications if expanded
+          // This is hard to detect perfectly without opening replies. 
+          // Strategy: Look for "Reply" button. If I replied, maybe "Reply" text is different or there is a "View X replies" line
+          if (config.filters.noReplyAny) {
+            const viewRepliesBtn = findElementByText('div, span', [/View.*replies/i, /Ver.*respostas/i], commentItem);
+            if (viewRepliesBtn) {
+              processedComments.add(uniqueId);
+              continue;
+            }
+          }
+
+          // E. Filter: Already replied by ME
+          // This usually requires checking the sub-comments. 
+          // Optimization: Skip for now unless we enforce expanding all replies (which is slow).
+          // Or check if "Reply" button is active? IG doesn't change button state usually.
+          // We'll trust the session set `processedComments` for immediate duplication prevention.
+
+          // --- Execution ---
+
+          console.log(`[Lia 360] Processing comment by ${username}: "${commentText}"`);
+
+          // Scroll into view comfortably
+          commentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          await wait(1000);
+
+          // 2. Click "Reply" Button on the comment
+          const replyBtn = findElementByText('button, div[role="button"]', [/Reply/i, /Responder/i], commentItem);
+
+          if (replyBtn) {
+            await createHumanSimulator.simulateClick(replyBtn);
+            await wait(1500 + Math.random() * 1000);
+
+            // 3. Type Reply
+            // Finding the textarea. It usually appears near the comment or at bottom.
+            // When clicking reply on a comment, the main comment box often gets focused with "@username "
+            const commentBox = document.querySelector('textarea[aria-label*="Add a comment"], textarea[placeholder*="Add a comment"]');
+            if (commentBox) {
+              // Pick random variation
+              const replyText = config.replies[Math.floor(Math.random() * config.replies.length)];
+
+              // IG usually puts "@username " automatically. We append.
+              // We need to trigger input events for React to pick it up.
+
+              // Focus
+              commentBox.focus();
+              await wait(500);
+
+              // Type
+              // Simple implementation: execCommand (deprecated but works) or value setter + event dispatch
+              // Better: simulate typing
+              const existingVal = commentBox.value;
+              const newVal = existingVal + replyText;
+
+              // React value setter hack
+              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+              nativeInputValueSetter.call(commentBox, newVal);
+              commentBox.dispatchEvent(new Event('input', { bubbles: true }));
+
+              await wait(1000 + replyText.length * 50); // Typing delay mimic
+
+              // 4. Send (Post)
+              // Find the "Post" button. It usually activates after text.
+              const postBtn = findElementByText('div[role="button"], button', [/Post/i, /Publicar/i], commentBox.parentElement.parentElement.parentElement);
+              if (postBtn) {
+                // UNCOMMENT TO ACTUALLY POST
+                // await createHumanSimulator.simulateClick(postBtn);
+                console.log('[Lia 360] (Simulated) Sent reply:', replyText);
+                processedCount++;
+                actionTakenInThisPass = true;
+
+                // Update UI Count if possible
+                // ...
+              } else {
+                console.warn('[Lia 360] Could not find Post button');
+              }
+            }
+          }
+
+          // 5. Secondary Actions
+          if (config.filters.like) {
+            const likeBtn = commentItem.querySelector('svg[aria-label="Like"], svg[aria-label="Curtir"]'); // simplified selector logic needed
+            // Actually finding the button wrapper
+            // ... implementation skipped for brevity, similar to Reply
+          }
+
+          if (config.follow) {
+            // Hover username to trigger card, then click follow? Or find follow button next to name?
+            // Mobile/Dialog view often has Follow button next to name if not following
+          }
+
+          // Mark processed
+          processedComments.add(uniqueId);
+
+          // Wait Interval
+          const jitter = Math.random() * 4000; // 0-4s jitter
+          const waitTime = (intervalSec * 1000) + jitter;
+          console.log(`[Lia 360] Waiting ${Math.round(waitTime / 1000)}s before next...`);
+          await wait(waitTime);
         }
 
-        // 5. Secondary Actions
-        if (config.filters.like) {
-          const likeBtn = commentItem.querySelector('svg[aria-label="Like"], svg[aria-label="Curtir"]'); // simplified selector logic needed
-          // Actually finding the button wrapper
-          // ... implementation skipped for brevity, similar to Reply
+        // If we processed no one in this view, we MUST scroll
+        // Scroll logic
+        if (!shouldStop()) {
+          console.log('[Lia 360] Scrolling for more comments...');
+          await scrollToNextComments(scrollContainer);
+          // Check if end reached (logic exists in scrollToNextComments return or similar?)
+          // For now, we trust the scroll helper or check scroll height change
+          await wait(3000);
         }
-
-        if (config.follow) {
-          // Hover username to trigger card, then click follow? Or find follow button next to name?
-          // Mobile/Dialog view often has Follow button next to name if not following
-        }
-
-        // Mark processed
-        processedComments.add(uniqueId);
-
-        // Wait Interval
-        const jitter = Math.random() * 4000; // 0-4s jitter
-        const waitTime = (intervalSec * 1000) + jitter;
-        console.log(`[SOS 360] Waiting ${Math.round(waitTime / 1000)}s before next...`);
-        await wait(waitTime);
       }
-
-      // If we processed no one in this view, we MUST scroll
-      // Scroll logic
-      if (!shouldStop()) {
-        console.log('[SOS 360] Scrolling for more comments...');
-        await scrollToNextComments(scrollContainer);
-        // Check if end reached (logic exists in scrollToNextComments return or similar?)
-        // For now, we trust the scroll helper or check scroll height change
-        await wait(3000);
-      }
+    } catch (e) {
+      console.error('[Lia 360] Auto-Reply Error:', e);
+    } finally {
+      state.isAutoScrollingComments = false;
+      alert(`Auto-Reply Finished. Replied to ${processedCount} comments.`);
     }
-  } catch (e) {
-    console.error('[SOS 360] Auto-Reply Error:', e);
-  } finally {
-    state.isAutoScrollingComments = false;
-    alert(`Auto-Reply Finished. Replied to ${processedCount} comments.`);
   }
-}
+
+})();

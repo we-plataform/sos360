@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@sos360/shared';
+import type { ApiResponse } from '@lia360/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 

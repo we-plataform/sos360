@@ -27,7 +27,7 @@ export default function RegisterPage() {
       const data = await api.register(email, password, fullName, workspaceName);
       setUser(data.user);
       toast.success('Conta criada com sucesso!', {
-        description: `Bem-vindo ao SOS 360, ${data.user.fullName}!`,
+        description: `Bem-vindo à Lia 360, ${data.user.fullName}!`,
       });
       router.push('/dashboard');
     } catch (err) {

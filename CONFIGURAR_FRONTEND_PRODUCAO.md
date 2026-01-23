@@ -64,12 +64,12 @@ O frontend precisa das seguintes variáveis de ambiente:
 3. Vá em **Settings** → **Networking**
 4. Copie a **Public URL**:
    ```
-   https://sos360-api.onrender.com
+   https://lia360-api.onrender.com
    ```
    
    Ou se estiver usando Railway:
    ```
-   https://sos360-api-production.up.railway.app
+   https://lia360-api-production.up.railway.app
    ```
 
 ### 3. Configurar Variáveis na Vercel
@@ -87,11 +87,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://doewttvwknkhjzhzceub.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # API - URL da API em produção
-NEXT_PUBLIC_API_URL=https://sos360-api.onrender.com
-NEXT_PUBLIC_WS_URL=wss://sos360-api.onrender.com
+NEXT_PUBLIC_API_URL=https://lia360-api.onrender.com
+NEXT_PUBLIC_WS_URL=wss://lia360-api.onrender.com
 
 # Opcional (se necessário)
-API_URL=https://sos360-api.onrender.com
+API_URL=https://lia360-api.onrender.com
 ```
 
 #### Para Preview (Opcional - se quiser testar)
@@ -256,8 +256,8 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3001
 # Environment Variables na Vercel
 NEXT_PUBLIC_SUPABASE_URL=https://doewttvwknkhjzhzceub.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-NEXT_PUBLIC_API_URL=https://sos360-api.onrender.com
-NEXT_PUBLIC_WS_URL=wss://sos360-api.onrender.com
+NEXT_PUBLIC_API_URL=https://lia360-api.onrender.com
+NEXT_PUBLIC_WS_URL=wss://lia360-api.onrender.com
 ```
 
 **Diferenças:**

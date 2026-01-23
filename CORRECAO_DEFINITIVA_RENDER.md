@@ -51,7 +51,7 @@ postgresql://usuario:senha@hostname:5432/database
 
 **Exemplo Render PostgreSQL:**
 ```
-postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **⚠️ IMPORTANTE:**
@@ -66,7 +66,7 @@ postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos3
 **Já corrigido?** Verifique se inclui a URL do frontend:
 
 ```
-https://sos360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 ### 3. Verificar JWT_SECRET

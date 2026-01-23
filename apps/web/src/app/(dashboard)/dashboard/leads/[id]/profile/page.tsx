@@ -28,7 +28,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { formatNumber, formatRelativeTime } from '@/lib/utils';
-import { PLATFORM_COLORS } from '@sos360/shared';
+import { PLATFORM_COLORS } from '@lia360/shared';
 
 // Collapsible Section Component
 function CollapsibleSection({

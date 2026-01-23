@@ -75,15 +75,15 @@ export function Sidebar() {
             )}
         >
             <div className={cn("flex h-16 items-center border-b transition-all duration-300", isCollapsed ? "justify-center px-0" : "px-6")}>
-                <span className={cn("font-bold text-indigo-600 transition-all duration-300", isCollapsed ? "text-xl" : "text-xl")}>
-                    {isCollapsed ? 'S' : 'SOS 360'}
+                <span className={cn("font-bold text-primary transition-all duration-300", isCollapsed ? "text-xl" : "text-xl")}>
+                    {isCollapsed ? 'L' : 'Lia 360'}
                 </span>
             </div>
 
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-white text-gray-400 shadow-sm hover:text-indigo-600 z-10"
+                className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-white text-gray-400 shadow-sm hover:text-primary z-10"
                 onClick={toggleSidebar}
             >
                 {isCollapsed ? (
@@ -113,7 +113,7 @@ export function Sidebar() {
                                             className={cn(
                                                 'flex items-center justify-center rounded-lg p-2 transition-colors',
                                                 isActive
-                                                    ? 'bg-indigo-50 text-indigo-600'
+                                                    ? 'bg-primary/10 text-primary'
                                                     : 'text-gray-700 hover:bg-gray-100'
                                             )}
                                         >
@@ -135,7 +135,7 @@ export function Sidebar() {
                                 className={cn(
                                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                                     isActive
-                                        ? 'bg-indigo-50 text-indigo-600'
+                                        ? 'bg-primary/10 text-primary'
                                         : 'text-gray-700 hover:bg-gray-100'
                                 )}
                             >

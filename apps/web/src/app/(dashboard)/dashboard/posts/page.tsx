@@ -29,13 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import { api } from '@/lib/api';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -197,27 +191,25 @@ export default function PostsPage() {
             />
           </div>
 
-          <Select value={platform} onValueChange={(v: string) => { setPlatform(v); setPage(1); }}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Plataforma" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="instagram">Instagram</SelectItem>
-              <SelectItem value="linkedin">LinkedIn</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={platform}
+            onChange={(e) => { setPlatform(e.target.value); setPage(1); }}
+            className="flex h-10 w-[160px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="all">Todas</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+          </select>
 
-          <Select value={hasLead} onValueChange={(v: string) => { setHasLead(v); setPage(1); }}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Vinculado a Lead" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="linked">Vinculados</SelectItem>
-              <SelectItem value="unlinked">Sem vínculo</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={hasLead}
+            onChange={(e) => { setHasLead(e.target.value); setPage(1); }}
+            className="flex h-10 w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="all">Todos</option>
+            <option value="linked">Vinculados</option>
+            <option value="unlinked">Sem vínculo</option>
+          </select>
 
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <button

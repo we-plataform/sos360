@@ -27,7 +27,7 @@
 ## 📝 Formato Correto
 
 ```
-https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **Guia completo:** `CORRIGIR_CORS_PRODUCAO.md`

@@ -1,18 +1,18 @@
 {
-  "name": "@sos360/api",
+  "name": "@lia360/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database",
+    "prebuild": "npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database",
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@sos360/database": "*",
-    "@sos360/shared": "*",
+    "@lia360/database": "*",
+    "@lia360/shared": "*",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.1.1",
     "cors": "^2.8.5",

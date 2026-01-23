@@ -20,13 +20,13 @@ No Railway, configure o **Build Command** explicitamente:
    ```
 3. Em **Start Command**, mantenha:
    ```bash
-   npm run start --workspace=@sos360/api
+   npm run start --workspace=@lia360/api
    ```
 
 **OU** se o Railway não reconhecer o script do root:
 
 ```bash
-npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
 ```
 
 ### Opção 2: Usar arquivo railway.json (ALTERNATIVA)
@@ -48,13 +48,13 @@ No Railway:
 ### 2. Verificar Build Command
 
 O Build Command deve executar na ordem:
-1. `@sos360/shared` primeiro
-2. `@sos360/database` segundo (que executa `prisma generate` via `prebuild`)
-3. `@sos360/api` por último
+1. `@lia360/shared` primeiro
+2. `@lia360/database` segundo (que executa `prisma generate` via `prebuild`)
+3. `@lia360/api` por último
 
 ### 3. Verificar se Prisma está instalado
 
-O `prisma` está em `devDependencies` do `@sos360/database`. Certifique-se de que o Railway não está usando `--production` flag que exclui devDependencies.
+O `prisma` está em `devDependencies` do `@lia360/database`. Certifique-se de que o Railway não está usando `--production` flag que exclui devDependencies.
 
 ---
 
@@ -72,12 +72,12 @@ O `prisma` está em `devDependencies` do `@sos360/database`. Certifique-se de qu
   ```
   Ou:
   ```bash
-  npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+  npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
   ```
 
 - **Start Command**: 
   ```bash
-  npm run start --workspace=@sos360/api
+  npm run start --workspace=@lia360/api
   ```
 
 ### Settings > Variables
@@ -109,7 +109,7 @@ Se o Prisma Client foi gerado, o build está correto.
 
 ### Problema 1: Railway executa build em `apps/api`
 
-**Sintoma**: Build Command não encontra `@sos360/database`
+**Sintoma**: Build Command não encontra `@lia360/database`
 
 **Solução**: Configure Root Directory como `.` (raiz) no Railway
 
@@ -131,7 +131,7 @@ Se o Prisma Client foi gerado, o build está correto.
 
 - [ ] Root Directory no Railway está como `.` (raiz do projeto)
 - [ ] Build Command está configurado como `npm run build:api`
-- [ ] Start Command está como `npm run start --workspace=@sos360/api`
+- [ ] Start Command está como `npm run start --workspace=@lia360/api`
 - [ ] Variáveis de ambiente estão configuradas
 - [ ] Build local funciona (`npm run build:api`)
 - [ ] Prisma Client é gerado durante build local

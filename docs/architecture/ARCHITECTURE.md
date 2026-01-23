@@ -43,7 +43,7 @@ Este documento descreve a arquitetura técnica do sistema de prospecção outbou
 ### 2.2 Estrutura do Monorepo
 
 ```
-sos360/
+lia360/
 ├── apps/
 │   ├── web/                 # Next.js frontend
 │   ├── api/                 # Express backend

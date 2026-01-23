@@ -7,7 +7,7 @@
 ### Deployment Details
 
 **Platform**: Railway.app
-**Production URL**: https://sos360api-production.up.railway.app
+**Production URL**: https://lia360api-production.up.railway.app
 **Status**: ❌ Currently returning 502 errors (database connection issue)
 **Configuration**: `railway.json` found in project root
 
@@ -47,7 +47,7 @@ DIRECT_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-po
 ### 2. Steps to Update
 
 1. Go to https://railway.app/
-2. Select project: `sos360api-production`
+2. Select project: `lia360api-production`
 3. Click on your API service
 4. Go to **Variables** tab
 5. Update `DATABASE_URL` and `DIRECT_URL` with Neon connection string (above)
@@ -58,7 +58,7 @@ DIRECT_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-po
 
 ```bash
 # Test health endpoint
-curl https://sos360api-production.up.railway.app/health
+curl https://lia360api-production.up.railway.app/health
 
 # Expected response: {"status":"ok","timestamp":"..."}
 ```
@@ -75,7 +75,7 @@ curl https://sos360api-production.up.railway.app/health
    - Restart policy: ON_FAILURE (max 10 retries)
 
 2. **`render.yaml`** - Render deployment configuration (alternative)
-   - Service: `sos360-api`
+   - Service: `lia360-api`
    - Region: Oregon
    - Plan: Free
    - Note: Not actively used (Railway is primary)

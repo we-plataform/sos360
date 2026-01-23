@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { RATE_LIMITS } from '@sos360/shared';
+import { RATE_LIMITS } from '@lia360/shared';
 
 // Helper to get client IP (works with proxies)
 const getClientIp = (req: any): string => {

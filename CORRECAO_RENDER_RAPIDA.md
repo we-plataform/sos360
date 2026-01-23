@@ -32,7 +32,7 @@
 
 #### Start Command  
 - **Settings** → **Build & Deploy** → **Start Command**
-- **Opção 1 (preferido):** `npm run start --workspace=@sos360/api`
+- **Opção 1 (preferido):** `npm run start --workspace=@lia360/api`
 - **Opção 2 (alternativa):** `node apps/api/dist/index.js`
 
 ### 3. Fazer Novo Deploy
@@ -49,7 +49,7 @@
 - [ ] JWT_SECRET atualizado (64 caracteres)
 - [ ] Root Directory = vazio ou `.`
 - [ ] Build Command = `npm install && npm run build:api`
-- [ ] Start Command = `npm run start --workspace=@sos360/api`
+- [ ] Start Command = `npm run start --workspace=@lia360/api`
 - [ ] Novo deploy iniciado
 - [ ] Logs verificados
 

@@ -1,4 +1,4 @@
-# 🐳 Setup Completo Docker - SOS 360
+# 🐳 Setup Completo Docker - Lia 360
 
 ## ⚡ Passos Rápidos
 
@@ -11,8 +11,8 @@ O `.env` atual está configurado para Supabase. Atualize para Docker:
 
 cat > .env << 'EOF'
 # Database (PostgreSQL via Docker)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
-DIRECT_URL=postgresql://postgres:postgres@localhost:5432/sos360?schema=public
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/lia360?schema=public
 
 # Redis (via Docker)
 REDIS_URL=redis://localhost:6379
@@ -50,7 +50,7 @@ EOF
 docker-compose ps
 ```
 
-Deve mostrar `sos360-postgres` e `sos360-redis` como `Up (healthy)`
+Deve mostrar `lia360-postgres` e `lia360-redis` como `Up (healthy)`
 
 Se não estiver rodando:
 
@@ -119,7 +119,7 @@ A senha deve ter:
 
 ```bash
 # Verificar tabelas no banco
-docker exec sos360-postgres psql -U postgres -d sos360 -c "\dt"
+docker exec lia360-postgres psql -U postgres -d lia360 -c "\dt"
 
 # Deve listar todas as tabelas:
 # - workspaces

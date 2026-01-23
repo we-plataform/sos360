@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDatabaseHealth, testDatabaseConnection } from '@sos360/database';
+import { getDatabaseHealth, testDatabaseConnection } from '@lia360/database';
 
 export const healthRouter = Router();
 

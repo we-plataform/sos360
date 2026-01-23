@@ -8,7 +8,7 @@
 2. Selecione seu projeto
 3. Vá em **Settings** > **Service**
 4. Verifique se o **Repository** está correto:
-   - Deve ser: `we-plataform/sos360` ou `joaofarinelli/sos360`
+   - Deve ser: `we-plataform/lia360` ou `joaofarinelli/lia360`
    - Se estiver diferente, clique em **Disconnect** e reconecte
 
 ### 2. Verificar Branch Configurado
@@ -51,7 +51,7 @@ Se o repositório estiver incorreto:
 1. No Railway, vá em **Settings** > **Service**
 2. Clique em **Disconnect** (se já estiver conectado)
 3. Clique em **Connect GitHub Repo**
-4. Selecione o repositório `sos360`
+4. Selecione o repositório `lia360`
 5. Configure:
    - **Root Directory**: `apps/api`
    - **Branch**: `main`
@@ -61,7 +61,7 @@ Se o repositório estiver incorreto:
 
 O Railway usa webhooks do GitHub para detectar commits. Verifique:
 
-1. No GitHub, vá para o repositório `sos360`
+1. No GitHub, vá para o repositório `lia360`
 2. Vá em **Settings** > **Webhooks**
 3. Procure por webhooks do Railway
 4. Se não existir ou estiver com erro, reconecte o repositório no Railway
@@ -73,25 +73,25 @@ Certifique-se de que o Build Command está correto:
 1. No Railway, vá em **Settings** > **Build & Deploy**
 2. Verifique o **Build Command**:
    ```bash
-   npm run build --workspace=@sos360/shared && npm run build --workspace=@sos360/database && npm run build --workspace=@sos360/api
+   npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
    ```
    Ou deixe vazio para usar o `prebuild` do package.json
 
 3. Verifique o **Start Command**:
    ```bash
-   npm run start --workspace=@sos360/api
+   npm run start --workspace=@lia360/api
    ```
 
 ---
 
 ## 📋 Checklist de Verificação
 
-- [ ] Repositório conectado está correto (`we-plataform/sos360` ou `joaofarinelli/sos360`)
+- [ ] Repositório conectado está correto (`we-plataform/lia360` ou `joaofarinelli/lia360`)
 - [ ] Branch configurado é `main`
 - [ ] Auto Deploy está habilitado
 - [ ] Root Directory está como `apps/api`
 - [ ] Build Command está correto (ou vazio para usar prebuild)
-- [ ] Start Command está como `npm run start --workspace=@sos360/api`
+- [ ] Start Command está como `npm run start --workspace=@lia360/api`
 - [ ] Webhook do GitHub está funcionando
 - [ ] Último commit está no GitHub (`5aff404`)
 

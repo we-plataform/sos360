@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { NotFoundError } from '../lib/errors.js';
 import { validate } from '../middleware/validate.js';
@@ -7,7 +7,7 @@ import { validate } from '../middleware/validate.js';
 export const automationsRouter = Router();
 
 // Schemas
-import { upsertAutomationSchema } from '@sos360/shared';
+import { upsertAutomationSchema } from '@lia360/shared';
 
 // All routes require authentication
 automationsRouter.use(authenticate);

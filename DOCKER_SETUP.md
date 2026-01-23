@@ -1,4 +1,4 @@
-# 🐳 Setup Docker - SOS 360
+# 🐳 Setup Docker - Lia 360
 
 ## Por que usar Docker?
 
@@ -28,8 +28,8 @@ docker-compose ps
 **Deve mostrar:**
 ```
 NAME                STATUS
-sos360-postgres     Up (healthy)
-sos360-redis        Up (healthy)
+lia360-postgres     Up (healthy)
+lia360-redis        Up (healthy)
 ```
 
 ### 2. Configurar variáveis de ambiente
@@ -69,7 +69,7 @@ npm run web:dev
 
 ```bash
 # Conectar ao banco
-docker exec -it sos360-postgres psql -U postgres -d sos360
+docker exec -it lia360-postgres psql -U postgres -d lia360
 
 # Dentro do psql:
 \dt  # Listar tabelas
@@ -80,7 +80,7 @@ docker exec -it sos360-postgres psql -U postgres -d sos360
 
 ```bash
 # Conectar ao Redis
-docker exec -it sos360-redis redis-cli
+docker exec -it lia360-redis redis-cli
 
 # Dentro do redis-cli:
 PING  # Deve retornar PONG
@@ -130,16 +130,16 @@ docker-compose restart postgres
 
 ```bash
 # PostgreSQL shell
-docker exec -it sos360-postgres psql -U postgres -d sos360
+docker exec -it lia360-postgres psql -U postgres -d lia360
 
 # Redis CLI
-docker exec -it sos360-redis redis-cli
+docker exec -it lia360-redis redis-cli
 
 # Bash no container PostgreSQL
-docker exec -it sos360-postgres bash
+docker exec -it lia360-postgres bash
 
 # Bash no container Redis
-docker exec -it sos360-redis sh
+docker exec -it lia360-redis sh
 ```
 
 ## 🔄 Alternar entre Docker e Supabase
@@ -148,7 +148,7 @@ docker exec -it sos360-redis sh
 
 Use `.env` com:
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sos360
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lia360
 REDIS_URL=redis://localhost:6379
 ```
 
@@ -237,7 +237,7 @@ Acesse: http://localhost:5555
   - Port: `5432`
   - User: `postgres`
   - Password: `postgres`
-  - Database: `sos360`
+  - Database: `lia360`
 
 - **Redis:**
   - Host: `localhost`

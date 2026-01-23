@@ -1,8 +1,8 @@
-# Guia Completo de Row-Level Security (RLS) - SOS360
+# Guia Completo de Row-Level Security (RLS) - Lia360
 
 ## 📋 Resumo Executivo
 
-Este guia documenta a implementação completa de Row-Level Security (RLS) no PostgreSQL/Neon para a plataforma SOS360, garantindo isolamento de dados multi-tenant no nível do banco de dados.
+Este guia documenta a implementação completa de Row-Level Security (RLS) no PostgreSQL/Neon para a plataforma Lia360, garantindo isolamento de dados multi-tenant no nível do banco de dados.
 
 **Status:** ✅ Código SQL completo pronto para execução
 **Tabelas cobertas:** 40 tabelas
@@ -15,7 +15,7 @@ Este guia documenta a implementação completa de Row-Level Security (RLS) no Po
 
 ### O Problema
 
-Atualmente, o isolamento de dados multi-tenant da SOS360 depende **apenas** da camada de aplicação:
+Atualmente, o isolamento de dados multi-tenant da Lia360 depende **apenas** da camada de aplicação:
 
 ```typescript
 // ANTES: Segurança APENAS na aplicação
@@ -169,7 +169,7 @@ Todas seguem o padrão: **usuário acessa dados apenas do seu workspace**
 ### Passo 1: Executar o SQL no Neon
 
 1. Acesse o console do Neon: https://console.neon.tech
-2. Selecione seu projeto SOS360
+2. Selecione seu projeto Lia360
 3. Vá em **SQL Editor**
 4. Copie e cole o conteúdo do arquivo `rls_implementation.sql`
 5. Execute o script completo

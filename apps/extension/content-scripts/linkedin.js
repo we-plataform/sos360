@@ -1,9 +1,9 @@
-// LinkedIn content script - SOS 360
+// LinkedIn content script - Lia 360
 // Version 3 - Updated for current LinkedIn UI
 
 (function () {
   'use strict';
-  console.log('[SOS 360] Content Script Carregado - Versão CORREÇÃO V3.1 (POSICIONAL + NOVO ALGORITMO) - ' + new Date().toISOString());
+  console.log('[Lia 360] Content Script Carregado - Versão CORREÇÃO V3.1 (POSICIONAL + NOVO ALGORITMO) - ' + new Date().toISOString());
 
   const UI_ID = 'sos360-linkedin-overlay';
 
@@ -99,7 +99,7 @@
       timestamp: Date.now()
     };
     await chrome.storage.local.set({ 'sos_linkedin_state': data });
-    console.log('[SOS 360] Estado salvo para paginação. Total:', state.totalConnectionsFound);
+    console.log('[Lia 360] Estado salvo para paginação. Total:', state.totalConnectionsFound);
   }
 
   async function restoreState() {
@@ -114,12 +114,12 @@
           state.scannedHistoryCount = data.scannedHistoryCount || 0; // Restaura a contagem base
           state.totalConnectionsFound = state.scannedHistoryCount; // Inicializa visualmente
           state.selectedAudience = data.selectedAudience;
-          console.log(`[SOS 360] Estado restaurado: ${state.qualifiedLeads.size} leads qualificados. Total escaneado prev: ${state.scannedHistoryCount}`);
+          console.log(`[Lia 360] Estado restaurado: ${state.qualifiedLeads.size} leads qualificados. Total escaneado prev: ${state.scannedHistoryCount}`);
           return true;
         }
       }
     } catch (e) {
-      console.warn('[SOS 360] Erro restaurando estado:', e);
+      console.warn('[Lia 360] Erro restaurando estado:', e);
     }
     return false;
   }
@@ -128,6 +128,10 @@
     await chrome.storage.local.remove('sos_linkedin_state');
     state.isBulkScanning = false;
     state.scannedHistoryCount = 0;
+    state.totalConnectionsFound = 0;
+    state.qualifiedLeads.clear();
+    updateUI();
+    console.log('[Lia 360] Estado completamente limpo');
   }
 
   function goToNextPage() {
@@ -157,20 +161,20 @@
       }
 
       if (nextBtn) {
-        console.log(`[SOS 360] Botão Next encontrado com seletor: ${sel}`);
+        console.log(`[Lia 360] Botão Next encontrado com seletor: ${sel}`);
         break;
       }
     }
 
     if (nextBtn && !nextBtn.disabled) {
-      console.log('[SOS 360] Clicando em Próxima Página...', nextBtn);
+      console.log('[Lia 360] Clicando em Próxima Página...', nextBtn);
       saveState().then(() => {
         nextBtn.click();
       });
       return true;
     }
 
-    console.warn('[SOS 360] Botão Próxima Página NÃO encontrado ou desabilitado.');
+    console.warn('[Lia 360] Botão Próxima Página NÃO encontrado ou desabilitado.');
     return false;
   }
 
@@ -195,14 +199,14 @@
         const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
 
         if (isScrollable && el.scrollHeight > 500) { // Minimal height sanity check
-          console.log(`[SOS 360] Found scrollable via selector ${selector}: scrollHeight=${el.scrollHeight}`);
+          console.log(`[Lia 360] Found scrollable via selector ${selector}: scrollHeight=${el.scrollHeight}`);
           return el;
         }
       }
     }
 
     // Strategy 2: Find the element with the LARGEST scrollHeight in the entire document
-    console.log('[SOS 360] Selectors failed, searching for largest scrollable element...');
+    console.log('[Lia 360] Selectors failed, searching for largest scrollable element...');
 
     let bestCandidate = null;
     let maxScrollHeight = 0;
@@ -232,17 +236,17 @@
     }
 
     if (bestCandidate) {
-      console.log(`[SOS 360] Found largest scrollable element: ${bestCandidate.className.substring(0, 50)}... (Height: ${maxScrollHeight})`);
+      console.log(`[Lia 360] Found largest scrollable element: ${bestCandidate.className.substring(0, 50)}... (Height: ${maxScrollHeight})`);
       return bestCandidate;
     }
 
     // Fallback to window/document only if body itself is scrollable
     if (document.body.scrollHeight > window.innerHeight) {
-      console.log('[SOS 360] No specific container found, using window/document (Body is scrollable)');
+      console.log('[Lia 360] No specific container found, using window/document (Body is scrollable)');
       return document.documentElement;
     }
 
-    console.warn('[SOS 360] CRITICAL: Could not find ANY scrollable container. Defaulting to documentElement but scroll may fail.');
+    console.warn('[Lia 360] CRITICAL: Could not find ANY scrollable container. Defaulting to documentElement but scroll may fail.');
     return document.documentElement;
   }
 
@@ -250,7 +254,7 @@
   function findConnectionCards() {
     // Find ALL links to LinkedIn profiles on the page
     const profileLinks = document.querySelectorAll('a[href*="/in/"]');
-    console.log(`[SOS 360] Found ${profileLinks.length} profile links on page`);
+    console.log(`[Lia 360] Found ${profileLinks.length} profile links on page`);
 
     if (profileLinks.length === 0) {
       return [];
@@ -288,7 +292,7 @@
     }
 
     const cards = Array.from(cardMap.keys());
-    console.log(`[SOS 360] Found ${cards.length} unique card containers`);
+    console.log(`[Lia 360] Found ${cards.length} unique card containers`);
     return cards;
   }
 
@@ -323,7 +327,7 @@
     const username = parseLinkedInUrl(url);
     if (!username) return null;
 
-    console.log(`[SOS 360] Extracting robust profile data for ${username}...`);
+    console.log(`[Lia 360] Extracting robust profile data for ${username}...`);
 
     // Helper: Scroll to top of profile to ensure header is rendered
     window.scrollTo(0, 0);
@@ -470,7 +474,7 @@
       connectionCount = followersCount > 500 ? 500 : followersCount;
     }
 
-    console.log(`[SOS 360] Extraction Result: Conn=${connectionCount}, Foll=${followersCount}, Co=${company}`);
+    console.log(`[Lia 360] Extraction Result: Conn=${connectionCount}, Foll=${followersCount}, Co=${company}`);
 
     // --- 5. Metadata Construction ---
     // Industry
@@ -613,7 +617,7 @@
     const experiences = [];
     const items = sectionContainer.querySelectorAll('.artdeco-list__item, li.pvs-list__paged-list-item');
 
-    console.log(`[SOS 360] Found ${items.length} raw experience items`);
+    console.log(`[Lia 360] Found ${items.length} raw experience items`);
     const processedElements = new Set();
 
     for (const item of items) {
@@ -625,19 +629,19 @@
       // Better: assume items are in document order. If we process a parent, we should mark its children as processed.
 
       try {
-        console.log('[SOS 360] Processing item:', item.className);
+        console.log('[Lia 360] Processing item:', item.className);
         // Check if this is a grouped experience (multiple roles at same company)
         const subItems = item.querySelectorAll('.pvs-entity__sub-components li');
 
         if (subItems.length > 0) {
-          console.log(`[SOS 360] Item is GROUPED with ${subItems.length} sub-items`);
+          console.log(`[Lia 360] Item is GROUPED with ${subItems.length} sub-items`);
           // Mark subItems as processed so we don't handle them in the main loop again
           subItems.forEach(sub => processedElements.add(sub));
 
           // Grouped experience - company with multiple roles
           const companyEl = item.querySelector('.t-bold span[aria-hidden="true"]');
           const companyName = getTextContent(companyEl);
-          console.log('[SOS 360] Group Company:', companyName);
+          console.log('[Lia 360] Group Company:', companyName);
 
           const companyLogoEl = item.querySelector('img');
           const companyLogo = companyLogoEl?.src || null;
@@ -647,7 +651,7 @@
           for (const subItem of subItems) {
             // Debug selectors
             const debugTitle = subItem.querySelector('.t-bold span[aria-hidden="true"]');
-            console.log('[SOS 360] SubItem Title Debug:', debugTitle ? debugTitle.textContent : 'Not Found', subItem.innerHTML.substring(0, 100));
+            console.log('[Lia 360] SubItem Title Debug:', debugTitle ? debugTitle.textContent : 'Not Found', subItem.innerHTML.substring(0, 100));
 
             const roleTitleEl = subItem.querySelector('.t-bold span[aria-hidden="true"]') ||
               subItem.querySelector('.mr1 span[aria-hidden="true"]');
@@ -685,11 +689,11 @@
           }
         } else {
           // Single experience
-          console.log('[SOS 360] Item is SINGLE');
+          console.log('[Lia 360] Item is SINGLE');
           const titleEl = item.querySelector('.t-bold span[aria-hidden="true"]') ||
             item.querySelector('.mr1 span[aria-hidden="true"]');
 
-          console.log('[SOS 360] Single Title Debug:', titleEl ? titleEl.textContent : 'Not Found');
+          console.log('[Lia 360] Single Title Debug:', titleEl ? titleEl.textContent : 'Not Found');
 
           const roleTitle = getTextContent(titleEl) || 'Unknown Role';
           const companyLineEl = item.querySelectorAll('.t-14.t-normal span[aria-hidden="true"]')[0];
@@ -740,12 +744,12 @@
           });
         }
       } catch (e) {
-        console.warn('[SOS 360] Error extracting experience item:', e);
+        console.warn('[Lia 360] Error extracting experience item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${experiences.length} experiences`);
-    experiences.forEach(e => console.log(`[SOS 360] Final exp: ${e.roleTitle} at ${e.companyName}`));
+    console.log(`[Lia 360] Extracted ${experiences.length} experiences`);
+    experiences.forEach(e => console.log(`[Lia 360] Final exp: ${e.roleTitle} at ${e.companyName}`));
     return experiences;
   }
 
@@ -814,11 +818,11 @@
           description: null
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting education item:', e);
+        console.warn('[Lia 360] Error extracting education item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${educations.length} educations`);
+    console.log(`[Lia 360] Extracted ${educations.length} educations`);
     return educations;
   }
 
@@ -865,11 +869,11 @@
           category: null
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting skill item:', e);
+        console.warn('[Lia 360] Error extracting skill item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${skills.length} skills`);
+    console.log(`[Lia 360] Extracted ${skills.length} skills`);
     return skills;
   }
 
@@ -926,11 +930,11 @@
           credentialUrl
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting certification item:', e);
+        console.warn('[Lia 360] Error extracting certification item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${certifications.length} certifications`);
+    console.log(`[Lia 360] Extracted ${certifications.length} certifications`);
     return certifications;
   }
 
@@ -962,11 +966,11 @@
           proficiency
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting language item:', e);
+        console.warn('[Lia 360] Error extracting language item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${languages.length} languages`);
+    console.log(`[Lia 360] Extracted ${languages.length} languages`);
     return languages;
   }
 
@@ -1015,11 +1019,11 @@
           text
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting recommendation item:', e);
+        console.warn('[Lia 360] Error extracting recommendation item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${recommendations.length} recommendations`);
+    console.log(`[Lia 360] Extracted ${recommendations.length} recommendations`);
     return recommendations;
   }
 
@@ -1030,7 +1034,7 @@
     // Find and click the contact info link
     const contactLink = document.querySelector('a[href*="/overlay/contact-info/"], a[id*="contact-info"]');
     if (!contactLink) {
-      console.log('[SOS 360] Contact info link not found');
+      console.log('[Lia 360] Contact info link not found');
       return null;
     }
 
@@ -1039,7 +1043,7 @@
 
     const modal = document.querySelector('.artdeco-modal, [role="dialog"]');
     if (!modal) {
-      console.log('[SOS 360] Contact info modal did not open');
+      console.log('[Lia 360] Contact info modal did not open');
       return null;
     }
 
@@ -1083,7 +1087,7 @@
         }
       }
     } catch (e) {
-      console.warn('[SOS 360] Error extracting contact info:', e);
+      console.warn('[Lia 360] Error extracting contact info:', e);
     }
 
     // Close modal
@@ -1091,7 +1095,7 @@
     if (closeBtn) closeBtn.click();
     await sleep(500);
 
-    console.log('[SOS 360] Extracted contact info');
+    console.log('[Lia 360] Extracted contact info');
     return contactInfo;
   }
 
@@ -1141,11 +1145,11 @@
           description
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting featured item:', e);
+        console.warn('[Lia 360] Error extracting featured item:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${featured.length} featured items`);
+    console.log(`[Lia 360] Extracted ${featured.length} featured items`);
     return featured;
   }
 
@@ -1225,11 +1229,11 @@
           postType: 'post'
         });
       } catch (e) {
-        console.warn('[SOS 360] Error extracting post:', e);
+        console.warn('[Lia 360] Error extracting post:', e);
       }
     }
 
-    console.log(`[SOS 360] Extracted ${posts.length} posts`);
+    console.log(`[Lia 360] Extracted ${posts.length} posts`);
     return posts;
   }
 
@@ -1237,7 +1241,7 @@
    * Main enrichment orchestrator - limits to 4 sections per visit
    */
   async function performFullEnrichment() {
-    console.log('[SOS 360] Starting full profile enrichment...');
+    console.log('[Lia 360] Starting full profile enrichment...');
 
     const sections = [
       { name: 'experiences', fn: extractExperienceSection, priority: 1 },
@@ -1275,30 +1279,30 @@
 
     for (const section of sections) {
       if (extractedCount >= MAX_SECTIONS) {
-        console.log(`[SOS 360] Reached max sections limit (${MAX_SECTIONS}), stopping extraction`);
+        console.log(`[Lia 360] Reached max sections limit (${MAX_SECTIONS}), stopping extraction`);
         break;
       }
 
       try {
-        console.log(`[SOS 360] Extracting ${section.name}...`);
+        console.log(`[Lia 360] Extracting ${section.name}...`);
         const data = await section.fn();
 
         // Only count as extracted if we got data
         if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
           results[section.name] = data;
           extractedCount++;
-          console.log(`[SOS 360] ${section.name} extracted successfully`);
+          console.log(`[Lia 360] ${section.name} extracted successfully`);
         }
 
         // Random delay between sections to avoid detection
         await sleep(1000 + Math.random() * 800);
       } catch (e) {
-        console.warn(`[SOS 360] Failed to extract ${section.name}:`, e);
+        console.warn(`[Lia 360] Failed to extract ${section.name}:`, e);
         // Don't count failed extraction against limit
       }
     }
 
-    console.log(`[SOS 360] Enrichment complete. Extracted ${extractedCount} sections.`);
+    console.log(`[Lia 360] Enrichment complete. Extracted ${extractedCount} sections.`);
 
     // Extract jobTitle from first experience if available
     if (results.experiences && results.experiences.length > 0) {
@@ -1312,7 +1316,7 @@
     const basicProfile = extractCurrentProfile();
     if (!basicProfile) return null;
 
-    console.log('[SOS 360] Performing Deep Scan for:', basicProfile.username);
+    console.log('[Lia 360] Performing Deep Scan for:', basicProfile.username);
 
     // Fetch detailed activity
     let detailedPosts = [];
@@ -1320,10 +1324,10 @@
       const doc = await fetchActivityPage(basicProfile.username);
       if (doc) {
         detailedPosts = parseRecentActivity(doc);
-        console.log(`[SOS 360] Fetched ${detailedPosts.length} detailed posts`);
+        console.log(`[Lia 360] Fetched ${detailedPosts.length} detailed posts`);
       }
     } catch (e) {
-      console.warn('[SOS 360] Deep scan activity fetch failed:', e);
+      console.warn('[Lia 360] Deep scan activity fetch failed:', e);
     }
 
     // Merge posts (prefer detailed ones, fallback to basic ones found on profile)
@@ -1391,9 +1395,6 @@
           </div>
         </div>
         <div class="sos-actions" style="display:${displayStyle}">
-          <button id="sos-bulk-scan-btn" class="sos-btn" style="background: #8b5cf6; color: white; margin-bottom: 8px;">
-            <span>📚</span> Minerar Múltiplas Páginas
-          </button>
           <button id="sos-scroll-btn" class="sos-btn sos-btn-primary">
             <span>&raquo;</span> Iniciar Auto-Scroll
           </button>
@@ -1495,12 +1496,13 @@
       #${UI_ID} .stat-item { display: flex; flex-direction: column; align-items: center; }
       #${UI_ID} .stat-item .label { font-size: 10px; color: #9ca3af; }
       #${UI_ID} .stat-item .value { font-size: 16px; font-weight: bold; color: #fff; }
+      #${UI_ID} .sos-actions { display: flex; flex-direction: column; gap: 8px; }
       #${UI_ID} .sos-btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
       #${UI_ID} .sos-btn:hover:not(:disabled) { opacity: 0.9; }
       #${UI_ID} .sos-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-      #${UI_ID} .sos-btn-primary { background: #ec4899; color: white; margin-bottom: 8px; }
+      #${UI_ID} .sos-btn-primary { background: #ec4899; color: white; }
       #${UI_ID} .sos-btn-action { background: #3b82f6; color: white; }
-      #${UI_ID} .sos-btn-stop { background: #ef4444; color: white; margin-bottom: 8px; }
+      #${UI_ID} .sos-btn-stop { background: #ef4444; color: white; }
       
       /* Dialog Styles */
       #${UI_ID} .sos-dialog {
@@ -1601,13 +1603,7 @@
       document.getElementById('sos-keywords').value = state.keywords.join(', ');
     }
 
-    document.getElementById('sos-scroll-btn').addEventListener('click', () => {
-      if (state.isAutoScrolling) stopAutoScroll(true); // Usuário clicou em parar
-      else startAutoScroll();
-    });
-
-    // Novo Botão de Bulk Scan
-    document.getElementById('sos-bulk-scan-btn').addEventListener('click', async () => {
+    document.getElementById('sos-scroll-btn').addEventListener('click', async () => {
       if (state.isAutoScrolling) {
         stopAutoScroll(true); // Usuário clicou em parar
         return;
@@ -1668,7 +1664,7 @@
         listEl.innerHTML = '<div class="sos-loading">Erro ao carregar</div>';
       }
     } catch (e) {
-      console.error('[SOS 360] Error loading audiences:', e);
+      console.error('[Lia 360] Error loading audiences:', e);
       listEl.innerHTML = '<div class="sos-loading">Erro ao carregar</div>';
     }
   }
@@ -1717,7 +1713,7 @@
     // Re-scan connections with new audience criteria
     scanConnections();
 
-    console.log('[SOS 360] Selected audience:', state.selectedAudience);
+    console.log('[Lia 360] Selected audience:', state.selectedAudience);
   }
 
   function clearSelectedAudience() {
@@ -1728,7 +1724,7 @@
 
     renderAudienceList();
     scanConnections();
-    console.log('[SOS 360] Cleared audience selection');
+    console.log('[Lia 360] Cleared audience selection');
   }
 
   // --- Pipeline Selection & Import Functions ---
@@ -1739,7 +1735,7 @@
       return;
     }
 
-    console.log('[SOS 360] Iniciando importação de', leads.length, 'leads');
+    console.log('[Lia 360] Iniciando importação de', leads.length, 'leads');
     openPipelineDialog();
   }
 
@@ -1795,10 +1791,10 @@
         }
       } else {
         pipelineSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-        console.error('[SOS 360] Erro ao carregar pipelines:', response?.error);
+        console.error('[Lia 360] Erro ao carregar pipelines:', response?.error);
       }
     } catch (e) {
-      console.error('[SOS 360] Erro ao carregar pipelines:', e);
+      console.error('[Lia 360] Erro ao carregar pipelines:', e);
       pipelineSelect.innerHTML = '<option value="">Erro ao carregar</option>';
     }
   }
@@ -1870,7 +1866,7 @@
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Importando...';
 
-    console.log('[SOS 360] Importando', leads.length, 'leads para pipeline', pipelineId, 'stage', stageId);
+    console.log('[Lia 360] Importando', leads.length, 'leads para pipeline', pipelineId, 'stage', stageId);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -1891,19 +1887,21 @@
         // Mostrar sucesso
         showImportSuccess(imported);
 
-        // Limpar estado
+        // Limpar apenas os leads qualificados, mantém o total escaneado
         state.qualifiedLeads.clear();
-        state.totalConnectionsFound = state.scannedHistoryCount;
+        // Atualiza o histórico para refletir o progresso atual
+        state.scannedHistoryCount = state.totalConnectionsFound;
+        await saveState(); // Salva o estado atualizado
         updateUI();
 
         // Fechar dialog
         closePipelineDialog();
       } else {
-        console.error('[SOS 360] Erro na importação:', response?.error);
+        console.error('[Lia 360] Erro na importação:', response?.error);
         alert('Falha na importação: ' + (response?.error || 'Erro desconhecido'));
       }
     } catch (e) {
-      console.error('[SOS 360] Erro na importação:', e);
+      console.error('[Lia 360] Erro na importação:', e);
       alert('Erro: ' + e.message);
     } finally {
       confirmBtn.disabled = false;
@@ -1987,7 +1985,7 @@
 
     if (!firstName) return null;
 
-    // console.log('[SOS 360] Inferindo gênero para:', firstName, `(${fullName})`);
+    // console.log('[Lia 360] Inferindo gênero para:', firstName, `(${fullName})`);
 
     // 1. Verificar lista de nomes conhecidos
     if (maleNames.has(firstName)) return 'male';
@@ -2059,14 +2057,14 @@
         // Se ignoreGenderIfUnknown === true (ou não definido), ignora o critério
         // Se ignoreGenderIfUnknown === false, falha
         if (audience.ignoreGenderIfUnknown === false) {
-          console.log('[SOS 360] Lead rejeitado - gênero indeterminado:', lead.fullName);
+          console.log('[Lia 360] Lead rejeitado - gênero indeterminado:', lead.fullName);
           return false;
         }
         // Se true ou undefined, simplesmente passa (ignora o critério de gênero)
       } else {
         // Gênero foi determinado - verificar se está na lista permitida
         if (!audience.gender.includes(inferredGender)) {
-          console.log('[SOS 360] Lead rejeitado - gênero não match:', lead.fullName, { inferred: inferredGender, allowed: audience.gender });
+          console.log('[Lia 360] Lead rejeitado - gênero não match:', lead.fullName, { inferred: inferredGender, allowed: audience.gender });
           return false;
         }
       }
@@ -2081,7 +2079,7 @@
         // Se ignoreCountryIfUnknown === true (ou não definido), ignora o critério
         // Se ignoreCountryIfUnknown === false, falha
         if (audience.ignoreCountryIfUnknown === false) {
-          console.log('[SOS 360] Lead rejeitado - sem localização:', lead.fullName);
+          console.log('[Lia 360] Lead rejeitado - sem localização:', lead.fullName);
           return false;
         }
         // Se true ou undefined, simplesmente passa (ignora o critério de país)
@@ -2094,7 +2092,7 @@
           return countryNames.some(name => leadLocation.includes(name.toLowerCase()));
         });
         if (!matchesCountry) {
-          console.log('[SOS 360] Lead rejeitado - país não match:', lead.fullName, { location: leadLocation, countries: audience.countries });
+          console.log('[Lia 360] Lead rejeitado - país não match:', lead.fullName, { location: leadLocation, countries: audience.countries });
           return false;
         }
       }
@@ -2111,7 +2109,7 @@
       );
 
       if (!hasMatch) {
-        console.log('[SOS 360] Lead rejeitado - jobTitle não match:', lead.fullName, { keywords: audience.jobTitleInclude, text: text.substring(0, 100) });
+        console.log('[Lia 360] Lead rejeitado - jobTitle não match:', lead.fullName, { keywords: audience.jobTitleInclude, text: text.substring(0, 100) });
         return false;
       }
     }
@@ -2144,14 +2142,14 @@
 
     // Verificar excludeNoPhoto
     if (audience.excludeNoPhoto && !lead.avatarUrl) {
-      console.log('[SOS 360] Lead rejeitado - sem foto:', lead.fullName);
+      console.log('[Lia 360] Lead rejeitado - sem foto:', lead.fullName);
       return false;
     }
 
     // Verificar verifiedFilter (para LinkedIn, verificados são mais raros)
     // Se tivermos essa info no lead futuro, validar aqui
 
-    console.log('[SOS 360] Lead APROVADO:', lead.fullName, { bio: lead.bio?.substring(0, 50), location: lead.location });
+    console.log('[Lia 360] Lead APROVADO:', lead.fullName, { bio: lead.bio?.substring(0, 50), location: lead.location });
     // Passou em todos os critérios
     return true;
   }
@@ -2203,18 +2201,18 @@
     const isConnectionsPage = window.location.pathname.includes('/connections');
     const isSearchPage = window.location.pathname.includes('/search/results');
 
-    console.log(`[SOS 360] Detectando contexto: Conexões=${isConnectionsPage}, Busca=${isSearchPage}`);
+    console.log(`[Lia 360] Detectando contexto: Conexões=${isConnectionsPage}, Busca=${isSearchPage}`);
 
     let profileElements = [];
 
     if (isConnectionsPage) {
       // PÁGINA DE CONEXÕES: Usar seletor específico
       profileElements = Array.from(document.querySelectorAll('[data-view-name="connections-profile"]'));
-      console.log(`[SOS 360] Página de Conexões - Encontrados ${profileElements.length} perfis via connections-profile`);
+      console.log(`[Lia 360] Página de Conexões - Encontrados ${profileElements.length} perfis via connections-profile`);
     } else {
       // PÁGINA DE BUSCA: Usar seletor de busca
       profileElements = Array.from(document.querySelectorAll('[data-view-name="search-result-lockup-title"]'));
-      console.log(`[SOS 360] Página de Busca - Encontrados ${profileElements.length} perfis via search-result-lockup-title`);
+      console.log(`[Lia 360] Página de Busca - Encontrados ${profileElements.length} perfis via search-result-lockup-title`);
     }
 
     // Fallback: Se nenhum seletor específico funcionar, tentar links genéricos de perfil
@@ -2224,14 +2222,14 @@
       profileElements = allProfileLinks.filter(link => {
         return !link.closest('header') && !link.closest('nav') && !link.closest('.global-nav');
       });
-      console.log(`[SOS 360] Fallback genérico - Encontrados ${profileElements.length} links de perfil`);
+      console.log(`[Lia 360] Fallback genérico - Encontrados ${profileElements.length} links de perfil`);
     }
 
     // Atualiza total = histórico de outras páginas + leads encontrados nesta página
     state.totalConnectionsFound = state.scannedHistoryCount + profileElements.length;
 
-    console.log(`[SOS 360] Scan iniciado. Perfis nesta pág: ${profileElements.length}. Total Global: ${state.totalConnectionsFound}`);
-    console.log('[SOS 360] Estado:', {
+    console.log(`[Lia 360] Scan iniciado. Perfis nesta pág: ${profileElements.length}. Total Global: ${state.totalConnectionsFound}`);
+    console.log('[Lia 360] Estado:', {
       audience: state.selectedAudience?.name,
       keywords: state.keywords,
       bulk: state.isBulkScanning
@@ -2406,7 +2404,7 @@
           avatarUrl,
         };
 
-        console.log(`[SOS 360] Lead Candidato: ${fullName} | Bio: ${bio} | Location: ${location}`);
+        console.log(`[Lia 360] Lead Candidato: ${fullName} | Bio: ${bio} | Location: ${location}`);
 
         // Qualification Logic
         let isQualified = false;
@@ -2446,13 +2444,13 @@
           }
         } else {
           // Unqualified - Optional Feedback
-          console.log(`[SOS 360] Rejeitado: ${fullName} (${reasons.join(', ')})`);
+          console.log(`[Lia 360] Rejeitado: ${fullName} (${reasons.join(', ')})`);
         }
 
         card.dataset.sosProcessed = 'true';
 
       } catch (e) {
-        console.error('[SOS 360] Erro ao processar card:', e);
+        console.error('[Lia 360] Erro ao processar card:', e);
       }
     });
 
@@ -2464,20 +2462,157 @@
     state.isAutoScrolling = true;
     updateUI();
 
-    console.log('[SOS 360] Auto-scroll started (Fluid Mode)');
+    console.log('[Lia 360] Auto-scroll started (Fluid Mode with MutationObserver)');
 
-    let noChangeCount = 0;
     const scrollContainer = findScrollableContainer();
     const isWindow = scrollContainer === document.documentElement;
 
-    console.log(`[SOS 360] Using scroll container: ${scrollContainer.tagName}`);
+    console.log(`[Lia 360] Using scroll container: ${scrollContainer.tagName}`);
     updateDebug(`Container: ${scrollContainer.tagName}`);
 
     // Configurable parameters for fluid scrolling
     const SCROLL_STEP = window.innerHeight * 0.8; // Scroll 80% of viewport height
     const MIN_WAIT_MS = 1500;
     const MAX_WAIT_MS = 2500;
-    const MAX_NO_CHANGE_ATTEMPTS = 5;
+
+    // MutationObserver configuration
+    const observerState = {
+      lastMutationTime: null,
+      lastContentCheckTime: Date.now(),
+      hasRecentActivity: false,
+      mutationCount: 0,
+      isObserving: true,
+      baseTimeout: 2000,
+      extendedTimeout: 4000,
+      recentActivityWindow: 10000 // 10 seconds
+    };
+
+    let mutationObserver = null;
+    let stableCheckTimeout = null;
+
+    // Setup MutationObserver to detect DOM changes
+    const setupMutationObserver = () => {
+      const targetNode = scrollContainer.querySelector('.scaffold-layout__main')
+        || scrollContainer.querySelector('.scaffold-finite-scroll__content')
+        || scrollContainer.querySelector('main')
+        || scrollContainer;
+
+      if (!targetNode) {
+        console.warn('[Lia 360] Could not find target node for MutationObserver');
+        return null;
+      }
+
+      const observer = new MutationObserver((mutations) => {
+        if (!observerState.isObserving) return;
+
+        const now = Date.now();
+        let significantChange = false;
+
+        // Check if mutations added new list items (profiles)
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === Node.ELEMENT_NODE &&
+                  (node.tagName === 'LI' || node.querySelector('li'))) {
+                significantChange = true;
+                break;
+              }
+            }
+          }
+          if (significantChange) break;
+        }
+
+        if (significantChange) {
+          observerState.lastMutationTime = now;
+          observerState.mutationCount++;
+          observerState.hasRecentActivity = true;
+          console.log(`[Lia 360] DOM mutation detected (#${observerState.mutationCount})`);
+
+          // Clear existing timeout and reset
+          if (stableCheckTimeout) {
+            clearTimeout(stableCheckTimeout);
+            stableCheckTimeout = null;
+          }
+        }
+      });
+
+      observer.observe(targetNode, {
+        childList: true,
+        subtree: true
+      });
+
+      console.log('[Lia 360] MutationObserver activated');
+      return observer;
+    };
+
+    // Check if DOM is stable (no mutations for a while)
+    const isDOMStable = () => {
+      const now = Date.now();
+
+      if (!observerState.lastMutationTime) {
+        // No mutations yet, check how long we've been waiting
+        return now - observerState.lastContentCheckTime > observerState.baseTimeout;
+      }
+
+      const timeSinceLastMutation = now - observerState.lastMutationTime;
+
+      // Determine if there was recent activity (within last 10 seconds)
+      observerState.hasRecentActivity = timeSinceLastMutation < observerState.recentActivityWindow;
+
+      // Use extended timeout if there was recent activity, otherwise use base timeout
+      const currentTimeout = observerState.hasRecentActivity
+        ? observerState.extendedTimeout
+        : observerState.baseTimeout;
+
+      const isStable = timeSinceLastMutation > currentTimeout;
+
+      if (isStable) {
+        console.log(`[Lia 360] DOM stable for ${timeSinceLastMutation}ms (threshold: ${currentTimeout}ms)`);
+      }
+
+      return isStable;
+    };
+
+    // Intelligent wiggle: only if there was recent activity
+    const performIntelligentWiggle = async () => {
+      if (!observerState.hasRecentActivity) {
+        console.log('[Lia 360] Skipping wiggle - no recent activity detected');
+        return false;
+      }
+
+      console.log('[Lia 360] Performing intelligent wiggle to trigger lazy load...');
+
+      // Reset mutation tracking before wiggle
+      const mutationsBefore = observerState.mutationCount;
+
+      if (isWindow) {
+        window.scrollBy({ top: -200, behavior: 'smooth' });
+      } else {
+        scrollContainer.scrollBy({ top: -200, behavior: 'smooth' });
+      }
+      await sleep(1000);
+
+      if (isWindow) {
+        window.scrollBy({ top: 200, behavior: 'smooth' });
+      } else {
+        scrollContainer.scrollBy({ top: 200, behavior: 'smooth' });
+      }
+      await sleep(2000); // Wait longer to see if wiggle triggered loading
+
+      const mutationsAfter = observerState.mutationCount;
+      const triggeredContent = mutationsAfter > mutationsBefore;
+
+      if (triggeredContent) {
+        console.log('[Lia 360] Wiggle triggered new content!');
+      } else {
+        console.log('[Lia 360] Wiggle did not trigger new content');
+      }
+
+      return triggeredContent;
+    };
+
+    // Start observing
+    mutationObserver = setupMutationObserver();
 
     // SHOW PROGRESS ON START
     const progressContainer = document.getElementById('sos-progress-container');
@@ -2500,7 +2635,7 @@
         nextScrollTop = maxScroll;
       }
 
-      console.log(`[SOS 360] Scrolling from ${Math.round(currentScrollTop)} to ${Math.round(nextScrollTop)} (Max: ${maxScroll})`);
+      console.log(`[Lia 360] Scrolling from ${Math.round(currentScrollTop)} to ${Math.round(nextScrollTop)} (Max: ${maxScroll})`);
 
       // Perform smooth scroll
       if (isWindow) {
@@ -2520,7 +2655,7 @@
       // Check for "Show more results" button
       const showMoreBtn = document.querySelector('button.scaffold-finite-scroll__load-button');
       if (showMoreBtn && showMoreBtn.offsetParent !== null) { // Check if visible
-        console.log('[SOS 360] Found "Show more" button, clicking...');
+        console.log('[Lia 360] Found "Show more" button, clicking...');
         showMoreBtn.click();
         await sleep(2000); // Wait extra for button load
       }
@@ -2542,54 +2677,77 @@
       // We check if we found new leads OR if the page height increased (content loaded)
       const contentLoaded = newMaxScroll > maxScroll;
       const leadsFound = newCount > prevCount;
-      const moved = Math.abs(newScrollTop - currentScrollTop) > 10;
 
       // If we are at the bottom and nothing new loaded
       const isAtBottom = newScrollTop + clientHeight >= newMaxScroll - 10;
 
-      if (!leadsFound && !contentLoaded && isAtBottom) {
-        noChangeCount++;
-        console.log(`[SOS 360] No new content (${noChangeCount}/${MAX_NO_CHANGE_ATTEMPTS})`);
+      // Update observer state
+      if (leadsFound || contentLoaded) {
+        observerState.lastContentCheckTime = Date.now();
+        console.log('[Lia 360] New content detected via scan');
+      }
 
-        // Try a small wiggle to trigger lazy load if stuck at bottom
-        if (noChangeCount < MAX_NO_CHANGE_ATTEMPTS) {
-          if (isWindow) window.scrollBy({ top: -200, behavior: 'smooth' });
-          else scrollContainer.scrollBy({ top: -200, behavior: 'smooth' });
-          await sleep(1000);
-          if (isWindow) window.scrollBy({ top: 200, behavior: 'smooth' });
-          else scrollContainer.scrollBy({ top: 200, behavior: 'smooth' });
-          await sleep(1000);
-        }
+      if (isAtBottom) {
+        console.log('[Lia 360] Reached bottom, checking DOM stability...');
 
-        if (noChangeCount >= MAX_NO_CHANGE_ATTEMPTS) {
-          console.log('[SOS 360] Stop: No more content loading.');
-          stopAutoScroll();
-        }
-      } else {
-        // Reset counter if we found leads, loaded content, or successfully scrolled
-        if (leadsFound || contentLoaded) {
-          noChangeCount = 0;
-        } else if (!moved && !isAtBottom) {
-          // We tried to scroll but didn't move, and we aren't at the bottom? 
-          // Maybe stuck or strict throttle. Count it properly.
-          // But if we just scrolled and waiting for load, we might be fine.
-          // Let's assume valid scroll unless we are stuck.
+        // Check if DOM is stable
+        if (isDOMStable()) {
+          console.log('[Lia 360] DOM appears stable at bottom');
+
+          // Try intelligent wiggle if there was recent activity
+          const triggeredContent = await performIntelligentWiggle();
+
+          if (!triggeredContent) {
+            // Wait a bit more after wiggle to be absolutely sure
+            await sleep(observerState.baseTimeout);
+
+            // Final check: is DOM still stable?
+            if (isDOMStable() && !leadsFound && !contentLoaded) {
+              console.log('[Lia 360] Stop: Page fully loaded, no more content.');
+
+              // Cleanup observer
+              if (mutationObserver) {
+                mutationObserver.disconnect();
+                observerState.isObserving = false;
+              }
+              if (stableCheckTimeout) {
+                clearTimeout(stableCheckTimeout);
+              }
+
+              stopAutoScroll();
+            } else {
+              console.log('[Lia 360] Content appeared after wiggle, continuing...');
+            }
+          }
+        } else {
+          console.log('[Lia 360] DOM still changing, waiting for stability...');
         }
       }
+    }
+
+    // Cleanup observer when loop ends (for any reason)
+    console.log('[Lia 360] Auto-scroll loop ended, cleaning up observer');
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      observerState.isObserving = false;
+    }
+    if (stableCheckTimeout) {
+      clearTimeout(stableCheckTimeout);
     }
   }
 
   // --- Action Handlers ---
-  function stopAutoScroll(userInitiated = false) {
+  async function stopAutoScroll(userInitiated = false) {
     state.isAutoScrolling = false;
     updateUI();
     scanConnections(); // Último scan para garantir
 
-    // Se o usuário clicou em Parar, cancela tudo
+    // Se o usuário clicou em Parar, pausa a mineração mas mantém o estado acumulado
     if (userInitiated) {
-      console.log('[SOS 360] Mineração cancelada pelo usuário.');
-      clearState();
-      updateDeepImportProgress(100, 100, `Mineração cancelada. ${state.qualifiedLeads.size} leads qualificados.`);
+      console.log('[Lia 360] Mineração pausada pelo usuário.');
+      state.isBulkScanning = false; // Desativa a paginação automática
+      await saveState(); // Salva o progresso atual para preservar os dados
+      updateDeepImportProgress(100, 100, `Mineração pausada. ${state.totalConnectionsFound} escaneados, ${state.qualifiedLeads.size} qualificados.`);
       setTimeout(() => {
         const container = document.getElementById('sos-progress-container');
         if (container) container.style.display = 'none';
@@ -2603,8 +2761,8 @@
       const changedPage = goToNextPage();
       if (!changedPage) {
         alert('Mineração em Massa Concluída!\nImporte seus leads agora.');
-        clearState(); // Limpa flag para não continuar
         state.isBulkScanning = false;
+        await saveState(); // Salva o estado final
       }
       return;
     }
@@ -2631,13 +2789,13 @@
         const cards = findConnectionCards();
         if (cards.length > 0) {
           clearInterval(poller);
-          console.log(`[SOS 360] Found ${cards.length} connection cards, creating overlay`);
+          console.log(`[Lia 360] Found ${cards.length} connection cards, creating overlay`);
           createOverlay();
           scanConnections();
 
           // Se restaurou estado e estava minerando, retoma automaticamente
           if (restored && state.isBulkScanning) {
-            console.log('[SOS 360] Retomando mineração em massa...');
+            console.log('[Lia 360] Retomando mineração em massa...');
             setTimeout(startAutoScroll, 2000); // Delay para carregar DOM
           }
         }
@@ -2665,7 +2823,7 @@
 
   async function performAutomation(request) {
     const { automationType, config, lead } = request;
-    console.log(`[SOS 360] Performing Automation: ${automationType}`, config);
+    console.log(`[Lia 360] Performing Automation: ${automationType}`, config);
 
     try {
       if (automationType === 'connection_request') {
@@ -2677,7 +2835,7 @@
       }
       return { success: true };
     } catch (e) {
-      console.error('[SOS 360] Automation Error:', e);
+      console.error('[Lia 360] Automation Error:', e);
       return { success: false, error: e.message };
     }
   }
@@ -2714,9 +2872,9 @@
 
     if (sendBtn) {
       sendBtn.click();
-      console.log('[SOS 360] Connection request sent (without note).');
+      console.log('[Lia 360] Connection request sent (without note).');
     } else {
-      console.log('[SOS 360] "Send now" button not found. Modal might be different.');
+      console.log('[Lia 360] "Send now" button not found. Modal might be different.');
     }
   }
 
@@ -2749,7 +2907,7 @@
     const sendBtn = document.querySelector('.msg-form__send-button');
     if (sendBtn && !sendBtn.disabled) {
       // sendBtn.click(); // UNCOMMENT TO ACTUALLY SEND
-      console.log('[SOS 360 - Simulation] Would have sent message:', message);
+      console.log('[Lia 360 - Simulation] Would have sent message:', message);
     }
   }
 
@@ -2806,7 +2964,7 @@
       // --- Enrichment Handler ---
       else if (request.action === 'performEnrichment') {
         try {
-          console.log('[SOS 360] Received performEnrichment request');
+          console.log('[Lia 360] Received performEnrichment request');
           const profile = extractCurrentProfile();
           if (!profile) {
             sendResponse({ success: false, error: 'Could not extract profile' });
@@ -2822,7 +2980,7 @@
             }
           });
         } catch (e) {
-          console.error('[SOS 360] Enrichment error:', e);
+          console.error('[Lia 360] Enrichment error:', e);
           sendResponse({ success: false, error: e.message });
         }
       }
@@ -2891,7 +3049,7 @@
       }, 5000);
     }
 
-    console.log(`[SOS 360] Deep Import Progress: ${current}/${total} - ${status}`);
+    console.log(`[Lia 360] Deep Import Progress: ${current}/${total} - ${status}`);
   }
 
   function showCompletionNotification(total) {
@@ -3347,13 +3505,13 @@
         chrome.runtime.sendMessage({ action: 'STOP_AUTOMATION' }, (response) => {
           // Check for runtime errors
           if (chrome.runtime.lastError) {
-            console.error('[SOS 360] Stop error:', chrome.runtime.lastError.message);
+            console.error('[Lia 360] Stop error:', chrome.runtime.lastError.message);
             addLog('Extension disconnected - closing overlay', 'warning');
             hideAutomationOverlay();
             return;
           }
 
-          console.log('[SOS 360] Stop response:', response);
+          console.log('[Lia 360] Stop response:', response);
           addLog('Automation stopped successfully', 'success');
 
           // Hide overlay after a short delay
@@ -3362,7 +3520,7 @@
           }, 1500);
         });
       } catch (error) {
-        console.error('[SOS 360] Failed to send stop message:', error);
+        console.error('[Lia 360] Failed to send stop message:', error);
         addLog('Extension context lost - hiding overlay', 'error');
         // Just hide the overlay since we can't communicate with background
         setTimeout(() => {
@@ -3482,20 +3640,20 @@
         // Signal to continue with error handling
         try {
           if (!chrome.runtime?.id) {
-            console.error('[SOS 360] Extension context lost during countdown');
+            console.error('[Lia 360] Extension context lost during countdown');
             hideAutomationOverlay();
             return;
           }
 
           chrome.runtime.sendMessage({ action: 'NEXT_STEP' }, (response) => {
             if (chrome.runtime.lastError) {
-              console.error('[SOS 360] NEXT_STEP error:', chrome.runtime.lastError.message);
+              console.error('[Lia 360] NEXT_STEP error:', chrome.runtime.lastError.message);
               addLog('Extension disconnected', 'error');
               hideAutomationOverlay();
             }
           });
         } catch (error) {
-          console.error('[SOS 360] Failed to send NEXT_STEP:', error);
+          console.error('[Lia 360] Failed to send NEXT_STEP:', error);
           hideAutomationOverlay();
         }
         return;
@@ -3551,5 +3709,5 @@
     logsContent.scrollTop = logsContent.scrollHeight;
   }
 
-  console.log('[SOS 360] LinkedIn Script v3 Loaded');
+  console.log('[Lia 360] LinkedIn Script v3 Loaded');
 })();

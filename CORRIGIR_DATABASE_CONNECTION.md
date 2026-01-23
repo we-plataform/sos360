@@ -60,7 +60,7 @@ postgresql://postgres:senha@host:5432/database
 ### 3. Exemplo de DATABASE_URL Válida
 
 ```
-postgresql://postgres:minhasenha123@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:minhasenha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **Componentes:**
@@ -68,7 +68,7 @@ postgresql://postgres:minhasenha123@dpg-abc123-a.oregon-postgres.render.com:5432
 - `minhasenha123` = senha
 - `dpg-abc123-a.oregon-postgres.render.com` = hostname
 - `5432` = porta
-- `sos360_db` = nome do banco
+- `lia360_db` = nome do banco
 
 ### 4. Configurar no Render
 
@@ -200,7 +200,7 @@ Após o redeploy, verifique os logs. Deve aparecer:
 
 ### Render PostgreSQL (Internal)
 ```
-postgresql://postgres:senha@dpg-abc123-a.oregon-postgres.render.com:5432/sos360_db
+postgresql://postgres:senha@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 ### Supabase (com pgbouncer)
@@ -215,7 +215,7 @@ postgresql://postgres:senha@containers-us-west-123.railway.app:5432/railway
 
 ### PostgreSQL Local/Docker
 ```
-postgresql://postgres:postgres@localhost:5432/sos360?schema=public
+postgresql://postgres:postgres@localhost:5432/lia360?schema=public
 ```
 
 ---

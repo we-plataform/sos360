@@ -6,7 +6,7 @@ import { Providers } from '@/components/providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SOS 360 - Plataforma de Prospecção Outbound',
+  title: 'Lia 360 - Plataforma de Prospecção Outbound',
   description: 'Transforme interações em conversas qualificadas',
 };
 

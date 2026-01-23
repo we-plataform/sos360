@@ -1,4 +1,4 @@
-# Setup Definitivo do Railway - SOS360 API
+# Setup Definitivo do Railway - Lia360 API
 
 ## Variáveis de Ambiente Obrigatórias
 
@@ -27,7 +27,7 @@ NODE_ENV=production
 
 ### 4. CORS_ORIGINS (OBRIGATÓRIO)
 ```
-CORS_ORIGINS=https://sos360-web-sigma.vercel.app
+CORS_ORIGINS=https://lia360-web-sigma.vercel.app
 ```
 - URL do seu frontend na Vercel
 - Para múltiplas origens: `https://app1.com,https://app2.com`
@@ -51,7 +51,7 @@ REDIS_URL=
 Após configurar as variáveis, o deploy deve mostrar nos logs:
 
 ```
-=== SOS360 API Starting ===
+=== Lia360 API Starting ===
 Node version: v20.x.x
 Environment: production
 PORT env: 8080

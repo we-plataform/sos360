@@ -33,7 +33,9 @@ export interface KanbanLead {
     connectionCount: number | null;
     status: string;
     score: number;
+    verified: boolean;
     platform: string | null;
+    dealValue?: number; // Added for UI design
     assignedTo?: {
         id: string;
         fullName: string;
@@ -187,10 +189,11 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
             onDragEnd={handleDragEnd}
         >
             <div className="kanban-board">
-                {stages.map((stage) => (
+                {stages.map((stage, index) => (
                     <KanbanColumn
                         key={stage.id}
                         stage={stage}
+                        index={index}
                         onLeadClick={onLeadClick}
                     />
                 ))}
@@ -205,7 +208,9 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
             <style jsx>{`
         .kanban-board {
           display: flex;
-          gap: 1rem;
+          gap: 2px;
+          padding-left: 1rem;
+          padding-right: 1rem;
           overflow-x: auto;
           min-height: calc(100vh - 200px);
         }

@@ -69,7 +69,7 @@ ls -la content-scripts/*.js
 ### 1. Verificar Service Worker
 
 ```
-chrome://extensions → SOS 360 → "service worker" (link)
+chrome://extensions → Lia 360 → "service worker" (link)
 ```
 
 Console mostra erros do `background.js`
@@ -79,7 +79,7 @@ Console mostra erros do `background.js`
 1. Abra uma página do Instagram/Facebook/LinkedIn
 2. Pressione F12 (DevTools)
 3. Vá na aba "Console"
-4. Procure por: "SOS 360 ... content script loaded"
+4. Procure por: "Lia 360 ... content script loaded"
 
 ### 3. Verificar Popup
 
@@ -127,14 +127,14 @@ console.log('Request:', endpoint, options);
 ### Content Scripts
 ```javascript
 // Já existe nos scripts:
-console.log('SOS 360 Instagram content script loaded');
+console.log('Lia 360 Instagram content script loaded');
 ```
 
 ## 🆘 Se Nada Funcionar
 
 1. **Remova e recarregue a extensão:**
    - `chrome://extensions`
-   - Remova SOS 360
+   - Remova Lia 360
    - Carregue novamente
 
 2. **Verifique versão do Chrome:**

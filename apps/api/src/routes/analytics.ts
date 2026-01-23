@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '@sos360/database';
+import { prisma } from '@lia360/database';
 import { authenticate } from '../middleware/auth.js';
 
 export const analyticsRouter = Router();

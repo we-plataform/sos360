@@ -58,15 +58,15 @@ REDIS_URL=
 
 ```env
 # API URLs - 🔴 CORRIGIR com a URL real do Railway
-NEXT_PUBLIC_API_URL=https://sos360-api-production.up.railway.app
-NEXT_PUBLIC_WS_URL=wss://sos360-api-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://lia360-api-production.up.railway.app
+NEXT_PUBLIC_WS_URL=wss://lia360-api-production.up.railway.app
 
 # Supabase - ✅ CORRIGIR o placeholder
 NEXT_PUBLIC_SUPABASE_URL=https://doewttvwknkhjzhzceub.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[OBTER DA SUPABASE - Settings > API > anon public key]
 
 # Outras variáveis do frontend
-API_URL=https://sos360-api-production.up.railway.app
+API_URL=https://lia360-api-production.up.railway.app
 ```
 
 ---
@@ -77,7 +77,7 @@ API_URL=https://sos360-api-production.up.railway.app
 
 1. No Railway, vá para o serviço da API
 2. Na aba **Settings** > **Networking**
-3. Copie a **Public Domain** (algo como `https://sos360-api-production.up.railway.app`)
+3. Copie a **Public Domain** (algo como `https://lia360-api-production.up.railway.app`)
 4. **Use esta URL para todas as variáveis de API abaixo**
 
 ### 2. Obter a Supabase Anon Key
@@ -130,9 +130,9 @@ Na Vercel, adicione/corrija:
 
 ```env
 # Corrigir (substituir localhost pela URL do Railway)
-NEXT_PUBLIC_API_URL=https://sos360-api-production.up.railway.app
-NEXT_PUBLIC_WS_URL=wss://sos360-api-production.up.railway.app
-API_URL=https://sos360-api-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://lia360-api-production.up.railway.app
+NEXT_PUBLIC_WS_URL=wss://lia360-api-production.up.railway.app
+API_URL=https://lia360-api-production.up.railway.app
 
 # Corrigir (substituir placeholder pela chave real)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon public key do Supabase]

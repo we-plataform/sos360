@@ -1,10 +1,10 @@
-// Dashboard Sync Content Script - SOS 360
-// This script runs on the SOS 360 dashboard to sync authentication and trigger automations
+// Dashboard Sync Content Script - Lia 360
+// This script runs on the Lia 360 dashboard to sync authentication and trigger automations
 
 (function () {
   'use strict';
 
-  console.log('[SOS 360 Sync] Dashboard sync script loaded on:', window.location.href);
+  console.log('[Lia 360 Sync] Dashboard sync script loaded on:', window.location.href);
 
   // --- AUTH SYNC ---
   // Automatically sync authentication from frontend to extension
@@ -15,7 +15,7 @@
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (accessToken) {
-        console.log('[SOS 360 Sync] Found tokens in localStorage, syncing to extension...');
+        console.log('[Lia 360 Sync] Found tokens in localStorage, syncing to extension...');
 
         // Send tokens to background script
         const response = await chrome.runtime.sendMessage({
@@ -27,16 +27,16 @@
         });
 
         if (response?.success) {
-          console.log('[SOS 360 Sync] Auth synced successfully!');
+          console.log('[Lia 360 Sync] Auth synced successfully!');
           showSyncNotification('Extension sincronizada!', 'success');
         } else {
-          console.warn('[SOS 360 Sync] Auth sync failed:', response?.error);
+          console.warn('[Lia 360 Sync] Auth sync failed:', response?.error);
         }
       } else {
-        console.log('[SOS 360 Sync] No tokens found in localStorage');
+        console.log('[Lia 360 Sync] No tokens found in localStorage');
       }
     } catch (error) {
-      console.error('[SOS 360 Sync] Error syncing auth:', error);
+      console.error('[Lia 360 Sync] Error syncing auth:', error);
     }
   }
 
@@ -50,7 +50,7 @@
     const { type, jobId } = event.data || {};
 
     if (type === 'SOS360_TRIGGER_AUTOMATION') {
-      console.log('[SOS 360 Sync] Received automation trigger for job:', jobId);
+      console.log('[Lia 360 Sync] Received automation trigger for job:', jobId);
 
       try {
         // Trigger immediate poll in background
@@ -59,11 +59,11 @@
         });
 
         if (response?.success) {
-          console.log('[SOS 360 Sync] Immediate poll triggered');
+          console.log('[Lia 360 Sync] Immediate poll triggered');
           showSyncNotification('Automação detectada! Abrindo LinkedIn...', 'info');
         }
       } catch (error) {
-        console.error('[SOS 360 Sync] Error triggering poll:', error);
+        console.error('[Lia 360 Sync] Error triggering poll:', error);
 
         if (error.message.includes('Extension context invalidated')) {
           showSyncNotification('Extensão atualizada. Por favor, recarregue a página.', 'error');
@@ -130,7 +130,7 @@
       const response = await chrome.runtime.sendMessage({ action: 'getExtensionStatus' });
 
       if (response?.success) {
-        console.log('[SOS 360 Sync] Extension status:', response);
+        console.log('[Lia 360 Sync] Extension status:', response);
 
         // Add visual indicator if not authenticated
         if (!response.isAuthenticated) {
@@ -138,7 +138,7 @@
         }
       }
     } catch (error) {
-      console.log('[SOS 360 Sync] Could not check extension status:', error);
+      console.log('[Lia 360 Sync] Could not check extension status:', error);
     }
   }
 
@@ -169,7 +169,7 @@
           <div>
             <div style="font-weight: 600; margin-bottom: 4px;">Extensão não autenticada</div>
             <div style="font-size: 12px; opacity: 0.9;">
-              A extensão SOS 360 precisa estar logada para executar automações. 
+              A extensão Lia 360 precisa estar logada para executar automações. 
               Clique no ícone da extensão e faça login.
             </div>
             <button id="sos360-sync-now-btn" style="
@@ -220,7 +220,7 @@
   }
 
   async function init() {
-    console.log('[SOS 360 Sync] Initializing...');
+    console.log('[Lia 360 Sync] Initializing...');
 
     // Small delay to ensure localStorage is populated
     await new Promise(r => setTimeout(r, 500));
@@ -237,11 +237,11 @@
       originalSetItem.apply(this, arguments);
 
       if (key === 'accessToken' || key === 'refreshToken') {
-        console.log('[SOS 360 Sync] Token changed, re-syncing...');
+        console.log('[Lia 360 Sync] Token changed, re-syncing...');
         setTimeout(syncAuth, 100);
       }
     };
 
-    console.log('[SOS 360 Sync] Initialization complete');
+    console.log('[Lia 360 Sync] Initialization complete');
   }
 })();

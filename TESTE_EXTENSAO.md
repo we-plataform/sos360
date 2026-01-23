@@ -1,4 +1,4 @@
-# Guia de Teste - Extensão de Mineração SOS 360
+# Guia de Teste - Extensão de Mineração Lia 360
 
 ## 📋 Pré-requisitos
 
@@ -176,7 +176,7 @@ mkdir -p apps/extension/icons
 1. Verifique se a API está rodando: `curl http://localhost:3001/health`
 2. Verifique as credenciais
 3. Verifique o console do background script:
-   - `chrome://extensions` → SOS 360 → "service worker" → Console
+   - `chrome://extensions` → Lia 360 → "service worker" → Console
 
 ### Erro: "Erro ao importar leads"
 
@@ -195,7 +195,7 @@ mkdir -p apps/extension/icons
 ### Ver logs do Service Worker (Background)
 
 1. `chrome://extensions`
-2. Encontre "SOS 360"
+2. Encontre "Lia 360"
 3. Clique em "service worker" (aparece como link)
 4. Console abre com logs do background.js
 

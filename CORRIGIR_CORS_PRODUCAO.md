@@ -16,7 +16,7 @@
 2. Selecione seu projeto
 3. Na aba **Deployments**, copie a URL de produção:
    ```
-   https://sos360-web-sigma.vercel.app
+   https://lia360-web-sigma.vercel.app
    ```
    (ou a URL do seu projeto)
 
@@ -32,12 +32,12 @@
 
 **Formato correto:**
 ```
-https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **Ou se já tiver outras URLs:**
 ```
-https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*,https://outra-url.com
+https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*,https://outra-url.com
 ```
 
 **Importante:**
@@ -61,7 +61,7 @@ https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*,ht
 Após o redeploy, verifique os logs. Deve aparecer:
 
 ```
-[Config] CORS_ORIGINS: https://sos360-web-sigma.vercel.app, https://*.vercel.app, chrome-extension://*
+[Config] CORS_ORIGINS: https://lia360-web-sigma.vercel.app, https://*.vercel.app, chrome-extension://*
 ```
 
 ### 2. Testar no Frontend
@@ -124,12 +124,12 @@ Se não der erro de CORS, está funcionando!
 **Solução:**
 Use wildcard do Vercel:
 ```
-https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 Isso permite:
-- ✅ Produção: `https://sos360-web-sigma.vercel.app`
-- ✅ Previews: `https://sos360-web-sigma-git-*.vercel.app`
+- ✅ Produção: `https://lia360-web-sigma.vercel.app`
+- ✅ Previews: `https://lia360-web-sigma-git-*.vercel.app`
 - ✅ Extensão Chrome
 
 ---
@@ -151,13 +151,13 @@ Isso permite:
 **Variável `CORS_ORIGINS` no Render:**
 
 ```
-https://sos360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **Isso permite:**
-- ✅ `https://sos360-web-sigma.vercel.app` (produção)
-- ✅ `https://sos360-web-sigma-git-main.vercel.app` (preview)
-- ✅ `https://sos360-web-sigma-git-feature.vercel.app` (preview de branch)
+- ✅ `https://lia360-web-sigma.vercel.app` (produção)
+- ✅ `https://lia360-web-sigma-git-main.vercel.app` (preview)
+- ✅ `https://lia360-web-sigma-git-feature.vercel.app` (preview de branch)
 - ✅ `chrome-extension://abc123...` (extensão Chrome)
 
 ---

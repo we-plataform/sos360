@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@sos360/shared'],
+  transpilePackages: ['@lia360/shared'],
   images: {
     remotePatterns: [
       {

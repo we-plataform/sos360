@@ -1,8 +1,8 @@
-# Especificação da API - SOS 360 MVP
+# Especificação da API - Lia 360 MVP
 
 ## Visão Geral
 
-- **Base URL**: `https://api.sos360.com/v1`
+- **Base URL**: `https://api.lia360.com/v1`
 - **Formato**: JSON
 - **Autenticação**: Bearer Token (JWT)
 - **Versionamento**: Via URL path (`/v1`)

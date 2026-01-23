@@ -5,7 +5,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <nav className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold text-indigo-600">SOS 360</div>
+          <div className="text-2xl font-bold text-indigo-600">Lia 360</div>
           <div className="space-x-4">
             <Link
               href="/login"
@@ -78,7 +78,7 @@ export default function HomePage() {
 
       <footer className="mt-20 border-t bg-white py-8">
         <div className="container mx-auto px-6 text-center text-gray-600">
-          <p>&copy; 2026 SOS 360. Todos os direitos reservados.</p>
+          <p>&copy; 2026 Lia 360. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
