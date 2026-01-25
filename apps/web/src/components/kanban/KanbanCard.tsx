@@ -24,6 +24,7 @@ interface KanbanCardProps {
   lead: KanbanLead;
   isDragging?: boolean;
   onClick?: () => void;
+  onUpdateStatus?: (status: string) => void;
 }
 
 // Cores dos ícones de redes sociais (Vibrantes)
@@ -49,7 +50,7 @@ function formatCount(count: number | null | undefined): string {
   return count.toString();
 }
 
-export function KanbanCard({ lead, isDragging, onClick }: KanbanCardProps) {
+export function KanbanCard({ lead, isDragging, onClick, onUpdateStatus }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -137,7 +138,11 @@ export function KanbanCard({ lead, isDragging, onClick }: KanbanCardProps) {
             className="appearance-none w-full bg-white border border-gray-200 text-gray-600 text-xs py-1 px-2 rounded focus:outline-none focus:border-blue-400 cursor-pointer"
             value={lead.status || 'new'}
             onClick={(e) => e.stopPropagation()}
-            onChange={() => { }} // Placeholder
+            onChange={(e) => {
+              const newStatus = e.target.value;
+              console.log('[KANBAN-CARD] Status changing to:', newStatus);
+              onUpdateStatus?.(newStatus);
+            }}
           >
             <option value="new">Lead In</option>
             <option value="contacted">Contacted</option>

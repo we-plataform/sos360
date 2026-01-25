@@ -67,9 +67,10 @@ interface KanbanBoardProps {
     pipeline: KanbanPipeline;
     onMoveLead: (leadId: string, stageId: string, position: number) => void;
     onLeadClick?: (leadId: string) => void;
+    onUpdateLead?: (leadId: string, data: Record<string, any>) => void;
 }
 
-export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardProps) {
+export function KanbanBoard({ pipeline, onMoveLead, onLeadClick, onUpdateLead }: KanbanBoardProps) {
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [stages, setStages] = React.useState<KanbanStage[]>(pipeline.stages);
 
@@ -200,6 +201,7 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
                         stage={stage}
                         index={index}
                         onLeadClick={onLeadClick}
+                        onUpdateLead={onUpdateLead}
                         pipelineId={pipeline.id}
                     />
                 ))}
@@ -207,7 +209,11 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
 
             <DragOverlay>
                 {activeLead ? (
-                    <KanbanCard lead={activeLead} isDragging />
+                    <KanbanCard
+                        lead={activeLead}
+                        isDragging
+                        onUpdateStatus={(status) => onUpdateLead?.(activeLead.id, { status })}
+                    />
                 ) : null}
             </DragOverlay>
 

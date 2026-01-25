@@ -55,7 +55,7 @@ export function StageColorDialog({ pipelineId, stage, isOpen, onClose }: StageCo
             />
 
             {/* Modal */}
-            <div className="relative z-10 w-full max-w-sm bg-white rounded-xl shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-sm bg-white rounded-xl shadow-2xl overflow-hidden animate-zoom-in">
                 {/* Header */}
                 <div className="border-b px-6 py-4 flex items-center justify-between bg-white">
                     <div className="flex items-center gap-2">
@@ -89,8 +89,8 @@ export function StageColorDialog({ pipelineId, stage, isOpen, onClose }: StageCo
                                         key={color}
                                         onClick={() => handleColorChange(color)}
                                         className={`w-8 h-8 rounded-full transition-all ${currentColor === color
-                                                ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110'
-                                                : 'hover:scale-110 border border-transparent hover:border-gray-300'
+                                            ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110'
+                                            : 'hover:scale-110 border border-transparent hover:border-gray-300'
                                             }`}
                                         style={{ backgroundColor: color }}
                                         title={color}

@@ -26,6 +26,7 @@ interface KanbanColumnProps {
   stage: KanbanStage;
   index: number;
   onLeadClick?: (leadId: string) => void;
+  onUpdateLead?: (leadId: string, data: Record<string, any>) => void;
   pipelineId?: string;
 }
 
@@ -38,7 +39,7 @@ const STAGE_CONFIGS = [
   { bg: 'bg-[#5ECBE5]', text: 'white', border: 'border-[#4DBBD4]', icon: Edit2 }  // 05 - Follow Up
 ];
 
-export function KanbanColumn({ stage, index, onLeadClick, pipelineId }: KanbanColumnProps) {
+export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipelineId }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -228,6 +229,7 @@ export function KanbanColumn({ stage, index, onLeadClick, pipelineId }: KanbanCo
               key={lead.id}
               lead={lead}
               onClick={() => onLeadClick?.(lead.id)}
+              onUpdateStatus={(status) => onUpdateLead?.(lead.id, { status })}
             />
           ))}
         </div>

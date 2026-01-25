@@ -54,7 +54,7 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
             />
 
             {/* Modal */}
-            <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl">
+            <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl animate-zoom-in">
                 {showDeleteConfirm ? (
                     <div className="p-6 text-center">
                         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">

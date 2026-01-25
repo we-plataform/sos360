@@ -59,6 +59,17 @@ export default function LeadsPage() {
     },
   });
 
+  // Update lead mutation
+  const updateLeadMutation = useMutation({
+    mutationFn: ({ leadId, data }: { leadId: string; data: Record<string, any> }) =>
+      api.updateLead(leadId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', selectedPipelineId] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'overview'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'funnel'] });
+    },
+  });
+
   // Create default pipeline if none exists
   const createPipelineMutation = useMutation({
     mutationFn: () => api.createPipeline({ name: 'Pipeline Principal' }),
@@ -130,6 +141,10 @@ export default function LeadsPage() {
 
   const handleLeadClick = (leadId: string) => {
     setSelectedLeadId(leadId);
+  };
+
+  const handleUpdateLead = (leadId: string, data: Record<string, any>) => {
+    updateLeadMutation.mutate({ leadId, data });
   };
 
   const handlePipelineChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -222,6 +237,7 @@ export default function LeadsPage() {
           pipeline={pipelineData as KanbanPipeline}
           onMoveLead={handleMoveLead}
           onLeadClick={handleLeadClick}
+          onUpdateLead={handleUpdateLead}
         />
       ) : (
         <Card className="flex h-64 flex-col items-center justify-center">
