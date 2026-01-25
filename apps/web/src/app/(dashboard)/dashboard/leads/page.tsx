@@ -41,6 +41,15 @@ export default function LeadsPage() {
     enabled: !!selectedPipelineId,
   });
 
+  useEffect(() => {
+    if (pipelineData) {
+      console.log('[DEBUG-WEB] PipelineData stages:', pipelineData.stages?.length);
+      pipelineData.stages?.forEach((s: any) => {
+        console.log(`[DEBUG-WEB] Stage ${s.id} (${s.name}) has ${s.leads?.length} leads`);
+      });
+    }
+  }, [pipelineData]);
+
   // Move lead mutation
   const moveLeadMutation = useMutation({
     mutationFn: ({ leadId, stageId, position }: { leadId: string; stageId: string; position: number }) =>
@@ -75,12 +84,14 @@ export default function LeadsPage() {
 
   // Socket listeners
   useEffect(() => {
-    function onLeadChange() {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['pipeline', selectedPipelineId] });
+    function onLeadChange(data: any) {
+      console.log('[LEADS-DEBUG] Socket event received:', data);
+      queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['pipeline', selectedPipelineId], type: 'active' });
     }
 
     if (!socket.connected) {
+      console.log('[LEADS-DEBUG] Socket not connected, connecting...');
       socket.connect();
     }
 

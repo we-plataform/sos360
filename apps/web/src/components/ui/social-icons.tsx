@@ -91,24 +91,21 @@ export const SkypeIcon = ({ size = 20, ...props }: IconProps) => (
     </svg>
 );
 
-export const SkIcon = ({ size = 20, ...props }: IconProps) => (
+export const WhatsappIcon = ({ size = 20, ...props }: IconProps) => (
     <svg
         width={size}
         height={size}
         viewBox="0 0 24 24"
-        fill="none"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
+        style={{ color: '#25D366' }}
         {...props}
     >
-        <rect width="24" height="24" rx="4" fill="#E4405F" />
-        <path d="M7 16V8h4.5a3.5 3.5 0 0 1 0 7H7zm2-2h2.5a1.5 1.5 0 0 0 0-3H9v3zM15 16l-3-4h-1v4h-2V8h2v3l2.5-3H16l-2.5 3L17 16h-2z" fill="white" />
-        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="white" fontWeight="bold" fontSize="14" fontFamily="Arial">
-            sk
-        </text>
+        <path d="M12 0a12 12 0 1 0 12 12A12.013 12.013 0 0 0 12 0Zm0 21.867a9.82 9.82 0 0 1-5.127-1.423l-.367-.217-3.729.971.996-3.635-.24-.38a9.855 9.855 0 0 1-1.503-5.316C2.03 6.43 6.5 2.167 12 2.167c5.5 0 9.967 4.263 9.967 9.867 0 5.568-4.467 9.833-9.967 9.833Zm5.618-7.398c-.308-.154-1.822-.897-2.102-1.002-.284-.097-.49-.146-.697.162-.205.308-.795.998-.974 1.205-.18.199-.36.223-.667.07-.308-.155-1.301-.476-2.477-1.527-.916-.816-1.534-1.822-1.714-2.131-.18-.308-.019-.475.134-.627.14-.14.308-.36.462-.539.154-.18.205-.308.308-.513.103-.205.051-.385-.026-.539-.077-.154-.693-1.668-.949-2.284-.252-.598-.504-.517-.693-.526-.18-.009-.385-.009-.59-.009-.205 0-.539.077-.82.385-.282.308-1.078 1.052-1.078 2.566 0 1.514 1.103 2.977 1.257 3.181.154.205 2.172 3.322 5.26 4.646.735.317 1.309.506 1.758.647.739.235 1.411.2 1.94.12.59-.085 1.822-.744 2.078-1.462.256-.719.256-1.334.18-1.463-.077-.129-.282-.205-.59-.359Z" />
     </svg>
 );
 
-export const SocialPlatforms = ({ visible = ['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk'] }: { visible?: string[] }) => {
+export const SocialPlatforms = ({ visible = ['facebook', 'linkedin', 'instagram', 'x', 'tiktok', 'sk', 'whatsapp'] }: { visible?: string[] }) => {
     const show = (p: string) => visible.includes(p);
     return (
         <div className="flex items-center gap-2 mt-3 mb-2">
@@ -117,6 +114,7 @@ export const SocialPlatforms = ({ visible = ['facebook', 'linkedin', 'instagram'
                 {show('facebook') && <FacebookIcon size={16} />}
                 {show('linkedin') && <LinkedInIcon size={16} />}
                 {show('instagram') && <InstagramIcon size={16} />}
+                {show('whatsapp') && <WhatsappIcon size={16} />}
                 {show('x') && <XIcon size={16} />}
                 {show('tiktok') && <TikTokIcon size={16} />}
             </div>

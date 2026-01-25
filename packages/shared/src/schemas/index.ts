@@ -94,7 +94,7 @@ export const leadAddressSchema = z.object({
 });
 
 export const createLeadSchema = z.object({
-  platform: platformSchema,
+  platform: platformSchema.optional(),
   username: z.string().max(100).optional(),
   fullName: z.string().max(200).optional(),
   profileUrl: z.string().url().optional(),
@@ -114,6 +114,7 @@ export const createLeadSchema = z.object({
   jobTitle: z.string().max(200).optional(),
   companySize: companySizeSchema.optional(),
   address: leadAddressSchema.optional(),
+  pipelineStageId: z.string().optional(),
 });
 
 export const updateLeadSchema = z.object({

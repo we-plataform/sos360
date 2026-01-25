@@ -160,9 +160,9 @@ export function CreateLeadDialog({
       return lead;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['pipeline', pipelineId] });
-      queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
+      queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['pipeline', pipelineId], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['pipeline-leads'], type: 'active' });
       toast.success('Lead criado com sucesso!');
       resetForm();
       onOpenChange(false);

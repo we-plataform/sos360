@@ -118,12 +118,25 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
 leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(createLeadSchema), async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
-    const { tags, address, ...leadData } = req.body;
+    const { tags, address, pipelineStageId, ...leadData } = req.body;
 
-    const profileUrl = leadData.profileUrl || (leadData.username ? `${leadData.platform}:${leadData.username}` : null);
+    // DEBUG: Log lead creation payload
+    console.log('[DEBUG-API] Creating lead payload:', { pipelineStageId, leadData });
+
+
+    let profileUrl = leadData.profileUrl;
+
     if (!profileUrl) {
-      // Should be caught by schema validation usually, but strictly required for our logic
-      return res.status(400).json({ success: false, error: 'Cannot determine profile URL' });
+      if (leadData.platform && leadData.username) {
+        profileUrl = `${leadData.platform}:${leadData.username}`;
+      } else if (leadData.email) {
+        profileUrl = `email:${leadData.email}`;
+      } else if (leadData.phone) {
+        profileUrl = `phone:${leadData.phone}`;
+      } else {
+        // Fallback for manual leads without contacts (though schema requires email/phone usually)
+        profileUrl = `manual:${Date.now()}`;
+      }
     }
 
     // 1. Try to find existing lead by Social Profile OR Email OR Phone
@@ -151,7 +164,7 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
     });
 
     let lead;
-    const profileData = {
+    const profileData = leadData.platform ? {
       platform: leadData.platform,
       username: leadData.username,
       profileUrl: profileUrl,
@@ -162,7 +175,7 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
       postsCount: leadData.postsCount,
       verified: leadData.verified || false,
       workspaceId // Add workspaceId to profile
-    };
+    } : null;
 
     if (existingLead) {
       // Update existing lead and upsert social profile
@@ -170,19 +183,22 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
         where: { id: existingLead.id },
         data: {
           ...leadData, // Update lead fields (e.g. status, score if changed)
-          socialProfiles: {
-            upsert: {
-              where: {
-                workspaceId_platform_profileUrl: {
-                  workspaceId,
-                  platform: leadData.platform,
-                  profileUrl: profileUrl
-                }
-              },
-              create: profileData,
-              update: profileData
+          ...(pipelineStageId && { pipelineStageId }), // Explicitly update pipeline stage
+          ...(profileData && {
+            socialProfiles: {
+              upsert: {
+                where: {
+                  workspaceId_platform_profileUrl: {
+                    workspaceId,
+                    platform: leadData.platform!,
+                    profileUrl: profileUrl
+                  }
+                },
+                create: profileData,
+                update: profileData
+              }
             }
-          },
+          }),
           ...(tags?.length && {
             tags: {
               create: tags.map((tagId: string) => ({ tagId })), // This might add duplicate tags if not careful, but schema handles unique constraint on lead_tags
@@ -208,9 +224,12 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
           ...leadData,
           workspaceId,
           profileUrl, // Legacy field
-          socialProfiles: {
-            create: profileData
-          },
+          ...(pipelineStageId && { pipelineStageId }), // Explicitly set pipeline stage
+          ...(profileData && {
+            socialProfiles: {
+              create: profileData
+            }
+          }),
           ...(tags?.length && {
             tags: {
               create: tags.map((tagId: string) => ({ tagId })),
@@ -235,6 +254,10 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
           address: true,
         },
       });
+
+      // DEBUG: Log created lead
+      console.log('[DEBUG-API] Lead created:', { id: lead.id, pipelineStageId: lead.pipelineStageId });
+
     }
 
     // Emit socket event

@@ -1,20 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
 import type { KanbanStage } from './KanbanBoard';
-import { Play, Settings, Info, DollarSign, Database, Edit2, MoreVertical, AlignLeft } from 'lucide-react';
+import { Play, Settings, Info, DollarSign, Database, Edit2, MoreVertical, AlignLeft, Palette, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { AutomationConfigModal } from './AutomationConfigModal';
 import { RunAutomationModal } from './RunAutomationModal';
+import { StageColorDialog } from './StageColorDialog';
+import { EditStageDialog } from './EditStageDialog';
+import { DeleteStageDialog } from './DeleteStageDialog';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 
 interface KanbanColumnProps {
   stage: KanbanStage;
   index: number;
   onLeadClick?: (leadId: string) => void;
+  pipelineId?: string;
 }
 
 // Stage configuration based on index
@@ -26,14 +38,40 @@ const STAGE_CONFIGS = [
   { bg: 'bg-[#5ECBE5]', text: 'white', border: 'border-[#4DBBD4]', icon: Edit2 }  // 05 - Follow Up
 ];
 
-export function KanbanColumn({ stage, index, onLeadClick }: KanbanColumnProps) {
+export function KanbanColumn({ stage, index, onLeadClick, pipelineId }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
 
   const [isAutomationModalOpen, setIsAutomationModalOpen] = React.useState(false);
+  const [isColorDialogOpen, setIsColorDialogOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
   const [automation, setAutomation] = React.useState<any>(stage.automations?.[0] || null);
+  const queryClient = useQueryClient();
+
+  const deleteStageMutation = useMutation({
+    mutationFn: () => api.deleteStage(pipelineId!, stage.id),
+    onSuccess: () => {
+      toast.success('Estágio excluído com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      queryClient.invalidateQueries({ queryKey: ['pipeline', pipelineId] });
+      setIsDeleteModalOpen(false);
+    },
+    onError: () => {
+      toast.error('Erro ao excluir estágio. Verifique se existem leads nele.');
+      setIsDeleteModalOpen(false);
+    }
+  });
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteStageMutation.mutate();
+  };
 
   React.useEffect(() => {
     setAutomation(stage.automations?.[0] || null);
@@ -89,11 +127,14 @@ export function KanbanColumn({ stage, index, onLeadClick }: KanbanColumnProps) {
       className={`kanban-column ${isOver ? 'kanban-column--over' : ''} ${index === 0 ? 'kanban-column--first' : 'kanban-column--middle'}`}
     >
       {/* Header Colored Top */}
-      <div className={`kanban-column__header-top ${styleConfig.bg}`}>
-        <div className="flex items-center gap-2 text-white font-bold text-sm">
-          <span className="opacity-90">{formattedIndex} - </span>
-          {StageIcon && <StageIcon size={14} className="opacity-90" />}
-          <span className="truncate">{stage.name}</span>
+      <div
+        className="kanban-column__header-top"
+        style={{ backgroundColor: stage.color || '#6366F1' }}
+      >
+        <div className="flex items-center gap-2 text-white font-bold text-sm w-full whitespace-nowrap overflow-hidden">
+          <span className="opacity-90 flex-shrink-0">{formattedIndex} - </span>
+          {StageIcon && <StageIcon size={14} className="opacity-90 flex-shrink-0" />}
+          <span className="truncate flex-1">{stage.name}</span>
         </div>
       </div>
 
@@ -104,8 +145,32 @@ export function KanbanColumn({ stage, index, onLeadClick }: KanbanColumnProps) {
           <span className="text-gray-500 text-xs">Leads</span>
         </div>
         <div className="flex gap-2">
-          <Settings size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => setIsAutomationModalOpen(true)} />
-          <MoreVertical size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+          <Palette size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => setIsColorDialogOpen(true)} />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <MoreVertical size={14} className="text-gray-400 cursor-pointer hover:text-gray-600 outline-none" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                <span>Editar</span>
+              </DropdownMenuItem>
+              {/* Only allow delete if pipelineId is present (it should be) */}
+              {pipelineId && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Excluir</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <div className="kanban-column__value-row">
@@ -187,6 +252,32 @@ export function KanbanColumn({ stage, index, onLeadClick }: KanbanColumnProps) {
           actions={automation.actions || []}
         />
       )}
+
+      {pipelineId && (
+        <StageColorDialog
+          pipelineId={pipelineId}
+          stage={stage}
+          isOpen={isColorDialogOpen}
+          onClose={() => setIsColorDialogOpen(false)}
+        />
+      )}
+
+      {pipelineId && (
+        <EditStageDialog
+          pipelineId={pipelineId}
+          stage={stage}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
+
+      <DeleteStageDialog
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        stageName={stage.name}
+        isPending={deleteStageMutation.isPending}
+      />
 
       <style jsx>{`
         .kanban-column {

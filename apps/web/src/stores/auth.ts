@@ -17,6 +17,7 @@ interface AuthState {
 
   switchWorkspace: (workspaceId: string) => Promise<void>;
   switchCompany: (companyId: string, workspaceId: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -50,6 +51,38 @@ export const useAuthStore = create<AuthState>()(
           window.location.reload();
         } catch (error) {
           console.error('Failed to switch workspace:', error);
+          throw error;
+        }
+      },
+
+      createWorkspace: async (name) => {
+        const { currentCompany, availableCompanies, switchWorkspace } = get();
+        if (!currentCompany) return;
+
+        try {
+          const newWorkspace = await api.createWorkspace(name);
+
+          // Update available companies list
+          const updatedCompanies = availableCompanies.map(company => {
+            if (company.id === currentCompany.id) {
+              return {
+                ...company,
+                workspaces: [...company.workspaces, {
+                  id: newWorkspace.id,
+                  name: newWorkspace.name,
+                  myRole: newWorkspace.myRole as any
+                }]
+              };
+            }
+            return company;
+          });
+
+          set({ availableCompanies: updatedCompanies });
+
+          // Switch to the new workspace
+          await switchWorkspace(newWorkspace.id);
+        } catch (error) {
+          console.error('Failed to create workspace:', error);
           throw error;
         }
       },

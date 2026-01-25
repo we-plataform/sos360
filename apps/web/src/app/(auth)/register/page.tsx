@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [workspaceName, setWorkspaceName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,7 +24,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await api.register(email, password, fullName, workspaceName);
+      // Pass companyName as the 4th argument. We can optionally pass a workspaceName as 5th if we wanted, 
+      // but for now let's assume the company name is enough or serves as both. 
+      // Based on the form label "Nome da Empresa", it clearly intends to capture the company name.
+      const data = await api.register(email, password, fullName, companyName);
       setUser(data.user);
       toast.success('Conta criada com sucesso!', {
         description: `Bem-vindo à Lia 360, ${data.user.fullName}!`,
@@ -97,15 +100,15 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="workspaceName" className="text-sm font-medium">
+              <label htmlFor="companyName" className="text-sm font-medium">
                 Nome da Empresa
               </label>
               <Input
-                id="workspaceName"
+                id="companyName"
                 type="text"
                 placeholder="Minha Empresa"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 required
               />
             </div>

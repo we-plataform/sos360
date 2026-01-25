@@ -73,9 +73,14 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [stages, setStages] = React.useState<KanbanStage[]>(pipeline.stages);
 
+    // Sync local state when prop changes - critical for React Query updates
     React.useEffect(() => {
+        console.log('[KANBAN-DEBUG] Prop pipeline.stages changed. Syncing local state.', {
+            pipelineId: pipeline.id,
+            totalLeads: pipeline.stages.reduce((acc, s) => acc + s.leads.length, 0)
+        });
         setStages(pipeline.stages);
-    }, [pipeline.stages]);
+    }, [pipeline.stages, pipeline.id]); // Added pipeline.id to the dependency array
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -195,6 +200,7 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick }: KanbanBoardPr
                         stage={stage}
                         index={index}
                         onLeadClick={onLeadClick}
+                        pipelineId={pipeline.id}
                     />
                 ))}
             </div>

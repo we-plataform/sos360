@@ -14,6 +14,7 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
+    AppWindow,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -34,6 +35,7 @@ const navigation = [
     { name: 'Audiências', href: '/dashboard/audiences', icon: Target },
     { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Apps', href: '/dashboard/apps', icon: AppWindow },
     { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ];
 

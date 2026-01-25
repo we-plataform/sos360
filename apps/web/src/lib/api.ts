@@ -178,11 +178,11 @@ class ApiClient {
     return data.data;
   }
 
-  async register(email: string, password: string, fullName: string, workspaceName: string) {
+  async register(email: string, password: string, fullName: string, companyName: string, workspaceName?: string) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, fullName, workspaceName }),
+      body: JSON.stringify({ email, password, fullName, companyName, workspaceName }),
     });
 
     const data = await response.json();
@@ -234,6 +234,18 @@ class ApiClient {
 
   async getMe() {
     return this.request('/api/v1/auth/me');
+  }
+
+  async createWorkspace(name: string) {
+    return this.request<{
+      id: string;
+      name: string;
+      myRole: string;
+      createdAt: string;
+    }>('/api/v1/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
   }
 
   // Leads
