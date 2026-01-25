@@ -43,6 +43,7 @@
 
   const UI_ID = 'sos360-instagram-overlay';
   const POST_UI_ID = 'sos360-post-overlay';
+  const FOLLOWERS_UI_ID = 'sos360-followers-overlay';
 
   // Rate limiting configuration
   const RATE_LIMIT = {
@@ -80,6 +81,13 @@
     pipelines: [], // Lista de pipelines disponíveis
     selectedPipeline: null, // Pipeline selecionado para import
     selectedStage: null, // Stage selecionado para import
+
+    // Followers/Following Dialog Auto-Detection State
+    dialogDetected: false,
+    dialogType: null, // 'followers' | 'following' | null
+    followersScrollLimit: 300,
+    scannedCount: 0,
+    audiences: [], // Available audiences for filtering
   };
 
   // --- Selectors ---
@@ -355,6 +363,14 @@
       return false;
     }
 
+    if (window.LiaSettings) {
+      const enabled = await window.LiaSettings.get('instagram_autoScroll');
+      if (enabled === false) { // Strict check against false, default is true
+        console.log('[Lia 360] Auto-scroll disabled in settings');
+        return false;
+      }
+    }
+
     const targetComment = getScrollTargetComment(scrollContainer);
 
     if (!targetComment) {
@@ -418,6 +434,14 @@
     if (!scrollContainer) {
       console.log('[Lia 360] No scroll container provided');
       return false;
+    }
+
+    if (window.LiaSettings) {
+      const enabled = await window.LiaSettings.get('instagram_autoScroll');
+      if (enabled === false) {
+        console.log('[Lia 360] Auto-scroll disabled in settings');
+        return false;
+      }
     }
 
     const comments = document.querySelectorAll(SELECTORS.commentItem);
@@ -488,6 +512,121 @@
     if (!text) return false;
     const lowerText = text.toLowerCase();
     return keywords.some(keyword => lowerText.includes(keyword.toLowerCase().trim()));
+  }
+
+  // === FOLLOWERS/FOLLOWING DIALOG AUTO-DETECTION ===
+
+  /**
+   * Check if a lead matches audience criteria
+   * @param {Object} lead - The lead to check
+   * @param {Object} audience - The audience criteria
+   * @returns {boolean} True if lead matches criteria
+   */
+  function matchesAudienceCriteria(lead, audience) {
+    if (!audience) return true;
+
+    // Check followers range
+    if (audience.followersMin && lead.followersCount < audience.followersMin) return false;
+    if (audience.followersMax && lead.followersCount > audience.followersMax) return false;
+
+    // Check inclusion keywords in bio/name
+    if (audience.profileInfoInclude?.length > 0) {
+      const text = `${lead.fullName || ''} ${lead.bio || ''}`.toLowerCase();
+      const hasInclude = audience.profileInfoInclude.some(kw => text.includes(kw.toLowerCase()));
+      if (!hasInclude) return false;
+    }
+
+    // Check exclusion keywords
+    if (audience.profileInfoExclude?.length > 0) {
+      const text = `${lead.fullName || ''} ${lead.bio || ''}`.toLowerCase();
+      const hasExclude = audience.profileInfoExclude.some(kw => text.includes(kw.toLowerCase()));
+      if (hasExclude) return false;
+    }
+
+    // Check verification status
+    if (audience.verifiedFilter === 'verified_only' && !lead.verified) return false;
+    if (audience.verifiedFilter === 'unverified_only' && lead.verified) return false;
+
+    return true;
+  }
+
+  /**
+   * Detect the type of dialog that was opened
+   * @param {HTMLElement} dialog - The dialog element
+   */
+  function detectDialogType(dialog) {
+    const url = window.location.href;
+    const isFollowersDialog = url.includes('/followers');
+    const isFollowingDialog = url.includes('/following');
+
+    // Additional verification: dialog has a list of users
+    const hasUserList = dialog.querySelectorAll('a[href^="/"][role="link"]').length > 3 ||
+      dialog.querySelectorAll('a[href^="/"]').length > 5;
+
+    if ((isFollowersDialog || isFollowingDialog) && hasUserList) {
+      state.dialogType = isFollowersDialog ? 'followers' : 'following';
+      state.dialogDetected = true;
+
+      console.log(`[Lia 360] Detected ${state.dialogType} dialog`);
+
+      // Auto-open followers overlay after a short delay
+      setTimeout(() => createFollowersOverlay(), 500);
+    }
+  }
+
+  /**
+   * Handle dialog close
+   */
+  function onDialogClosed() {
+    console.log('[Lia 360] Dialog closed, cleaning up...');
+    state.dialogDetected = false;
+    state.dialogType = null;
+    removeFollowersOverlay();
+  }
+
+  /**
+   * Create the dialog observer for auto-detection
+   */
+  let dialogObserver = null;
+
+  function startDialogObserver() {
+    if (dialogObserver) return; // Already observing
+
+    console.log('[Lia 360] Starting dialog observer for followers/following detection');
+
+    dialogObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        // Check for added nodes (dialog opening)
+        if (mutation.addedNodes.length > 0) {
+          const dialog = document.querySelector('div[role="dialog"]');
+          if (dialog && !state.dialogDetected) {
+            // Wait a moment for dialog content to load
+            setTimeout(() => detectDialogType(dialog), 300);
+          }
+        }
+
+        // Check for removed nodes (dialog closing)
+        if (mutation.removedNodes.length > 0) {
+          const dialogStillExists = document.querySelector('div[role="dialog"]');
+          if (!dialogStillExists && state.dialogDetected) {
+            onDialogClosed();
+          }
+        }
+      }
+    });
+
+    dialogObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function stopDialogObserver() {
+    if (dialogObserver) {
+      dialogObserver.disconnect();
+      dialogObserver = null;
+      console.log('[Lia 360] Dialog observer stopped');
+    }
   }
 
   function getCurrentProfileUsername() {
@@ -2203,6 +2342,1140 @@
     document.getElementById('sos-import-btn').addEventListener('click', importQualifiedLeads);
   }
 
+  // === FOLLOWERS/FOLLOWING OVERLAY ===
+
+  /**
+   * Remove the followers overlay
+   */
+  function removeFollowersOverlay() {
+    const overlay = document.getElementById(FOLLOWERS_UI_ID);
+    if (overlay) {
+      overlay.remove();
+      console.log('[Lia 360] Followers overlay removed');
+    }
+    // Stop any ongoing scanning
+    if (state.isAutoScrolling) {
+      stopFollowersScanning();
+    }
+  }
+
+  /**
+   * Create the followers overlay UI
+   */
+  function createFollowersOverlay() {
+    // Remove existing overlay if present
+    removeFollowersOverlay();
+
+    const dialogTypeLabel = state.dialogType === 'followers' ? 'Followers' : 'Following';
+
+    const overlay = document.createElement('div');
+    overlay.id = FOLLOWERS_UI_ID;
+    overlay.innerHTML = `
+      <div class="sos-followers-header">
+        <span class="sos-title">Import: ${dialogTypeLabel}</span>
+        <div class="sos-header-actions">
+          <button id="sos-minimize-followers-btn" title="Minimize">−</button>
+          <button id="sos-close-followers-btn" title="Close">×</button>
+        </div>
+      </div>
+
+      <div class="sos-followers-body" id="sos-followers-body">
+        <div class="sos-field">
+          <label>Audience:</label>
+          <select id="sos-audience-select">
+            <option value="">No audience filter</option>
+          </select>
+        </div>
+
+        <div class="sos-field">
+          <label>Filter by Keywords:</label>
+          <input type="text" id="sos-followers-keywords" placeholder="Keywords between commas">
+        </div>
+
+        <div class="sos-field sos-inline">
+          <label>Scroll until</label>
+          <input type="number" id="sos-scroll-limit" value="${state.followersScrollLimit}" min="50" max="1000" step="50">
+          <span>profiles</span>
+        </div>
+
+        <div class="sos-stats">
+          <div class="stat-item">
+            <span class="label">Scanned</span>
+            <span class="value" id="sos-followers-scanned-count">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Qualified</span>
+            <span class="value" id="sos-followers-qualified-count">0</span>
+          </div>
+        </div>
+
+        <button id="sos-start-scroll-btn" class="sos-btn-primary">
+          ⟳ Start Auto-Scroll
+        </button>
+
+        <button id="sos-followers-import-btn" class="sos-btn-secondary" disabled>
+          ☁ Import 0 profiles...
+        </button>
+
+        <div class="sos-warning">
+          <strong>⚠ Attention:</strong> We recommend limiting your scrolling to 300
+          profiles and/or scrolling over a longer period of time, to avoid triggering
+          account suspension. Scrolling long profile lists takes up a lot of memory
+          and will become gradually slower.
+        </div>
+      </div>
+
+      <style>
+      #${FOLLOWERS_UI_ID} {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 300px;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        z-index: 2147483647;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-followers-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: linear-gradient(90deg, #833ab4, #e1306c);
+        border-radius: 12px 12px 0 0;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-title {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-header-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-header-actions button {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-header-actions button:hover {
+        background: rgba(255,255,255,0.3);
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-followers-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-field.sos-inline {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-field.sos-inline label {
+        flex-shrink: 0;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-field.sos-inline input {
+        width: 80px;
+        text-align: center;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-field.sos-inline span {
+        color: #9ca3af;
+        font-size: 12px;
+      }
+
+      #${FOLLOWERS_UI_ID} label {
+        font-size: 12px;
+        color: #d1d5db;
+      }
+
+      #${FOLLOWERS_UI_ID} input,
+      #${FOLLOWERS_UI_ID} select {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: #fff;
+        transition: border-color 0.2s;
+      }
+
+      #${FOLLOWERS_UI_ID} input:focus,
+      #${FOLLOWERS_UI_ID} select:focus {
+        outline: none;
+        border-color: #e1306c;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-stats {
+        display: flex;
+        justify-content: space-around;
+        background: rgba(0,0,0,0.3);
+        padding: 12px;
+        border-radius: 8px;
+      }
+
+      #${FOLLOWERS_UI_ID} .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #${FOLLOWERS_UI_ID} .stat-item .label {
+        font-size: 10px;
+        color: #9ca3af;
+        text-transform: uppercase;
+      }
+
+      #${FOLLOWERS_UI_ID} .stat-item .value {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-primary {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #e1306c, #833ab4);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(225, 48, 108, 0.4);
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-stop {
+        background: #ef4444 !important;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-secondary {
+        width: 100%;
+        padding: 12px;
+        background: #4299e1;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-secondary:hover:not(:disabled) {
+        background: #3182ce;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-btn-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-warning {
+        padding: 12px;
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 6px;
+        font-size: 11px;
+        color: #93c5fd;
+        line-height: 1.4;
+      }
+
+      #${FOLLOWERS_UI_ID} .sos-warning strong {
+        color: #60a5fa;
+      }
+
+      #${FOLLOWERS_UI_ID}.minimized .sos-followers-body {
+        display: none;
+      }
+
+      #${FOLLOWERS_UI_ID}.minimized {
+        width: auto;
+      }
+      </style>
+    `;
+
+    document.body.appendChild(overlay);
+    console.log('[Lia 360] Followers overlay created');
+
+    // Attach event listeners
+    attachFollowersOverlayListeners();
+
+    // Load audiences
+    loadAndPopulateAudiences();
+  }
+
+  /**
+   * Attach event listeners to followers overlay
+   */
+  function attachFollowersOverlayListeners() {
+    // Start/Stop scroll button
+    document.getElementById('sos-start-scroll-btn')?.addEventListener('click', toggleFollowersScanning);
+
+    // Import button
+    document.getElementById('sos-followers-import-btn')?.addEventListener('click', importFollowersLeads);
+
+    // Close button
+    document.getElementById('sos-close-followers-btn')?.addEventListener('click', () => {
+      removeFollowersOverlay();
+      // Also close the dialog if it's open
+      const closeBtn = document.querySelector('div[role="dialog"] button[aria-label="Close"], div[role="dialog"] svg[aria-label="Close"]');
+      if (closeBtn) {
+        closeBtn.closest('button')?.click() || closeBtn.click();
+      }
+    });
+
+    // Minimize button
+    document.getElementById('sos-minimize-followers-btn')?.addEventListener('click', () => {
+      const overlay = document.getElementById(FOLLOWERS_UI_ID);
+      if (overlay) {
+        overlay.classList.toggle('minimized');
+        const btn = document.getElementById('sos-minimize-followers-btn');
+        if (btn) {
+          btn.textContent = overlay.classList.contains('minimized') ? '+' : '−';
+        }
+      }
+    });
+
+    // Keywords filter
+    document.getElementById('sos-followers-keywords')?.addEventListener('input', (e) => {
+      state.keywords = e.target.value.trim() ? e.target.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+    });
+
+    // Scroll limit
+    document.getElementById('sos-scroll-limit')?.addEventListener('change', (e) => {
+      state.followersScrollLimit = parseInt(e.target.value) || 300;
+    });
+
+    // Audience selector
+    document.getElementById('sos-audience-select')?.addEventListener('change', async (e) => {
+      const audienceId = e.target.value;
+      if (audienceId) {
+        // Find audience from loaded list
+        const audience = state.audiences.find(a => a.id === audienceId);
+        state.selectedAudience = audience || null;
+        console.log('[Lia 360] Selected audience:', state.selectedAudience?.name);
+      } else {
+        state.selectedAudience = null;
+      }
+    });
+
+    // ESC key to close
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && document.getElementById(FOLLOWERS_UI_ID)) {
+        removeFollowersOverlay();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
+  /**
+   * Load audiences from API and populate selector
+   */
+  async function loadAndPopulateAudiences() {
+    const select = document.getElementById('sos-audience-select');
+    if (!select) return;
+
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: 'getAudiences' }, resolve);
+      });
+
+      if (response?.success && response.data?.length > 0) {
+        state.audiences = response.data;
+
+        response.data.forEach(audience => {
+          const option = document.createElement('option');
+          option.value = audience.id;
+          option.textContent = audience.name;
+          select.appendChild(option);
+        });
+
+        console.log(`[Lia 360] Loaded ${response.data.length} audiences`);
+      }
+    } catch (error) {
+      console.error('[Lia 360] Error loading audiences:', error);
+    }
+  }
+
+  /**
+   * Update followers overlay stats
+   */
+  function updateFollowersStats() {
+    const scannedEl = document.getElementById('sos-followers-scanned-count');
+    const qualifiedEl = document.getElementById('sos-followers-qualified-count');
+    const importBtn = document.getElementById('sos-followers-import-btn');
+
+    if (scannedEl) scannedEl.textContent = state.scannedCount;
+    if (qualifiedEl) qualifiedEl.textContent = state.qualifiedLeads.size;
+    if (importBtn) {
+      importBtn.textContent = `☁ Import ${state.qualifiedLeads.size} profiles...`;
+      importBtn.disabled = state.qualifiedLeads.size === 0;
+    }
+  }
+
+  /**
+   * Update scroll button state
+   */
+  function updateScrollButtonState(scanning) {
+    const btn = document.getElementById('sos-start-scroll-btn');
+    if (!btn) return;
+
+    if (scanning) {
+      btn.textContent = '⏹ Stop Auto-Scroll';
+      btn.classList.add('sos-btn-stop');
+    } else {
+      btn.textContent = '⟳ Start Auto-Scroll';
+      btn.classList.remove('sos-btn-stop');
+    }
+  }
+
+  /**
+   * Toggle followers scanning
+   */
+  function toggleFollowersScanning() {
+    if (state.isAutoScrolling) {
+      stopFollowersScanning();
+    } else {
+      startFollowersScanning();
+    }
+  }
+
+  /**
+   * Start followers scanning with limit
+   */
+  async function startFollowersScanning() {
+    const scrollLimit = state.followersScrollLimit;
+
+    // Reset state
+    state.isAutoScrolling = true;
+    state.scannedCount = 0;
+    state.qualifiedLeads.clear();
+    state.totalUsersFound = 0;
+
+    updateScrollButtonState(true);
+    updateFollowersStats();
+
+    console.log(`[Lia 360] Starting followers scan with limit: ${scrollLimit}`);
+
+    let noChangeCount = 0;
+    const maxNoChange = 5;
+
+    while (state.isAutoScrolling && state.scannedCount < scrollLimit) {
+      const scrollContainer = findDialogScrollContainer();
+      if (!scrollContainer) {
+        console.warn('[Lia 360] Dialog scroll container not found');
+        await sleep(2000);
+        continue;
+      }
+
+      const prevCount = state.qualifiedLeads.size;
+      const prevScroll = scrollContainer.scrollTop;
+
+      // Extract users from current view
+      await extractUsersFromDialogWithFilters();
+
+      // Update stats
+      updateFollowersStats();
+
+      // Scroll down
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      await sleep(2000 + Math.random() * 1000);
+
+      // Check progress
+      const scrolled = scrollContainer.scrollTop > prevScroll;
+      const foundNew = state.qualifiedLeads.size > prevCount;
+
+      if (!scrolled && !foundNew) {
+        noChangeCount++;
+        console.log(`[Lia 360] No new users (${noChangeCount}/${maxNoChange})`);
+
+        if (noChangeCount >= maxNoChange) {
+          console.log('[Lia 360] Scan complete - no more users to load');
+          break;
+        }
+      } else {
+        noChangeCount = 0;
+      }
+
+      state.scannedCount = state.totalUsersFound;
+    }
+
+    stopFollowersScanning();
+  }
+
+  /**
+   * Stop followers scanning
+   */
+  function stopFollowersScanning() {
+    state.isAutoScrolling = false;
+    updateScrollButtonState(false);
+    updateFollowersStats();
+    console.log('[Lia 360] Followers scan stopped');
+  }
+
+  /**
+   * Extract users from dialog with keyword and audience filtering
+   */
+  async function extractUsersFromDialogWithFilters() {
+    const dialog = document.querySelector(SELECTORS.dialogContainer);
+    if (!dialog) return;
+
+    // Find all user links in the dialog
+    const userLinks = dialog.querySelectorAll('a[href^="/"][role="link"], a[href^="/"]');
+
+    for (const link of userLinks) {
+      try {
+        const href = link.getAttribute('href');
+        if (!href || href === '/') continue;
+
+        // Extract username from href
+        const username = href.replace(/\//g, '').split('?')[0];
+        if (!username || username.length < 2) continue;
+        if (['explore', 'reels', 'direct', 'stories', 'p', 'accounts'].includes(username)) continue;
+
+        // Skip if already processed
+        if (state.qualifiedLeads.has(username)) continue;
+
+        state.totalUsersFound++;
+
+        // Get parent container for more info
+        const container = link.closest('div[role="listitem"]') ||
+          link.closest('li') ||
+          link.parentElement?.parentElement?.parentElement;
+
+        // Extract avatar - try multiple strategies
+        let avatarUrl = null;
+
+        // Strategy 1: Find img with crossorigin in container
+        let img = container?.querySelector('img[crossorigin="anonymous"]');
+
+        // Strategy 2: Find any img in container
+        if (!img) {
+          img = container?.querySelector('img');
+        }
+
+        // Strategy 3: Find img inside or near the link
+        if (!img) {
+          img = link.querySelector('img') || link.parentElement?.querySelector('img');
+        }
+
+        // Strategy 4: Look for canvas (Instagram sometimes uses canvas for avatars) and get nearby img
+        if (!img && container) {
+          const canvas = container.querySelector('canvas');
+          if (canvas) {
+            img = canvas.parentElement?.querySelector('img') || canvas.nextElementSibling;
+          }
+        }
+
+        // Get the best available image URL
+        if (img) {
+          // Prefer srcset for higher quality, otherwise use src
+          const srcset = img.getAttribute('srcset');
+          if (srcset) {
+            // Parse srcset and get the highest resolution
+            const srcsetParts = srcset.split(',').map(s => s.trim());
+            const lastPart = srcsetParts[srcsetParts.length - 1];
+            const srcUrl = lastPart.split(' ')[0];
+            if (srcUrl && !srcUrl.includes('data:image/gif')) {
+              avatarUrl = srcUrl;
+            }
+          }
+
+          // Fallback to src if srcset didn't work
+          if (!avatarUrl && img.src && !img.src.includes('data:image/gif') && !img.src.includes('data:image/png;base64')) {
+            avatarUrl = img.src;
+          }
+        }
+
+        // Extract name
+        let fullName = null;
+        const spans = container?.querySelectorAll('span') || [];
+        for (const span of spans) {
+          const text = span.textContent?.trim();
+          if (text && text.length > 2 && text !== username && !text.includes('@')) {
+            if (!['Follow', 'Following', 'Seguir', 'Seguindo', 'Remove', 'Remover'].includes(text)) {
+              fullName = text;
+              break;
+            }
+          }
+        }
+
+        const lead = {
+          username,
+          profileUrl: `https://instagram.com/${username}`,
+          avatarUrl,
+          fullName: fullName || username,
+          platform: 'instagram',
+        };
+
+        // Apply filters
+        const searchText = `${lead.fullName || ''} ${lead.bio || ''}`.toLowerCase();
+        const passesKeywords = matchesKeywords(searchText, state.keywords);
+        const passesAudience = matchesAudienceCriteria(lead, state.selectedAudience);
+
+        if (passesKeywords && passesAudience) {
+          state.qualifiedLeads.set(username, lead);
+        }
+
+      } catch (e) {
+        console.error('[Lia 360] Error extracting user:', e);
+      }
+    }
+  }
+
+  /**
+   * Show pipeline selection dialog before importing
+   */
+  async function importFollowersLeads() {
+    if (state.qualifiedLeads.size === 0) {
+      alert('No leads to import.');
+      return;
+    }
+
+    // Show pipeline selection dialog
+    showPipelineSelectionDialog();
+  }
+
+  /**
+   * Create and show the pipeline selection dialog
+   */
+  function showPipelineSelectionDialog() {
+    // Remove existing dialog if present
+    const existingDialog = document.getElementById('sos360-pipeline-dialog');
+    if (existingDialog) existingDialog.remove();
+
+    const leadCount = state.qualifiedLeads.size;
+
+    const dialogOverlay = document.createElement('div');
+    dialogOverlay.id = 'sos360-pipeline-dialog';
+    dialogOverlay.innerHTML = `
+      <div class="sos-pipeline-backdrop"></div>
+      <div class="sos-pipeline-modal">
+        <div class="sos-pipeline-header">
+          <span class="sos-pipeline-title">Import ${leadCount} Profiles</span>
+          <button id="sos-pipeline-close-btn" class="sos-pipeline-close">×</button>
+        </div>
+
+        <div class="sos-pipeline-body">
+          <p class="sos-pipeline-description">
+            Select the pipeline and stage where these leads will be added.
+          </p>
+
+          <div class="sos-pipeline-field">
+            <label for="sos-pipeline-select">Pipeline:</label>
+            <select id="sos-pipeline-select" disabled>
+              <option value="">Loading pipelines...</option>
+            </select>
+          </div>
+
+          <div class="sos-pipeline-field">
+            <label for="sos-stage-select">Stage:</label>
+            <select id="sos-stage-select" disabled>
+              <option value="">Select a pipeline first</option>
+            </select>
+          </div>
+
+          <div class="sos-pipeline-preview">
+            <div class="sos-preview-item">
+              <span class="sos-preview-label">Leads to import:</span>
+              <span class="sos-preview-value">${leadCount}</span>
+            </div>
+            <div class="sos-preview-item">
+              <span class="sos-preview-label">Source:</span>
+              <span class="sos-preview-value">Instagram ${state.dialogType || 'Dialog'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sos-pipeline-footer">
+          <button id="sos-pipeline-cancel-btn" class="sos-pipeline-btn-secondary">Cancel</button>
+          <button id="sos-pipeline-confirm-btn" class="sos-pipeline-btn-primary" disabled>
+            Import Leads
+          </button>
+        </div>
+      </div>
+
+      <style>
+      #sos360-pipeline-dialog {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 2147483648;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-modal {
+        position: relative;
+        width: 400px;
+        max-width: 90vw;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        animation: sos-modal-appear 0.2s ease-out;
+      }
+
+      @keyframes sos-modal-appear {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        background: linear-gradient(90deg, #833ab4, #e1306c);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-body {
+        padding: 20px;
+        color: #fff;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-description {
+        margin: 0 0 20px 0;
+        font-size: 14px;
+        color: #9ca3af;
+        line-height: 1.5;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-field {
+        margin-bottom: 16px;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #d1d5db;
+        margin-bottom: 8px;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-field select {
+        width: 100%;
+        padding: 12px 14px;
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #fff;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-field select:focus {
+        outline: none;
+        border-color: #e1306c;
+        box-shadow: 0 0 0 3px rgba(225, 48, 108, 0.2);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-field select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-preview {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 14px;
+        margin-top: 20px;
+      }
+
+      #sos360-pipeline-dialog .sos-preview-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+      }
+
+      #sos360-pipeline-dialog .sos-preview-item:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #sos360-pipeline-dialog .sos-preview-label {
+        font-size: 13px;
+        color: #9ca3af;
+      }
+
+      #sos360-pipeline-dialog .sos-preview-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-btn-secondary {
+        padding: 10px 20px;
+        background: #374151;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-btn-primary {
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #e1306c, #833ab4);
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(225, 48, 108, 0.4);
+      }
+
+      #sos360-pipeline-dialog .sos-pipeline-btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      </style>
+    `;
+
+    document.body.appendChild(dialogOverlay);
+
+    // Attach event listeners
+    attachPipelineDialogListeners();
+
+    // Load pipelines
+    loadPipelinesForDialog();
+  }
+
+  /**
+   * Attach event listeners to pipeline dialog
+   */
+  function attachPipelineDialogListeners() {
+    const dialog = document.getElementById('sos360-pipeline-dialog');
+    if (!dialog) return;
+
+    // Close button
+    document.getElementById('sos-pipeline-close-btn')?.addEventListener('click', closePipelineDialog);
+
+    // Cancel button
+    document.getElementById('sos-pipeline-cancel-btn')?.addEventListener('click', closePipelineDialog);
+
+    // Backdrop click
+    dialog.querySelector('.sos-pipeline-backdrop')?.addEventListener('click', closePipelineDialog);
+
+    // Pipeline select change
+    document.getElementById('sos-pipeline-select')?.addEventListener('change', onPipelineChange);
+
+    // Stage select change
+    document.getElementById('sos-stage-select')?.addEventListener('change', onStageChange);
+
+    // Confirm button
+    document.getElementById('sos-pipeline-confirm-btn')?.addEventListener('click', confirmPipelineImport);
+
+    // ESC key
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        closePipelineDialog();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
+  /**
+   * Close the pipeline dialog
+   */
+  function closePipelineDialog() {
+    const dialog = document.getElementById('sos360-pipeline-dialog');
+    if (dialog) {
+      dialog.remove();
+    }
+  }
+
+  /**
+   * Load pipelines from API
+   */
+  async function loadPipelinesForDialog() {
+    const pipelineSelect = document.getElementById('sos-pipeline-select');
+    if (!pipelineSelect) return;
+
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: 'getPipelines' }, resolve);
+      });
+
+      if (response?.success && response.data?.length > 0) {
+        state.pipelines = response.data;
+
+        // Clear and populate pipeline select
+        pipelineSelect.innerHTML = '<option value="">Select a pipeline...</option>';
+
+        response.data.forEach(pipeline => {
+          const option = document.createElement('option');
+          option.value = pipeline.id;
+          option.textContent = pipeline.name;
+          pipelineSelect.appendChild(option);
+        });
+
+        pipelineSelect.disabled = false;
+        console.log(`[Lia 360] Loaded ${response.data.length} pipelines`);
+      } else {
+        pipelineSelect.innerHTML = '<option value="">No pipelines found</option>';
+        console.warn('[Lia 360] No pipelines found');
+      }
+    } catch (error) {
+      console.error('[Lia 360] Error loading pipelines:', error);
+      pipelineSelect.innerHTML = '<option value="">Error loading pipelines</option>';
+    }
+  }
+
+  /**
+   * Handle pipeline selection change
+   */
+  function onPipelineChange(e) {
+    const pipelineId = e.target.value;
+    const stageSelect = document.getElementById('sos-stage-select');
+    const confirmBtn = document.getElementById('sos-pipeline-confirm-btn');
+
+    if (!stageSelect) return;
+
+    // Reset stage select
+    stageSelect.innerHTML = '<option value="">Select a stage...</option>';
+    stageSelect.disabled = true;
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    if (!pipelineId) return;
+
+    // Find selected pipeline and populate stages
+    const pipeline = state.pipelines.find(p => p.id === pipelineId);
+    if (pipeline && pipeline.stages?.length > 0) {
+      // Sort stages by order
+      const sortedStages = [...pipeline.stages].sort((a, b) => a.order - b.order);
+
+      sortedStages.forEach(stage => {
+        const option = document.createElement('option');
+        option.value = stage.id;
+        option.textContent = stage.name;
+        stageSelect.appendChild(option);
+      });
+
+      stageSelect.disabled = false;
+      state.selectedPipeline = pipeline;
+      console.log(`[Lia 360] Loaded ${sortedStages.length} stages for pipeline: ${pipeline.name}`);
+    } else {
+      stageSelect.innerHTML = '<option value="">No stages found</option>';
+    }
+  }
+
+  /**
+   * Handle stage selection change
+   */
+  function onStageChange(e) {
+    const stageId = e.target.value;
+    const confirmBtn = document.getElementById('sos-pipeline-confirm-btn');
+
+    if (confirmBtn) {
+      confirmBtn.disabled = !stageId;
+    }
+
+    if (stageId && state.selectedPipeline) {
+      state.selectedStage = state.selectedPipeline.stages.find(s => s.id === stageId);
+    } else {
+      state.selectedStage = null;
+    }
+  }
+
+  /**
+   * Confirm and execute the import with selected pipeline/stage
+   */
+  async function confirmPipelineImport() {
+    const stageSelect = document.getElementById('sos-stage-select');
+    const confirmBtn = document.getElementById('sos-pipeline-confirm-btn');
+    const pipelineStageId = stageSelect?.value;
+
+    if (!pipelineStageId) {
+      alert('Please select a pipeline and stage.');
+      return;
+    }
+
+    // Disable button and show loading
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Importing...';
+    }
+
+    try {
+      const leads = Array.from(state.qualifiedLeads.values()).map(lead => ({
+        username: lead.username,
+        fullName: lead.fullName,
+        profileUrl: lead.profileUrl,
+        avatarUrl: lead.avatarUrl,
+        bio: lead.bio || null,
+        followersCount: lead.followersCount || null,
+        followingCount: lead.followingCount || null,
+      }));
+
+      // Debug: Log avatar extraction results
+      const withAvatar = leads.filter(l => l.avatarUrl).length;
+      console.log(`[Lia 360] Importing ${leads.length} leads, ${withAvatar} with avatars`);
+      if (leads.length > 0) {
+        console.log('[Lia 360] Sample lead:', JSON.stringify(leads[0], null, 2));
+      }
+
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: 'importLeads',
+          data: {
+            source: 'extension',
+            platform: 'instagram',
+            sourceUrl: window.location.href,
+            leads,
+            pipelineStageId
+          }
+        }, resolve);
+      });
+
+      if (response?.success) {
+        const count = leads.length;
+        const stageName = state.selectedStage?.name || 'selected stage';
+        const pipelineName = state.selectedPipeline?.name || 'pipeline';
+
+        // Close dialog
+        closePipelineDialog();
+
+        // Show success message
+        alert(`Successfully imported ${count} leads to "${stageName}" in "${pipelineName}"!`);
+
+        // Clear state
+        state.qualifiedLeads.clear();
+        state.scannedCount = 0;
+        state.totalUsersFound = 0;
+        updateFollowersStats();
+
+        console.log(`[Lia 360] Imported ${count} leads to stage ${pipelineStageId}`);
+      } else {
+        throw new Error(response?.error || 'Import failed');
+      }
+    } catch (error) {
+      console.error('[Lia 360] Error importing leads:', error);
+      alert(`Error importing leads: ${error.message}`);
+
+      // Re-enable button
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Import Leads';
+      }
+    }
+  }
+
   function updateKeywords(input) {
     state.keywords = input.trim() ? input.split(',').map(s => s.trim()).filter(Boolean) : [];
     // Re-filter existing leads
@@ -2433,13 +3706,48 @@
           link.closest('li') ||
           link.parentElement?.parentElement?.parentElement;
 
-        // Extract avatar
+        // Extract avatar - try multiple strategies
         let avatarUrl = null;
-        const img = container?.querySelector('img[crossorigin="anonymous"]') ||
-          container?.querySelector('img') ||
-          link.querySelector('img');
-        if (img && img.src && !img.src.includes('data:image/gif')) {
-          avatarUrl = img.src;
+
+        // Strategy 1: Find img with crossorigin in container
+        let img = container?.querySelector('img[crossorigin="anonymous"]');
+
+        // Strategy 2: Find any img in container
+        if (!img) {
+          img = container?.querySelector('img');
+        }
+
+        // Strategy 3: Find img inside or near the link
+        if (!img) {
+          img = link.querySelector('img') || link.parentElement?.querySelector('img');
+        }
+
+        // Strategy 4: Look for canvas (Instagram sometimes uses canvas for avatars) and get nearby img
+        if (!img && container) {
+          const canvas = container.querySelector('canvas');
+          if (canvas) {
+            img = canvas.parentElement?.querySelector('img') || canvas.nextElementSibling;
+          }
+        }
+
+        // Get the best available image URL
+        if (img) {
+          // Prefer srcset for higher quality, otherwise use src
+          const srcset = img.getAttribute('srcset');
+          if (srcset) {
+            // Parse srcset and get the highest resolution
+            const srcsetParts = srcset.split(',').map(s => s.trim());
+            const lastPart = srcsetParts[srcsetParts.length - 1];
+            const srcUrl = lastPart.split(' ')[0];
+            if (srcUrl && !srcUrl.includes('data:image/gif')) {
+              avatarUrl = srcUrl;
+            }
+          }
+
+          // Fallback to src if srcset didn't work
+          if (!avatarUrl && img.src && !img.src.includes('data:image/gif') && !img.src.includes('data:image/png;base64')) {
+            avatarUrl = img.src;
+          }
         }
 
         // Extract name - usually in a span near the link
@@ -2971,6 +4279,9 @@
   function init() {
     console.log('[Lia 360] --- init() called ---');
     console.log('[Lia 360] Current URL:', window.location.href);
+
+    // Start dialog observer for automatic followers/following detection
+    startDialogObserver();
 
     const username = getCurrentProfileUsername();
     const isPost = isInstagramPostPage();

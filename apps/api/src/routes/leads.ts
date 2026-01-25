@@ -468,8 +468,9 @@ leadsRouter.post(
 
 
       for (const leadData of leads) {
-        // DEBUG: Log received lead data
-        console.log('[DEBUG] Processing lead:', JSON.stringify(leadData, null, 2));
+        // DEBUG: Log received lead data with focus on avatarUrl
+        console.log('[DEBUG] Processing lead - avatarUrl received:', leadData.avatarUrl ? `YES (${leadData.avatarUrl.substring(0, 50)}...)` : 'NO');
+        console.log('[DEBUG] Full lead data:', JSON.stringify(leadData, null, 2));
         try {
           // Clean and validate lead data
           const cleanedLeadData = {
@@ -541,6 +542,16 @@ leadsRouter.post(
           };
 
           let savedLead;
+          // Select fields to ensure avatarUrl is returned
+          const selectFields = {
+            id: true,
+            username: true,
+            fullName: true,
+            profileUrl: true,
+            avatarUrl: true,
+            platform: true,
+          };
+
           if (existingLead) {
             savedLead = await prisma.lead.update({
               where: { id: existingLead.id },
@@ -562,7 +573,8 @@ leadsRouter.post(
                     update: profileData
                   }
                 }
-              }
+              },
+              select: selectFields,
             });
           } else {
             savedLead = await prisma.lead.create({
@@ -586,10 +598,13 @@ leadsRouter.post(
                     create: addressData
                   },
                 }),
-              }
+              },
+              select: selectFields,
             });
           }
           imported++;
+          // DEBUG: Verify avatarUrl was saved
+          console.log('[DEBUG] Lead saved - avatarUrl in DB:', savedLead.avatarUrl ? `YES (${savedLead.avatarUrl.substring(0, 50)}...)` : 'NO');
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
           console.error('Error importing lead:', err, leadData);

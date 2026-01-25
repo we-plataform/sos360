@@ -34,7 +34,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_title": "Lia 360 - Lead Importer"
   },
   "content_scripts": [
     {
@@ -42,6 +42,7 @@
         "*://*.instagram.com/*"
       ],
       "js": [
+        "content-scripts/settings-manager.js",
         "content-scripts/instagram.js"
       ],
       "run_at": "document_idle"
@@ -51,6 +52,7 @@
         "*://*.facebook.com/*"
       ],
       "js": [
+        "content-scripts/settings-manager.js",
         "content-scripts/facebook.js"
       ],
       "run_at": "document_idle"
@@ -60,6 +62,7 @@
         "*://*.linkedin.com/*"
       ],
       "js": [
+        "content-scripts/settings-manager.js",
         "content-scripts/linkedin.js"
       ],
       "run_at": "document_idle"
@@ -75,6 +78,19 @@
         "content-scripts/dashboard-sync.js"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "styles/overlay.css",
+        "icon-128.png",
+        "icon-48.png",
+        "icon-16.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

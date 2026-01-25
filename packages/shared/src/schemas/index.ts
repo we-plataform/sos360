@@ -141,6 +141,16 @@ const urlOrEmpty = z.union([
   z.undefined(),
 ]).transform((val) => (val === '' || val === null || val === undefined ? null : val));
 
+// More lenient URL validation for avatar URLs (Instagram CDN URLs can be complex)
+const avatarUrlOrEmpty = z.union([
+  z.string().min(1).refine((val) => val.startsWith('http://') || val.startsWith('https://'), {
+    message: 'Avatar URL must start with http:// or https://'
+  }),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]).transform((val) => (val === '' || val === null || val === undefined ? null : val));
+
 // Helper to validate email, empty string, or null
 const emailOrEmpty = z.union([
   z.string().email(),
@@ -153,7 +163,7 @@ export const importLeadDataSchema = z.object({
   username: z.union([z.string().max(100), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   fullName: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   profileUrl: urlOrEmpty.optional(),
-  avatarUrl: urlOrEmpty.optional(),
+  avatarUrl: avatarUrlOrEmpty.optional(),
   bio: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   email: emailOrEmpty.optional(),
   phone: z.union([z.string().max(50), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),

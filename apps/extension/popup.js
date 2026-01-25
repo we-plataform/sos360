@@ -44,31 +44,63 @@ const autoProgressBar = document.getElementById('auto-progress-bar');
 const autoProgressContainer = document.getElementById('auto-progress');
 const autoDetailedStatus = document.getElementById('auto-detailed-status');
 
+// Send message to background with retry for service worker wake-up
+async function sendMessageWithRetry(message, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      // If we got a valid response, return it
+      if (response !== undefined) {
+        return response;
+      }
+      // Wait a bit for service worker to wake up
+      await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+    } catch (error) {
+      console.warn(`[Lia 360] Message attempt ${i + 1} failed:`, error.message);
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+    }
+  }
+  return null;
+}
+
 // Initialize popup
 async function init() {
-  // Load saved API URL
-  await loadApiUrl();
+  try {
+    // Load saved API URL
+    await loadApiUrl();
 
-  // Check if user is logged in
-  const response = await chrome.runtime.sendMessage({ action: 'getUser' });
+    // Check if user is logged in (with retry for service worker wake-up)
+    const response = await sendMessageWithRetry({ action: 'getUser' });
 
-  if (response.success) {
-    showLoggedIn(response.data);
-    await checkCurrentTab();
-    await loadStats();
-    await loadAutoCheck();
-  } else {
+    // Handle case where service worker isn't ready or returns undefined
+    if (response && response.success) {
+      showLoggedIn(response.data);
+      await checkCurrentTab();
+      await loadStats();
+      await loadAutoCheck();
+    } else {
+      showLoggedOut();
+    }
+  } catch (error) {
+    console.error('[Lia 360] Popup init error:', error);
+    // Show logged out state on any error
     showLoggedOut();
   }
 }
 
 async function loadApiUrl() {
-  const apiUrlInput = document.getElementById('api-url');
-  if (!apiUrlInput) return;
+  try {
+    const apiUrlInput = document.getElementById('api-url');
+    if (!apiUrlInput) return;
 
-  const response = await chrome.runtime.sendMessage({ action: 'getApiUrl' });
-  if (response.success && response.url) {
-    apiUrlInput.value = response.url;
+    const response = await sendMessageWithRetry({ action: 'getApiUrl' });
+    if (response && response.success && response.url) {
+      apiUrlInput.value = response.url;
+    }
+  } catch (error) {
+    console.error('[Lia 360] Error loading API URL:', error);
+    // Silently fail - will use default value from HTML
   }
 }
 

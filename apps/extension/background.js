@@ -1424,6 +1424,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+
+        case 'GET_LEAD_COUNT': {
+          try {
+            const response = await apiRequest('/api/v1/leads?limit=1');
+            sendResponse({ success: true, count: response.pagination.total });
+          } catch (e) {
+            console.error('[Lia 360] Failed to fetch lead count:', e);
+            sendResponse({ success: false, error: e.message });
+          }
+          break;
+        }
+
+        case 'GET_USER_PROFILE': {
+          try {
+            const response = await apiRequest('/api/v1/auth/me');
+            if (response && response.success) {
+              const user = response.data.user;
+              await chrome.storage.local.set({ user });
+              sendResponse({ success: true, user });
+            } else {
+              sendResponse({ success: false });
+            }
+          } catch (e) {
+            const token = await getToken();
+            if (!token) {
+              sendResponse({ success: false, error: 'Unauthorized', loggedOut: true });
+            } else {
+              console.error('[Lia 360] Failed to fetch user profile:', e);
+              sendResponse({ success: false, error: e.message });
+            }
+          }
+          break;
+        }
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1464,6 +1498,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 console.log('Lia 360 Extension loaded');
+
+// --- ACTION CLICK HANDLER (Toggle Overlay) ---
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    // Send message to content script to toggle overlay
+    await chrome.tabs.sendMessage(tab.id, { action: 'toggleSettingsOverlay' });
+  } catch (error) {
+    console.warn('[Lia 360] Failed to toggle overlay:', error);
+    // Optional: Inject script if missing? content scripts should run automatically though.
+  }
+});
 
 // --- AUTOMATION EXECUTOR (Background Job Processor) ---
 
@@ -2596,3 +2641,36 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   await checkAndRefreshToken();
 })();
 
+// --- ACTION CLICK HANDLER ---
+// Handle extension icon click to open settings overlay
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab.id) return;
+
+  // Prevent injection on restricted pages (chrome://, edge://, etc)
+  if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+    console.log('[Lia 360] Cannot inject on this page');
+    return;
+  }
+
+  console.log('[Lia 360] Extension icon clicked, toggling overlay on tab:', tab.id);
+
+  try {
+    // Check if script is already injected by sending a message
+    // If it fails, we inject. If it succeeds, the overlay toggles.
+    await chrome.tabs.sendMessage(tab.id, { action: 'toggleSettingsOverlay' });
+    console.log('[Lia 360] Toggle message sent');
+  } catch (e) {
+    // If message fails, script likely not injected. Inject it now.
+    console.log('[Lia 360] Script not ready, injecting overlay...');
+
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content-scripts/settings-manager.js', 'content-scripts/overlay.js']
+      });
+      console.log('[Lia 360] Overlay script injected');
+    } catch (injectError) {
+      console.error('[Lia 360] Failed to inject overlay:', injectError);
+    }
+  }
+});
