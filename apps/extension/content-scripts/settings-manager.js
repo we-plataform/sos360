@@ -37,12 +37,30 @@
         instagram_autoScroll: true,
 
         // LinkedIn
+        linkedin_acceptedConnectionRequests: true,
+        linkedin_comments: true,
         linkedin_connections: true,
-        linkedin_searchPeople: true,
-        linkedin_postLikes: true,
-        linkedin_postComments: true,
-        linkedin_events: true,
-        linkedin_deepScan: false
+        linkedin_eventAttendees: true,
+        linkedin_eventInvited: true,
+        linkedin_eventInviteConnections: true,
+        linkedin_followers: true,
+        linkedin_following: true,
+        linkedin_likes: true,
+        linkedin_members: true,
+        linkedin_messages: true,
+        linkedin_messagesOverlay: true,
+        linkedin_post: true,
+        linkedin_profile: true,
+        linkedin_profileViewers: true,
+        linkedin_search: true,
+        linkedin_salesNavLeadList: true,
+        linkedin_salesNavMessages: true,
+        linkedin_salesNavMessagesOverlay: true,
+        linkedin_salesNavProfile: true,
+        linkedin_salesNavSavedSearch: true,
+        linkedin_recruiterPipeline: true,
+        linkedin_recruiterProfile: true,
+        linkedin_recruiterSearch: true,
     };
 
     class SettingsManager {

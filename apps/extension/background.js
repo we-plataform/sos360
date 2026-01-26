@@ -1241,6 +1241,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        case 'getAudience': {
+          try {
+            const audienceId = request.data.id;
+            const response = await apiRequest(`/api/v1/audiences/${audienceId}`, { method: 'GET' });
+            sendResponse({ success: true, data: response.data });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message });
+          }
+          break;
+        }
+
         case 'getPipelines': {
           const response = await apiRequest('/api/v1/pipelines', { method: 'GET' });
           sendResponse({ success: true, data: response.data });

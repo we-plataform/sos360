@@ -95,15 +95,32 @@
         },
         linkedin: {
             imports: [
+                { id: 'acceptedConnectionRequests', label: 'Accepted Connection Requests' },
+                { id: 'comments', label: 'Comments' },
                 { id: 'connections', label: 'Connections' },
-                { id: 'searchPeople', label: 'Search People' },
-                { id: 'postLikes', label: 'Post Likes' },
-                { id: 'postComments', label: 'Post Comments' },
-                { id: 'events', label: 'Event Attendees' },
+                { id: 'eventAttendees', label: 'Event Attendees', new: true },
+                { id: 'eventInvited', label: 'Event Invited', new: true },
+                { id: 'eventInviteConnections', label: 'Event - Invite Connections', new: true },
+                { id: 'followers', label: 'Followers' },
+                { id: 'following', label: 'Following' },
+                { id: 'likes', label: 'Likes' },
+                { id: 'members', label: 'Members' },
+                { id: 'messages', label: 'Messages' },
+                { id: 'messagesOverlay', label: 'Messages Overlay' },
+                { id: 'post', label: 'Post' },
+                { id: 'profile', label: 'Profile' },
+                { id: 'profileViewers', label: 'Profile Viewers', new: true },
+                { id: 'search', label: 'Search' },
+                { id: 'salesNavLeadList', label: 'Lead List (Sales Nav)' },
+                { id: 'salesNavMessages', label: 'Messages (Sales Nav)' },
+                { id: 'salesNavMessagesOverlay', label: 'Messages Overlay (Sales Nav)' },
+                { id: 'salesNavProfile', label: 'Profile (Sales Nav)' },
+                { id: 'salesNavSavedSearch', label: 'Saved Search (Sales Nav)' },
+                { id: 'recruiterPipeline', label: 'Pipeline (Recruiter)', new: true },
+                { id: 'recruiterProfile', label: 'Profile (Recruiter)', new: true },
+                { id: 'recruiterSearch', label: 'Search (Recruiter)', new: true },
             ],
-            other: [
-                { id: 'deepScan', label: 'Deep Scan (Visit profile for full details)' }
-            ]
+            other: []
         }
     };
 

@@ -63,7 +63,11 @@
       ],
       "js": [
         "content-scripts/settings-manager.js",
-        "content-scripts/linkedin.js"
+        "content-scripts/linkedin-utils.js",
+        "content-scripts/linkedin-state.js",
+        "content-scripts/linkedin-dom.js",
+        "content-scripts/linkedin-ui.js",
+        "content-scripts/linkedin-core.js"
       ],
       "run_at": "document_idle"
     },
