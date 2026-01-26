@@ -5,6 +5,7 @@ import { Users, MessageSquare, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { formatNumber, formatPercent } from '@/lib/utils';
+import { FunnelChart } from '@/components/analytics/FunnelChart';
 
 export default function DashboardPage() {
   const { data: overview, isLoading } = useQuery({
@@ -92,20 +93,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {funnel?.stages?.map((stage: any, index: number) => (
-                <div key={stage.name} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{stage.name}</span>
-                    <span className="font-medium">{formatNumber(stage.count)}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100">
-                    <div
-                      className="h-2 rounded-full bg-indigo-600 transition-all"
-                      style={{ width: `${stage.rate * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+              <div className="space-y-4">
+                <FunnelChart data={funnel?.stages || []} />
+              </div>
             </div>
           </CardContent>
         </Card>

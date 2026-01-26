@@ -8,7 +8,7 @@ import {
     Users,
     Target,
     MessageSquare,
-    BarChart3,
+
     Settings,
     LogOut,
     FileText,
@@ -29,14 +29,33 @@ import {
 } from '@/components/ui/tooltip';
 
 const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
-    { name: 'Leads', href: '/dashboard/leads', icon: Users },
-    { name: 'Posts', href: '/dashboard/posts', icon: FileText },
-    { name: 'Audiências', href: '/dashboard/audiences', icon: Target },
-    { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare },
-    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-    { name: 'Apps', href: '/dashboard/apps', icon: AppWindow },
-    { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
+    {
+        title: null,
+        items: [
+            { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+        ],
+    },
+    {
+        title: 'CRM',
+        items: [
+            { name: 'Leads', href: '/dashboard/leads', icon: Users, exact: false },
+            { name: 'Audiências', href: '/dashboard/audiences', icon: Target, exact: false },
+        ],
+    },
+    {
+        title: 'CONTEÚDO',
+        items: [
+            { name: 'Posts', href: '/dashboard/posts', icon: FileText, exact: false },
+            { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare, exact: false },
+        ],
+    },
+    {
+        title: 'SISTEMA',
+        items: [
+            { name: 'Apps', href: '/dashboard/apps', icon: AppWindow, exact: false },
+            { name: 'Configurações', href: '/dashboard/settings', icon: Settings, exact: false },
+        ],
+    },
 ];
 
 export function Sidebar() {
@@ -99,93 +118,64 @@ export function Sidebar() {
                 <ContextSelector collapsed={isCollapsed} />
             </div>
 
-            <nav className="flex-1 space-y-1 px-3 py-4">
+            <nav className="flex-1 space-y-6 px-3 py-4">
                 <TooltipProvider delayDuration={0}>
-                    {navigation.map((item) => {
-                        const isActive = item.exact
-                            ? pathname === item.href
-                            : pathname === item.href || pathname.startsWith(item.href + '/');
+                    {navigation.map((section, idx) => (
+                        <div key={idx} className="space-y-1">
+                            {section.title && !isCollapsed && (
+                                <h3 className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                    {section.title}
+                                </h3>
+                            )}
+                            {section.items.map((item) => {
+                                const isActive = item.exact
+                                    ? pathname === item.href
+                                    : pathname === item.href || pathname.startsWith(item.href + '/');
 
-                        if (isCollapsed) {
-                            return (
-                                <Tooltip key={item.name}>
-                                    <TooltipTrigger asChild>
-                                        <Link
-                                            href={item.href}
-                                            className={cn(
-                                                'flex items-center justify-center rounded-lg p-2 transition-colors',
-                                                isActive
-                                                    ? 'bg-primary/10 text-primary'
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                            )}
-                                        >
-                                            <item.icon className="h-5 w-5" />
-                                            <span className="sr-only">{item.name}</span>
-                                        </Link>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
+                                if (isCollapsed) {
+                                    return (
+                                        <Tooltip key={item.name}>
+                                            <TooltipTrigger asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex items-center justify-center rounded-lg h-[30px] w-[30px] transition-colors',
+                                                        isActive
+                                                            ? 'bg-primary/10 text-primary'
+                                                            : 'text-gray-700 hover:bg-gray-100'
+                                                    )}
+                                                >
+                                                    <item.icon className="h-4 w-4" />
+                                                    <span className="sr-only">{item.name}</span>
+                                                </Link>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">
+                                                {item.name}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    );
+                                }
+
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        className={cn(
+                                            'flex items-center gap-3 rounded-lg px-3 h-[30px] text-[14px] font-medium transition-colors',
+                                            isActive
+                                                ? 'text-primary'
+                                                : 'text-gray-700 hover:text-primary hover:bg-primary/10'
+                                        )}
+                                    >
+                                        <item.icon className="h-4 w-4" />
                                         {item.name}
-                                    </TooltipContent>
-                                </Tooltip>
-                            );
-                        }
-
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={cn(
-                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                                    isActive
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                )}
-                            >
-                                <item.icon className="h-5 w-5" />
-                                {item.name}
-                            </Link>
-                        );
-                    })}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </TooltipProvider>
             </nav>
-
-            <div className="border-t p-4">
-                <div className={cn("flex items-center gap-3", isCollapsed && "flex-col justify-center")}>
-                    <Avatar fallback={user?.fullName} size={isCollapsed ? "sm" : "sm"} />
-
-                    {!isCollapsed && (
-                        <div className="flex-1 overflow-hidden transition-all duration-300 opacity-100">
-                            <p className="truncate text-sm font-medium">{user?.fullName}</p>
-                            <p className="truncate text-xs text-gray-500">{user?.email}</p>
-                        </div>
-                    )}
-
-                    <TooltipProvider delayDuration={0}>
-                        {isCollapsed ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-                                    >
-                                        <LogOut className="h-4 w-4" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">Sair</TooltipContent>
-                            </Tooltip>
-                        ) : (
-                            <button
-                                onClick={handleLogout}
-                                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-                                title="Sair"
-                            >
-                                <LogOut className="h-4 w-4" />
-                            </button>
-                        )}
-                    </TooltipProvider>
-
-                </div>
-            </div>
         </aside>
     );
 }

@@ -126,9 +126,6 @@ export function ContextSelector({ collapsed = false }: { collapsed?: boolean }) 
                     <div className="max-h-[300px] overflow-y-auto">
                         {availableCompanies.map((company) => (
                             <DropdownMenuGroup key={company.id}>
-                                <DropdownMenuLabel className="text-xs text-gray-500 font-normal px-2 py-1 mt-1 bg-gray-50">
-                                    {company.name}
-                                </DropdownMenuLabel>
                                 {company.workspaces.map((workspace) => (
                                     <DropdownMenuItem
                                         key={workspace.id}
@@ -163,10 +160,6 @@ export function ContextSelector({ collapsed = false }: { collapsed?: boolean }) 
                     >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Novo Workspace
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled>
-                        <Building2 className="mr-2 h-4 w-4" />
-                        Nova Empresa
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

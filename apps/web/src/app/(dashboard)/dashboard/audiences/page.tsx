@@ -208,12 +208,7 @@ export default function AudiencesPage() {
                                         className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
                                     >
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-indigo-100 rounded-lg shrink-0">
-                                                    <Target className="h-4 w-4 text-indigo-600" />
-                                                </div>
-                                                <span className="font-medium text-gray-900">{audience.name}</span>
-                                            </div>
+                                            <span className="font-medium text-gray-900">{audience.name}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             {audience.gender.length > 0 ? (

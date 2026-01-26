@@ -359,11 +359,7 @@ class ApiClient {
     return this.request('/api/v1/analytics/funnel');
   }
 
-  async getAnalyticsTimeline(params?: Record<string, string>) {
-    const searchParams = new URLSearchParams(params);
-    const query = searchParams.toString();
-    return this.request(`/api/v1/analytics/timeline${query ? `?${query}` : ''}`);
-  }
+
 
   // Users
   async getUsers() {
