@@ -110,7 +110,7 @@ redis://localhost:6379
 ### REFRESH_TOKEN_EXPIRES_IN
 
 ```
-7d
+30d
 ```
 
 ---
@@ -129,7 +129,7 @@ redis://localhost:6379
 - [ ] `DIRECT_URL` - ⚠️ Opcional (se usar Supabase)
 - [ ] `REDIS_URL` - ⚠️ Opcional (pode ficar vazio)
 - [ ] `JWT_EXPIRES_IN` - ⚠️ Opcional (padrão: `15m`)
-- [ ] `REFRESH_TOKEN_EXPIRES_IN` - ⚠️ Opcional (padrão: `7d`)
+- [ ] `REFRESH_TOKEN_EXPIRES_IN` - ⚠️ Opcional (padrão: `30d`)
 
 ---
 
