@@ -1,10 +1,10 @@
 {
   "active": true,
   "spec": "011-reduce-refresh-token-expiration-from-365-days-to-3",
-  "state": "planning",
+  "state": "building",
   "subtasks": {
-    "completed": 0,
-    "total": 0,
+    "completed": 1,
+    "total": 16,
     "in_progress": 1,
     "failed": 0
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 3,
     "started_at": "2026-01-27T00:14:41.061687"
   },
-  "last_update": "2026-01-27T00:28:23.076633"
+  "last_update": "2026-01-27T00:32:25.936977"
 }

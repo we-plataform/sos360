@@ -74,7 +74,7 @@ export const RATE_LIMITS = {
 };
 
 export const JWT_EXPIRES_IN = '15m';
-export const REFRESH_TOKEN_EXPIRES_IN = '7d';
+export const REFRESH_TOKEN_EXPIRES_IN = '30d';
 
 export const PAGINATION_DEFAULTS = {
   page: 1,
