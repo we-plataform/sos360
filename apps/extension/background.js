@@ -3,6 +3,186 @@
 // Default API URL - can be overridden via chrome.storage.local
 const DEFAULT_API_URL = 'http://localhost:3001';
 
+// --- LEAD BATCHING SYSTEM ---
+
+/**
+ * Batches lead imports to reduce API calls
+ * Accumulates leads and sends them in batches to improve performance
+ */
+class LeadBatcher {
+  constructor(options = {}) {
+    this.batchSize = options.batchSize || 5; // Max leads per batch
+    this.flushInterval = options.flushInterval || 5000; // 5 seconds
+    this.pendingLeads = [];
+    this.flushTimer = null;
+    this.isFlushing = false;
+    this.platform = 'unknown';
+    this.source = 'extension';
+
+    // Bind methods to preserve context
+    this.flush = this.flush.bind(this);
+  }
+
+  /**
+   * Set platform and source for the batch
+   */
+  setContext(platform, source = 'extension') {
+    this.platform = platform;
+    this.source = source;
+  }
+
+  /**
+   * Add a lead to the batch
+   * @param {Object} lead - Lead object to add
+   * @param {Object} options - Optional parameters (pipelineStageId, sourceUrl, etc.)
+   */
+  async addLead(lead, options = {}) {
+    return new Promise((resolve, reject) => {
+      const leadWithMetadata = {
+        ...lead,
+        _batchOptions: options
+      };
+
+      this.pendingLeads.push({
+        lead: leadWithMetadata,
+        resolve,
+        reject
+      });
+
+      // Clear existing timer and set new one
+      if (this.flushTimer) {
+        clearTimeout(this.flushTimer);
+      }
+
+      // Flush immediately if batch is full
+      if (this.pendingLeads.length >= this.batchSize) {
+        this.flush().catch(err => console.error('[LeadBatcher] Flush error:', err));
+      } else {
+        // Otherwise set a timer to flush after interval
+        this.flushTimer = setTimeout(this.flush, this.flushInterval);
+      }
+    });
+  }
+
+  /**
+   * Flush the batch by sending all pending leads to the API
+   */
+  async flush() {
+    if (this.isFlushing || this.pendingLeads.length === 0) {
+      return;
+    }
+
+    this.isFlushing = true;
+
+    // Clear timer
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+
+    // Take a snapshot of pending leads
+    const currentBatch = this.pendingLeads.splice(0);
+
+    try {
+      console.log(`[LeadBatcher] Flushing batch of ${currentBatch.length} leads for ${this.platform}`);
+
+      // Extract leads and metadata
+      const leads = currentBatch.map(item => {
+        const { _batchOptions, ...leadData } = item.lead;
+        return leadData;
+      });
+
+      // Get options from first lead (they should be consistent)
+      const firstOptions = currentBatch[0].lead._batchOptions || {};
+
+      // Build request body
+      const requestBody = {
+        source: firstOptions.source || this.source,
+        platform: this.platform,
+        sourceUrl: firstOptions.sourceUrl,
+        leads: leads
+      };
+
+      // Add pipelineStageId if provided
+      if (firstOptions.pipelineStageId) {
+        requestBody.pipelineStageId = firstOptions.pipelineStageId;
+      }
+
+      // Send batch to API
+      const startTime = performance.now();
+      const response = await apiRequest('/api/v1/leads/import', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      const duration = performance.now() - startTime;
+
+      console.log(`[LeadBatcher] Batch import completed: ${currentBatch.length} leads in ${duration.toFixed(2)}ms`);
+
+      // Update local stats
+      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+      await chrome.storage.local.set({
+        leadsToday: (stats.leadsToday || 0) + currentBatch.length,
+        leadsMonth: (stats.leadsMonth || 0) + currentBatch.length,
+      });
+
+      // Resolve all promises
+      currentBatch.forEach(item => {
+        item.resolve(response?.data);
+      });
+
+    } catch (error) {
+      console.error('[LeadBatcher] Batch import failed:', error);
+
+      // Reject all promises
+      currentBatch.forEach(item => {
+        item.reject(error);
+      });
+    } finally {
+      this.isFlushing = false;
+
+      // If there are more leads pending, flush them
+      if (this.pendingLeads.length > 0) {
+        this.flush().catch(err => console.error('[LeadBatcher] Deferred flush error:', err));
+      }
+    }
+  }
+
+  /**
+   * Force immediate flush of all pending leads
+   */
+  async forceFlush() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    return this.flush();
+  }
+
+  /**
+   * Get number of pending leads
+   */
+  getPendingCount() {
+    return this.pendingLeads.length;
+  }
+}
+
+// Create global batcher instances
+const leadBatchers = {
+  linkedin: new LeadBatcher({ batchSize: 5, flushInterval: 5000 }),
+  instagram: new LeadBatcher({ batchSize: 5, flushInterval: 5000 }),
+  facebook: new LeadBatcher({ batchSize: 5, flushInterval: 5000 }),
+  twitter: new LeadBatcher({ batchSize: 5, flushInterval: 5000 }),
+  generic: new LeadBatcher({ batchSize: 5, flushInterval: 5000 })
+};
+
+/**
+ * Get or create a batcher for a specific platform
+ */
+function getLeadBatcher(platform) {
+  const normalizedPlatform = platform.toLowerCase();
+  return leadBatchers[normalizedPlatform] || leadBatchers.generic;
+}
+
 // --- PERFORMANCE MONITORING ---
 
 // Performance metrics collector
@@ -540,9 +720,21 @@ class LeadNavigator {
     this.processNextStep();
   }
 
-  stop() {
+  async stop() {
     this.state.status = 'STOPPED';
-    this.saveState();
+
+    // Flush any pending batched leads
+    try {
+      const batcher = getLeadBatcher('instagram');
+      if (batcher.getPendingCount() > 0) {
+        console.log(`[LeadNavigator] Flushing ${batcher.getPendingCount()} pending leads before stop...`);
+        await batcher.forceFlush();
+      }
+    } catch (e) {
+      console.error('[LeadNavigator] Error flushing pending leads:', e);
+    }
+
+    await this.saveState();
   }
 
   async processNextStep() {
@@ -738,23 +930,15 @@ class LeadNavigator {
 
   async saveLead(lead) {
     try {
-      // Send to API
-      await apiRequest('/api/v1/leads/import', {
-        method: 'POST',
-        body: JSON.stringify({
-          source: 'autonomous_agent',
-          platform: 'instagram',
-          sourceUrl: lead.profileUrl,
-          leads: [lead]
-        }),
+      // Use batcher to queue lead for import
+      const batcher = getLeadBatcher('instagram');
+      batcher.setContext('instagram', 'autonomous_agent');
+
+      // Add to batch - this will be sent with other leads
+      await batcher.addLead(lead, {
+        sourceUrl: lead.profileUrl
       });
 
-      // Update local stats
-      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
-      await chrome.storage.local.set({
-        leadsToday: (stats.leadsToday || 0) + 1,
-        leadsMonth: (stats.leadsMonth || 0) + 1,
-      });
     } catch (e) {
       console.error('Failed to save lead:', e);
     }
@@ -916,19 +1100,18 @@ class LinkedInNavigator {
 
   async saveLead(lead) {
     try {
-      const response = await apiRequest('/api/v1/leads/import', {
-        method: 'POST',
-        body: JSON.stringify({
-          source: 'extension',
-          platform: 'linkedin',
-          sourceUrl: lead.profileUrl,
-          leads: [lead]
-        })
+      // Use batcher to queue lead for import
+      const batcher = getLeadBatcher('linkedin');
+      batcher.setContext('linkedin', 'extension');
+
+      // Add to batch - this will be sent with other leads
+      const result = await batcher.addLead(lead, {
+        sourceUrl: lead.profileUrl
       });
 
       // If Deep Scan is enabled and we have a lead ID, triggering Behavioral Analysis
-      if (this.deepScan && response.data?.leadResults?.[0]?.id) {
-        const leadId = response.data.leadResults[0].id;
+      if (this.deepScan && result?.leadResults?.[0]?.id) {
+        const leadId = result.leadResults[0].id;
         console.log(`[LinkedInNavigator] Triggering Deep Behavioral Analysis for ${leadId}...`);
 
         try {
@@ -965,7 +1148,18 @@ class LinkedInNavigator {
     } catch (e) { }
   }
 
-  finish() {
+  async finish() {
+    // Flush any pending batched leads
+    try {
+      const batcher = getLeadBatcher('linkedin');
+      if (batcher.getPendingCount() > 0) {
+        console.log(`[LinkedInNavigator] Flushing ${batcher.getPendingCount()} pending leads...`);
+        await batcher.forceFlush();
+      }
+    } catch (e) {
+      console.error('[LinkedInNavigator] Error flushing pending leads:', e);
+    }
+
     this.isProcessing = false;
     this.updateProgress('Done!');
     console.log('[LinkedInNavigator] Finished work');
@@ -1178,22 +1372,15 @@ class InstagramNavigator {
 
   async saveLead(lead) {
     try {
-      await apiRequest('/api/v1/leads/import', {
-        method: 'POST',
-        body: JSON.stringify({
-          source: 'extension',
-          platform: 'instagram',
-          sourceUrl: lead.profileUrl,
-          leads: [lead]
-        })
+      // Use batcher to queue lead for import
+      const batcher = getLeadBatcher('instagram');
+      batcher.setContext('instagram', 'extension');
+
+      // Add to batch - this will be sent with other leads
+      await batcher.addLead(lead, {
+        sourceUrl: lead.profileUrl
       });
 
-      // Update local stats
-      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
-      await chrome.storage.local.set({
-        leadsToday: (stats.leadsToday || 0) + 1,
-        leadsMonth: (stats.leadsMonth || 0) + 1,
-      });
     } catch (e) {
       console.error('[InstagramNavigator] Failed to save lead:', e);
     }
@@ -1217,13 +1404,36 @@ class InstagramNavigator {
     }
   }
 
-  stop() {
+  async stop() {
     console.log('[InstagramNavigator] Stopping...');
+
+    // Flush any pending batched leads
+    try {
+      const batcher = getLeadBatcher('instagram');
+      if (batcher.getPendingCount() > 0) {
+        console.log(`[InstagramNavigator] Flushing ${batcher.getPendingCount()} pending leads before stop...`);
+        await batcher.forceFlush();
+      }
+    } catch (e) {
+      console.error('[InstagramNavigator] Error flushing pending leads:', e);
+    }
+
     this.isProcessing = false;
     this.updateProgress('Parado pelo usuário');
   }
 
-  finish() {
+  async finish() {
+    // Flush any pending batched leads
+    try {
+      const batcher = getLeadBatcher('instagram');
+      if (batcher.getPendingCount() > 0) {
+        console.log(`[InstagramNavigator] Flushing ${batcher.getPendingCount()} pending leads...`);
+        await batcher.forceFlush();
+      }
+    } catch (e) {
+      console.error('[InstagramNavigator] Error flushing pending leads:', e);
+    }
+
     this.isProcessing = false;
     const statsMsg = `Concluído! ${this.qualifiedCount} importados, ${this.discardedCount} descartados`;
     this.updateProgress(statsMsg);
