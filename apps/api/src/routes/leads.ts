@@ -463,7 +463,7 @@ leadsRouter.post(
       let duplicates = 0;
       let errors = 0;
       const leadResults: { id: string; profileUrl: string }[] = [];
-
+      const duplicateLeads: { id: string; profileUrl: string; username?: string | null; fullName?: string | null; email?: string | null; phone?: string | null }[] = [];
 
       for (const leadData of leads) {
         try {
@@ -547,6 +547,17 @@ leadsRouter.post(
           };
 
           if (existingLead) {
+            // Track duplicate lead details
+            duplicateLeads.push({
+              id: existingLead.id,
+              profileUrl: existingLead.profileUrl || profileUrl,
+              username: existingLead.username,
+              fullName: existingLead.fullName,
+              email: existingLead.email,
+              phone: existingLead.phone,
+            });
+            duplicates++;
+
             savedLead = await prisma.lead.update({
               where: { id: existingLead.id },
               data: {
@@ -595,8 +606,8 @@ leadsRouter.post(
               },
               select: selectFields,
             });
+            imported++;
           }
-          imported++;
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
           console.error('Error importing lead:', err);
@@ -626,8 +637,13 @@ leadsRouter.post(
           jobId: importJob.id,
           status: 'completed',
           totalLeads: leads.length,
-          result: { imported, duplicates, errors },
-          message: `Importação concluída: ${imported} leads importados`,
+          result: {
+            imported,
+            duplicates,
+            errors,
+            duplicateLeads // Detailed information about duplicate leads
+          },
+          message: `Importação concluída: ${imported} leads importados${duplicates > 0 ? `, ${duplicates} duplicatas atualizadas` : ''}`,
           leadResults // Return the list of imported IDs
         },
       });
