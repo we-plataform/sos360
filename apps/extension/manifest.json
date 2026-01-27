@@ -106,6 +106,7 @@
     {
       "resources": [
         "styles/overlay.css",
+        "content-scripts/bridge-helper.js",
         "content-scripts/instagram/utils.js",
         "content-scripts/instagram/profile-import.js",
         "content-scripts/instagram/post-import.js",

@@ -1,206 +1,25 @@
 {
   "active": true,
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-  "spec": "006-ai-powered-lead-scoring-and-qualification",
-  "state": "building",
-  "subtasks": {
-    "completed": 12,
-    "total": 14,
-=======
-  "spec": "011-reduce-refresh-token-expiration-from-365-days-to-3",
-  "state": "building",
-  "subtasks": {
-    "completed": 15,
-    "total": 16,
->>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
-=======
-  "spec": "009-extension-performance-optimization",
+  "spec": "015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-",
   "state": "building",
   "subtasks": {
     "completed": 2,
-    "total": 25,
->>>>>>> auto-claude/009-extension-performance-optimization
+    "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "current": "Integration & Testing",
-    "id": null,
-    "total": 2
-=======
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-  "spec": "004-add-rate-limiting-to-ai-analysis-and-enrichment-en",
-  "state": "complete",
-  "subtasks": {
-    "completed": 10,
-    "total": 10,
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-  "spec": "010-remove-excessive-debug-logging-that-exposes-sensit",
-  "state": "complete",
-  "subtasks": {
-    "completed": 4,
-    "total": 4,
->>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-    "in_progress": 0,
-    "failed": 0
-  },
-  "phase": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "current": "Complete",
-    "id": null,
-    "total": 4
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "current": "Verification and Testing",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
-=======
-    "current": "Remove Debug Logging",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
-=======
-    "current": "Complete",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "current": "Complete",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "current": "Complete",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "current": "Complete",
-    "id": null,
-    "total": 4
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "current": "Setup & Performance Baseline",
+    "current": "Fix Phase - Extract Bridge Helper",
     "id": null,
     "total": 3
->>>>>>> auto-claude/009-extension-performance-optimization
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "number": 5,
-    "started_at": "2026-01-27T00:47:54.079084"
+    "number": 3,
+    "started_at": "2026-01-27T15:05:27.597160"
   },
-  "last_update": "2026-01-27T01:08:39.115248"
-=======
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-    "number": 12,
-    "started_at": "2026-01-27T00:15:21.281808"
-  },
-  "last_update": "2026-01-27T04:20:00.000000"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "number": 13,
-    "started_at": "2026-01-27T09:45:56.118622"
-  },
-  "last_update": "2026-01-27T10:09:08.008819"
->>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
-=======
-    "number": 5,
-    "started_at": "2026-01-27T00:14:42.043657"
-  },
-  "last_update": "2026-01-27T00:40:00.000000"
->>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-    "number": 4,
-    "started_at": "2026-01-27T00:14:07.433505"
-  },
-  "last_update": "2026-01-27T00:30:29.135682"
->>>>>>> auto-claude/009-extension-performance-optimization
+  "last_update": "2026-01-27T15:10:47.590576"
 }

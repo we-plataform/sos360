@@ -11,94 +11,14 @@
       "Edit(./**)",
       "Glob(./**)",
       "Grep(./**)",
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
-=======
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/.auto-claude/specs/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/.auto-claude/specs/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/.auto-claude/specs/004-add-rate-limiting-to-ai-analysis-and-enrichment-en/**)",
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
->>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
-=======
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/.auto-claude/specs/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/.auto-claude/specs/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/010-remove-excessive-debug-logging-that-exposes-sensit/.auto-claude/specs/010-remove-excessive-debug-logging-that-exposes-sensit/**)",
->>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
->>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
-=======
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
-      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
-      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
-      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
-      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
-      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
->>>>>>> auto-claude/009-extension-performance-optimization
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/.auto-claude/specs/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/.auto-claude/specs/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/.auto-claude/specs/015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-/**)",
       "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
