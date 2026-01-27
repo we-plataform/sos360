@@ -12,6 +12,7 @@ import {
   verifyRefreshToken,
   verifySelectionToken,
   getTokenExpiresIn,
+  getRefreshTokenTTL,
 } from '../lib/jwt.js';
 import { storage } from '../lib/redis.js';
 import { UnauthorizedError, ConflictError, ForbiddenError } from '../lib/errors.js';
@@ -116,12 +117,12 @@ authRouter.post(
       });
       const refreshToken = signRefreshToken(user.id);
 
-      // Store refresh token (expires in 30 days to match token expiration)
+      // Store refresh token
       await storage.set(
         `refresh:${user.id}:${refreshToken.slice(-10)}`,
         refreshToken,
         'EX',
-        30 * 24 * 60 * 60
+        getRefreshTokenTTL()
       );
 
       res.status(201).json({
@@ -231,12 +232,12 @@ authRouter.post('/login', authRateLimit, validate(loginSchema), async (req, res,
       });
       const refreshToken = signRefreshToken(user.id);
 
-      // Store refresh token (expires in 30 days to match token expiration)
+      // Store refresh token
       await storage.set(
         `refresh:${user.id}:${refreshToken.slice(-10)}`,
         refreshToken,
         'EX',
-        30 * 24 * 60 * 60
+        getRefreshTokenTTL()
       );
 
       return res.json({
@@ -353,12 +354,12 @@ authRouter.post('/select-context', validate(selectContextSchema), async (req, re
     });
     const refreshToken = signRefreshToken(userId);
 
-    // Store refresh token (expires in 30 days to match token expiration)
+    // Store refresh token
     await storage.set(
       `refresh:${userId}:${refreshToken.slice(-10)}`,
       refreshToken,
       'EX',
-      30 * 24 * 60 * 60
+      getRefreshTokenTTL()
     );
 
     // Get user details
