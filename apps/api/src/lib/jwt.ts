@@ -81,3 +81,27 @@ export function getTokenExpiresIn(): number {
       return 900;
   }
 }
+
+/**
+ * Get refresh token TTL (time-to-live) in seconds
+ */
+export function getRefreshTokenTTL(): number {
+  const match = env.REFRESH_TOKEN_EXPIRES_IN.match(/^(\d+)([smhd])$/);
+  if (!match) return 259200; // default 3 days
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 3600;
+    case 'd':
+      return value * 86400;
+    default:
+      return 259200;
+  }
+}
