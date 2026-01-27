@@ -125,8 +125,12 @@ export function ExportLeadsDialog({ open, onOpenChange }: ExportLeadsDialogProps
         fields: Array.from(selectedFields),
       });
 
+      // Ensure blob has correct MIME type for CSV with UTF-8 encoding
+      // This is important for Excel to recognize the UTF-8 BOM correctly
+      const csvBlob = new Blob([blob], { type: 'text/csv; charset=utf-8' });
+
       // Create download link
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(csvBlob);
       const a = document.createElement('a');
       a.href = url;
 
