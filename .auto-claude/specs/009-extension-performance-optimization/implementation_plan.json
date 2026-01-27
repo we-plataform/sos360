@@ -130,7 +130,8 @@
             "type": "manual",
             "instructions": "Load extension in Chrome, verify no manifest errors, verify content scripts load"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully updated manifest.json to load modular scripts in correct dependency order. Instagram: added 5 modules (utils, profile-import, post-import, followers-import, ui) before instagram.js. LinkedIn: added 2 new modules from subtask-2-2 (linkedin-selectors.js, linkedin-extractors.js) in correct dependency order. All modules now loaded directly by manifest instead of dynamic loading, improving performance through better browser caching and parallel parsing."
         }
       ]
     },
@@ -655,5 +656,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T13:45:32.487Z"
+  "updated_at": "2026-01-27T13:52:18.795Z",
+  "recoveryNote": "Task recovered from stuck state at 2026-01-27T13:52:14.684Z"
 }
