@@ -278,6 +278,8 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
       data: {
         ...lead,
         tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
+        isDuplicate: !!existingLead,
+        duplicateLeadId: existingLead?.id || null,
       },
     });
   } catch (error) {
