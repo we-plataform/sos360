@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { Platform } from '@lia360/shared';
+import { DuplicateWarningDialog, type DuplicateLead } from './DuplicateWarningDialog';
 
 const platforms: Platform[] = [
   'instagram',
@@ -130,6 +131,9 @@ export function CreateLeadDialog({
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateLeads, setDuplicateLeads] = useState<DuplicateLead[]>([]);
+  const [pendingFormData, setPendingFormData] = useState<CreateLeadForm | null>(null);
 
   const resetForm = () => {
     setFormData({
@@ -144,6 +148,32 @@ export function CreateLeadDialog({
     });
     setErrors({});
   };
+
+  const checkDuplicatesMutation = useMutation({
+    mutationFn: async (data: CreateLeadForm) => {
+      const params: { email?: string; phone?: string; platform?: string; profileUrl?: string } = {};
+      if (data.email) params.email = data.email;
+      if (data.phone) params.phone = data.phone;
+      if (data.platform && formData.website) params.platform = data.platform;
+      if (data.website) params.profileUrl = data.website;
+
+      const response = await api.checkDuplicateLeads(params);
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      if (data && data.duplicates && data.duplicates.length > 0) {
+        setDuplicateLeads(data.duplicates);
+        setPendingFormData(variables);
+        setShowDuplicateWarning(true);
+      } else {
+        createLeadMutation.mutate(variables);
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error checking duplicates:', error);
+      createLeadMutation.mutate(variables);
+    },
+  });
 
   const createLeadMutation = useMutation({
     mutationFn: async (data: CreateLeadForm) => {
@@ -191,7 +221,12 @@ export function CreateLeadDialog({
     }
 
     setErrors({});
-    createLeadMutation.mutate(result.data);
+
+    if (result.data.email || result.data.phone || result.data.website) {
+      checkDuplicatesMutation.mutate(result.data);
+    } else {
+      createLeadMutation.mutate(result.data);
+    }
   };
 
   const handleChange = (
@@ -204,7 +239,22 @@ export function CreateLeadDialog({
     }
   };
 
+  const handleDuplicateWarningProceed = () => {
+    setShowDuplicateWarning(false);
+    if (pendingFormData) {
+      createLeadMutation.mutate(pendingFormData);
+      setPendingFormData(null);
+    }
+  };
+
+  const handleDuplicateWarningCancel = () => {
+    setShowDuplicateWarning(false);
+    setDuplicateLeads([]);
+    setPendingFormData(null);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
@@ -367,12 +417,26 @@ export function CreateLeadDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createLeadMutation.isPending}>
-              {createLeadMutation.isPending ? 'Criando...' : 'Criar Lead'}
+            <Button
+              type="submit"
+              disabled={createLeadMutation.isPending || checkDuplicatesMutation.isPending}
+            >
+              {createLeadMutation.isPending || checkDuplicatesMutation.isPending
+                ? 'Verificando...'
+                : 'Criar Lead'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+
+    <DuplicateWarningDialog
+      open={showDuplicateWarning}
+      onOpenChange={setShowDuplicateWarning}
+      duplicates={duplicateLeads}
+      onProceed={handleDuplicateWarningProceed}
+      onCancel={handleDuplicateWarningCancel}
+    />
+  </>
   );
 }
