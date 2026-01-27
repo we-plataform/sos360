@@ -3,7 +3,10 @@
  *
  * Generates CSV files with proper UTF-8 BOM encoding for Excel compatibility.
  * Handles special characters (commas, quotes, newlines) through proper escaping.
+ * Supports streaming for large datasets.
  */
+
+import type { Response } from 'express';
 
 export interface CsvGenerateOptions {
   /**
@@ -88,4 +91,125 @@ export function generateCSV<T extends Record<string, unknown>>(
 export function generateCsvFilename(basename: string): string {
   const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   return `${basename}-${date}.csv`;
+}
+
+/**
+ * Streams CSV data to an HTTP response
+ *
+ * This function is optimized for large datasets and streams data incrementally
+ * to avoid loading everything into memory.
+ *
+ * @param res - Express response object
+ * @param dataGenerator - Async generator that yields data rows one at a time
+ * @param fields - Array of field names (keys) to include in the CSV
+ * @param options - CSV generation options
+ *
+ * @example
+ * ```ts
+ * async function* generateLeads() {
+ *   const cursor = null;
+ *   let hasMore = true;
+ *   while (hasMore) {
+ *     const batch = await prisma.lead.findMany({ ... });
+ *     for (const lead of batch) yield lead;
+ *     hasMore = batch.length === batchSize;
+ *   }
+ * }
+ * await streamCSV(res, generateLeads(), ['name', 'email']);
+ * ```
+ */
+export async function streamCSV<T extends Record<string, unknown>>(
+  res: Response,
+  dataGenerator: AsyncGenerator<T>,
+  fields: (keyof T & string)[],
+  options: CsvGenerateOptions = {}
+): Promise<void> {
+  const { includeBOM = true } = options;
+
+  // Set headers for CSV download with streaming
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  // Write UTF-8 BOM for Excel compatibility
+  if (includeBOM) {
+    res.write('\uFEFF');
+  }
+
+  // Write header row
+  const headerRow = fields.map(f => escapeCsvField(f)).join(',') + '\n';
+  res.write(headerRow);
+
+  // Stream data rows
+  try {
+    for await (const row of dataGenerator) {
+      const values = fields.map(field => escapeCsvField(row[field]));
+      const csvRow = values.join(',') + '\n';
+      res.write(csvRow);
+    }
+
+    // End the response
+    res.end();
+  } catch (error) {
+    // Ensure response is closed on error
+    if (!res.writableEnded) {
+      res.end();
+    }
+    throw error;
+  }
+}
+
+/**
+ * Creates a batch data generator for streaming large datasets
+ *
+ * This helper function creates an async generator that fetches data in batches
+ * using cursor-based pagination, making it ideal for streaming large database results.
+ *
+ * @param fetchBatch - Function that fetches a batch of data given a cursor
+ * @param batchSize - Number of items to fetch per batch
+ * @returns Async generator that yields individual data items
+ *
+ * @example
+ * ```ts
+ * const fetchBatch = async (cursor: string | null) => {
+ *   return await prisma.lead.findMany({
+ *     take: batchSize,
+ *     skip: cursor ? 1 : 0,
+ *     cursor: cursor ? { id: cursor } : undefined,
+ *     orderBy: { id: 'asc' }
+ *   });
+ * };
+ * const generator = createBatchGenerator(fetchBatch, 100);
+ * ```
+ */
+export function createBatchGenerator<T>(
+  fetchBatch: (cursor: string | null) => Promise<T[]>,
+  batchSize: number
+): AsyncGenerator<T> {
+  return async function* batchGenerator() {
+    let cursor: string | null = null;
+    let hasMore = true;
+
+    while (hasMore) {
+      const batch = await fetchBatch(cursor);
+
+      if (batch.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      // Yield each item in the batch
+      for (const item of batch) {
+        yield item;
+      }
+
+      // If we got fewer items than the batch size, we're done
+      if (batch.length < batchSize) {
+        hasMore = false;
+      } else {
+        // Set cursor to the last item's ID for next batch
+        const lastItem = batch[batch.length - 1] as Record<string, unknown>;
+        cursor = lastItem.id as string;
+      }
+    }
+  }();
 }

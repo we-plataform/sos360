@@ -16,7 +16,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
-import { generateCSV, generateCsvFilename } from '../lib/csv-generator.js';
+import { generateCsvFilename, streamCSV, createBatchGenerator } from '../lib/csv-generator.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
 
@@ -116,7 +116,7 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
   }
 });
 
-// GET /leads/export - Export leads to CSV
+// GET /leads/export - Export leads to CSV (streamed for large datasets)
 leadsRouter.get('/export', validate(exportLeadsSchema, 'query'), async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
@@ -173,24 +173,6 @@ leadsRouter.get('/export', validate(exportLeadsSchema, 'query'), async (req, res
       where.assignedToId = req.user!.id;
     }
 
-    // Fetch leads from database
-    const leads = await prisma.lead.findMany({
-      where,
-      include: {
-        assignedTo: {
-          select: { id: true, fullName: true, avatarUrl: true },
-        },
-        tags: {
-          include: {
-            tag: { select: { id: true, name: true, color: true } },
-          },
-        },
-        socialProfiles: true,
-        address: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
     // Define all available fields for export
     const allFields = [
       'id',
@@ -231,35 +213,61 @@ leadsRouter.get('/export', validate(exportLeadsSchema, 'query'), async (req, res
       ? (fields as readonly string[]).filter(f => allFields.includes(f as any))
       : [...allFields];
 
-    // Transform leads to flat objects for CSV export
-    const flatData = leads.map((lead) => {
-      const row: Record<string, unknown> = {};
-
-      for (const field of selectedFields) {
-        if (field === 'assignedTo.fullName') {
-          row[field] = lead.assignedTo?.fullName || '';
-        } else if (field === 'tags') {
-          row[field] = lead.tags.map((lt: { tag: { name: string } }) => lt.tag.name).join('; ');
-        } else if (field.startsWith('address.')) {
-          const addressField = field.replace('address.', '') as keyof typeof lead.address;
-          row[field] = lead.address?.[addressField] || '';
-        } else {
-          row[field] = (lead as Record<string, unknown>)[field] || '';
-        }
-      }
-
-      return row;
-    });
-
-    // Generate CSV
-    const csv = generateCSV(flatData, selectedFields);
-
-    // Set headers for CSV download
+    // Set filename for download
     const filename = generateCsvFilename('leads');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    res.send(csv);
+    // Define batch fetcher for cursor-based pagination
+    const BATCH_SIZE = 100;
+    const fetchBatch = async (cursor: string | null) => {
+      return await prisma.lead.findMany({
+        where,
+        include: {
+          assignedTo: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          tags: {
+            include: {
+              tag: { select: { id: true, name: true, color: true } },
+            },
+          },
+          socialProfiles: true,
+          address: true,
+        },
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+      });
+    };
+
+    // Create batch generator for streaming
+    const leadGenerator = createBatchGenerator(fetchBatch, BATCH_SIZE);
+
+    // Transform leads to flat objects for CSV export (streaming)
+    async function* transformLeads() {
+      for await (const lead of leadGenerator) {
+        const row: Record<string, unknown> = {};
+
+        for (const field of selectedFields) {
+          if (field === 'assignedTo.fullName') {
+            row[field] = lead.assignedTo?.fullName || '';
+          } else if (field === 'tags') {
+            row[field] = lead.tags.map((lt: { tag: { name: string } }) => lt.tag.name).join('; ');
+          } else if (field.startsWith('address.')) {
+            const addressField = field.replace('address.', '') as keyof typeof lead.address;
+            row[field] = lead.address?.[addressField] || '';
+          } else {
+            row[field] = (lead as Record<string, unknown>)[field] || '';
+          }
+        }
+
+        yield row;
+      }
+    }
+
+    // Stream CSV to response
+    await streamCSV(res, transformLeads(), selectedFields);
   } catch (error) {
     next(error);
   }
