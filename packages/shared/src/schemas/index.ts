@@ -316,9 +316,9 @@ export const exportLeadsSchema = z.object({
   search: z.string().max(200).optional(),
   scoreMin: z.coerce.number().int().min(0).max(100).optional(),
   scoreMax: z.coerce.number().int().min(0).max(100).optional(),
-  // Date range filtering
-  createdAfter: z.string().datetime().optional(),
-  createdBefore: z.string().datetime().optional(),
+  // Date range filtering - accepts both date strings (YYYY-MM-DD) and datetime strings (ISO 8601)
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
   // Format specification (currently only CSV supported)
   format: z.enum(['csv']).default('csv'),
 });
