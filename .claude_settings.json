@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/.auto-claude/specs/006-ai-powered-lead-scoring-and-qualification/**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
+      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
+      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

@@ -378,8 +378,17 @@ class ApiClient {
     return this.request('/api/v1/pipelines');
   }
 
-  async getPipeline(id: string) {
-    return this.request(`/api/v1/pipelines/${id}`);
+  async getPipeline(id: string, params?: { scoreMin?: number; scoreMax?: number; sortBy?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/pipelines/${id}${query ? `?${query}` : ''}`);
   }
 
   async createPipeline(data: { name: string; description?: string; stages?: { name: string; color?: string }[] }) {
@@ -541,6 +550,63 @@ class ApiClient {
   async unlinkPostFromLead(postId: string) {
     return this.request(`/api/v1/posts/${postId}/link-lead`, {
       method: 'DELETE',
+    });
+  }
+
+  // Scoring Configuration
+  async getScoringConfig() {
+    return this.request('/api/v1/scoring/config');
+  }
+
+  async createScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async calculateLeadScore(leadId: string, forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate`, {
+      method: 'POST',
+      body: JSON.stringify({ leadId, forceRecalculate }),
+    });
+  }
+
+  async batchCalculateScores(leadIds: string[], forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds, forceRecalculate }),
     });
   }
 }

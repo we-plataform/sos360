@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Avatar } from '@/components/ui/avatar';
 import { KanbanLead } from './KanbanBoard';
+import { ScoreBadge } from '@/components/leads/ScoreBadge';
 import {
   Linkedin,
   Mail,
@@ -92,7 +93,7 @@ export function KanbanCard({ lead, isDragging, onClick, onUpdateStatus }: Kanban
       className={`kanban-card ${isDragging ? 'kanban-card--dragging' : ''}`}
       onClick={onClick}
     >
-      {/* Top Row: Avatar + Name + Menu */}
+      {/* Top Row: Avatar + Name + Score + Menu */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <Avatar
@@ -100,11 +101,12 @@ export function KanbanCard({ lead, isDragging, onClick, onUpdateStatus }: Kanban
             fallback={lead.fullName?.substring(0, 2).toUpperCase() || 'L'}
             className="w-8 h-8 rounded-full border border-gray-100 flex-shrink-0"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h4 className="text-sm font-bold text-gray-800 truncate" title={lead.fullName || ''}>
               {lead.fullName || lead.username || 'Lead sem nome'}
             </h4>
           </div>
+          <ScoreBadge score={lead.score} size="sm" className="flex-shrink-0" />
         </div>
         <div className="flex items-center gap-1">
           <span className="text-gray-300 hover:text-gray-500 cursor-pointer"><Flag size={12} fill="currentColor" /></span>
@@ -140,7 +142,6 @@ export function KanbanCard({ lead, isDragging, onClick, onUpdateStatus }: Kanban
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
               const newStatus = e.target.value;
-              console.log('[KANBAN-CARD] Status changing to:', newStatus);
               onUpdateStatus?.(newStatus);
             }}
           >

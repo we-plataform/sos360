@@ -306,3 +306,4 @@ export const conversationFiltersSchema = paginationSchema.extend({
 export * from './automations';
 export * from './enrichment';
 export * from './posts';
+export * from './scoring';
