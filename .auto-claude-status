@@ -2,6 +2,7 @@
   "active": true,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
@@ -17,6 +18,8 @@
 =======
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
   "spec": "004-add-rate-limiting-to-ai-analysis-and-enrichment-en",
   "state": "complete",
   "subtasks": {
@@ -30,6 +33,9 @@
     "id": null,
     "total": 4
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
@@ -41,6 +47,7 @@
   "session": {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     "number": 5,
     "started_at": "2026-01-27T00:47:54.079084"
   },
@@ -48,11 +55,16 @@
 =======
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
     "number": 12,
     "started_at": "2026-01-27T00:15:21.281808"
   },
   "last_update": "2026-01-27T04:20:00.000000"
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en

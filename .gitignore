@@ -62,6 +62,9 @@ node_modules/
 # Auto Claude data directory
 .auto-claude/
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
