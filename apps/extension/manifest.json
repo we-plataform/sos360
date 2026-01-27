@@ -73,6 +73,17 @@
     },
     {
       "matches": [
+        "*://*.twitter.com/*",
+        "*://*.x.com/*"
+      ],
+      "js": [
+        "content-scripts/settings-manager.js",
+        "content-scripts/twitter.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
         "http://localhost:3000/*",
         "https://*.vercel.app/*",
         "https://*.render.com/*",
