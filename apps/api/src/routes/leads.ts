@@ -13,7 +13,7 @@ import {
 } from '@lia360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { importRateLimit, analyzeRateLimit, analyzeBatchRateLimit } from '../middleware/rate-limit.js';
+import { importRateLimit, analyzeRateLimit, analyzeBatchRateLimit, analyzeDeepRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
@@ -379,6 +379,7 @@ leadsRouter.post(
 leadsRouter.post(
   '/analyze-deep',
   authorize('owner', 'admin', 'manager', 'agent'),
+  analyzeDeepRateLimit,
   async (req, res, next) => {
     try {
       const { leadId, profile, posts } = req.body;
