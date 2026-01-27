@@ -1,5 +1,6 @@
 {
   "active": true,
+<<<<<<< HEAD
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
@@ -12,14 +13,35 @@
     "current": "Integration & Testing",
     "id": null,
     "total": 2
+=======
+  "spec": "004-add-rate-limiting-to-ai-analysis-and-enrichment-en",
+  "state": "complete",
+  "subtasks": {
+    "completed": 10,
+    "total": 10,
+    "in_progress": 0,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Complete",
+    "id": null,
+    "total": 4
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
+<<<<<<< HEAD
     "number": 5,
     "started_at": "2026-01-27T00:47:54.079084"
   },
   "last_update": "2026-01-27T01:08:39.115248"
+=======
+    "number": 12,
+    "started_at": "2026-01-27T00:15:21.281808"
+  },
+  "last_update": "2026-01-27T04:20:00.000000"
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 }
