@@ -1,0 +1,95 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Fix LinkedIn People Page Extension CSP Violation
+Workspace: /Users/farinelli/Documents/Projects/lia360-web
+Started: 2026-01-27
+
+Workflow Type: investigation
+Rationale: Root cause identified (CSP blocking inline scripts). Proceeding to Fix and Harden phases.
+
+Session 1 (Planner):
+- Created implementation_plan.json
+- Phases: 2 (Fix, Harden)
+- Total subtasks: 7
+- Created init.sh
+
+Phase Summary:
+- Phase 1 (Fix): 3 subtasks, depends on []
+  - subtask-1-1: Create bridge-helper.js with extracted LiaChrome bridge code
+  - subtask-1-2: Refactor injectBridgeHelper() to load external script via chrome.runtime.getURL()
+  - subtask-1-3: Update manifest.json web_accessible_resources to include bridge-helper.js
+
+- Phase 2 (Harden): 4 subtasks, depends on [phase-1-fix]
+  - subtask-2-1: Build extension and verify no build errors
+  - subtask-2-2: Verify bridge-helper.js appears in dist/ directory after build
+  - subtask-2-3: Manual verification: Load extension in Chrome and verify no CSP errors on LinkedIn People page
+  - subtask-2-4: Cross-platform validation: Verify extension still works on Instagram and Facebook
+
+Services Involved:
+- extension: Chrome Manifest V3 extension being refactored for CSP compliance
+
+Root Cause (from Investigation Phase):
+- LinkedIn's Content Security Policy blocks inline script execution
+- bootstrap.js injectBridgeHelper() uses script.textContent (inline) - blocked by CSP
+- Missing 'unsafe-inline' in LinkedIn's script-src directive
+- Impact: window.LiaChrome never created, breaking all Chrome API communication
+
+Solution:
+- Extract inline LiaChrome bridge code (bootstrap.js lines 223-309) to bridge-helper.js
+- Refactor injectBridgeHelper() to load external script via chrome.runtime.getURL()
+- Update manifest.json web_accessible_resources to include bridge-helper.js
+- External scripts from chrome-extension:// origin ARE permitted by LinkedIn's CSP
+
+Parallelism Analysis:
+- Max parallel phases: 1
+- Recommended workers: 1
+- Parallel groups: None - sequential execution required (Fix must complete before Harden can validate)
+
+Risk Assessment:
+- Risk Level: HIGH
+- Reason: Bridge helper is critical component - all platform scripts depend on LiaChrome
+- Mitigation: Thorough testing on actual LinkedIn pages, cross-platform validation
+
+Verification Strategy:
+- Unit tests: File structure verification (bridge-helper.js exists, manifest updated)
+- Integration tests: Build verification, dist/ output verification
+- Manual tests: Browser testing on LinkedIn/Instagram/Facebook for CSP compliance
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source .auto-claude/.venv/bin/activate && python .auto-claude/run.py --spec 015 --parallel 1
+
+Session 2 (Fix Phase):
+- subtask-1-1 COMPLETED: Created bridge-helper.js with extracted LiaChrome bridge code
+  - File: apps/extension/content-scripts/bridge-helper.js
+  - Contains IIFE that creates window.LiaChrome API
+  - Implements runtime.sendMessage, storage.local, event forwarding
+  - Dispatches 'lia-chrome-ready' event on initialization
+- subtask-1-2 COMPLETED: Refactored injectBridgeHelper() to load external script
+  - Updated bootstrap.js to use chrome.runtime.getURL() for external loading
+  - Changed from script.textContent (inline) to script.src (CSP-compliant)
+  - Loads content-scripts/bridge-helper.js as external file
+- subtask-1-3 COMPLETED: Updated manifest.json web_accessible_resources
+  - Added content-scripts/bridge-helper.js to web_accessible_resources
+  - Permits external loading by page context scripts
+
+Session 3 (Harden Phase):
+- subtask-2-1 COMPLETED: Build extension and verify no build errors
+  - All required files present and valid
+  - manifest.json is valid JSON
+  - bootstrap.js uses external script loading (CSP compliant)
+  - bridge-helper.js structure verified (IIFE, window.LiaChrome, ready event)
+  - Extension is ready for browser testing
+
+=== STATUS ===
+Phase 1 (Fix): COMPLETED (3/3 subtasks)
+Phase 2 (Harden): IN PROGRESS (1/4 subtasks completed)
+
+Remaining:
+- subtask-2-2: Verify bridge-helper.js appears in dist/ directory after build
+- subtask-2-3: Manual verification - Load extension in Chrome, test on LinkedIn
+- subtask-2-4: Cross-platform validation - Instagram and Facebook
+
+=== END SESSION 3 ===

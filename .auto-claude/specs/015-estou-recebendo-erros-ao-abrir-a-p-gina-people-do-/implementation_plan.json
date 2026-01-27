@@ -1,0 +1,276 @@
+{
+  "feature": "Fix LinkedIn People Page Extension CSP Violation",
+  "workflow_type": "investigation",
+  "workflow_rationale": "Investigation workflow because the root cause has been identified (CSP blocking inline script injection in bootstrap.js). Now proceeding to Fix and Harden phases to implement the solution and verify it works across all platforms.",
+  "phases": [
+    {
+      "id": "phase-1-fix",
+      "name": "Fix Phase - Extract Bridge Helper",
+      "type": "implementation",
+      "description": "Extract inline LiaChrome bridge code to external file and refactor bootstrap.js to load it as external script (CSP-compliant)",
+      "depends_on": [],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create bridge-helper.js with extracted LiaChrome bridge code",
+          "service": "extension",
+          "files_to_create": [
+            "apps/extension/content-scripts/bridge-helper.js"
+          ],
+          "files_to_modify": [],
+          "patterns_from": [
+            "apps/extension/content-scripts/bootstrap.js (lines 223-309)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f apps/extension/content-scripts/bridge-helper.js && head -5 apps/extension/content-scripts/bridge-helper.js | grep -q '(function()'",
+            "expected": "Exit code 0 (file exists and contains IIFE)"
+          },
+          "status": "completed"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Refactor injectBridgeHelper() to load external script via chrome.runtime.getURL()",
+          "service": "extension",
+          "files_to_modify": [
+            "apps/extension/content-scripts/bootstrap.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/extension/content-scripts/bootstrap.js (lines 157-183 - loadScript pattern)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -A5 'injectBridgeHelper' apps/extension/content-scripts/bootstrap.js | grep -q 'chrome.runtime.getURL'",
+            "expected": "Exit code 0 (method uses external script loading)"
+          },
+          "status": "completed"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Update manifest.json web_accessible_resources to include bridge-helper.js",
+          "service": "extension",
+          "files_to_modify": [
+            "apps/extension/manifest.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/extension/manifest.json (lines 64-93)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -q 'content-scripts/bridge-helper.js' apps/extension/manifest.json",
+            "expected": "Exit code 0 (bridge-helper.js in web_accessible_resources)"
+          },
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-harden",
+      "name": "Harden Phase - Validate and Test",
+      "type": "integration",
+      "description": "Build extension, verify CSP compliance, test mining menu functionality, and cross-platform validation",
+      "depends_on": [
+        "phase-1-fix"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Build extension and verify no build errors",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd apps/extension && npm run build 2>&1 | tail -20",
+            "expected": "Build completes successfully with no errors"
+          },
+          "status": "completed"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Verify bridge-helper.js appears in dist/ directory after build",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test -f apps/extension/dist/content-scripts/bridge-helper.js && echo 'bridge-helper.js exists in dist/'",
+            "expected": "bridge-helper.js exists in dist/"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Manual verification: Load extension in Chrome and verify no CSP errors on LinkedIn People page",
+          "service": "extension",
+          "all_services": false,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "1. Build extension (npm run build:extension)\n2. Load in Chrome (chrome://extensions → Load unpacked → apps/extension/dist)\n3. Navigate to https://www.linkedin.com/search/results/people/\n4. Open DevTools Console\n5. Verify NO CSP violation errors\n6. Verify window.LiaChrome exists (run console.log(window.LiaChrome))\n7. Check that mining menu appears"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-4",
+          "description": "Cross-platform validation: Verify extension still works on Instagram and Facebook",
+          "service": "extension",
+          "all_services": false,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "1. Navigate to instagram.com\n2. Open DevTools Console\n3. Verify window.LiaChrome exists\n4. Verify no CSP errors\n5. Repeat for facebook.com\n6. Confirm extension loads on all platforms without errors"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 2,
+    "total_subtasks": 7,
+    "services_involved": [
+      "extension"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution required - Fix phase must complete before Harden phase can validate"
+    },
+    "startup_command": "cd /Users/farinelli/Documents/Projects/lia360-web && source .auto-claude/.venv/bin/activate && python .auto-claude/run.py --spec 015 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "high",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "No CSP violation errors in browser console on LinkedIn",
+      "window.LiaChrome successfully created and accessible",
+      "Mining menu opens correctly on LinkedIn People Search page",
+      "Extension continues to work on Instagram and Facebook",
+      "No regressions in existing functionality"
+    ],
+    "verification_steps": [
+      {
+        "name": "Build Extension",
+        "command": "npm run build:extension",
+        "expected_outcome": "Build completes successfully with no errors",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "File Structure Verification",
+        "command": "test -f apps/extension/content-scripts/bridge-helper.js && test -f apps/extension/dist/content-scripts/bridge-helper.js && grep -q 'bridge-helper.js' apps/extension/manifest.json",
+        "expected_outcome": "All checks pass (files exist, manifest updated)",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Manual Test - LinkedIn CSP",
+        "command": "Manual: Load extension, navigate to LinkedIn People Search, check console for CSP errors",
+        "expected_outcome": "ZERO CSP violation errors in console",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Manual Test - LiaChrome Bridge",
+        "command": "Manual: In LinkedIn console, execute console.log(window.LiaChrome)",
+        "expected_outcome": "Object exists with runtime and storage properties",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Manual Test - Mining Menu",
+        "command": "Manual: Navigate to LinkedIn People Search, verify mining menu appears and opens",
+        "expected_outcome": "Mining menu opens without errors",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "High risk change because bridge helper is critical component - all platform scripts depend on LiaChrome. CSP fix requires thorough validation on actual LinkedIn pages to ensure no regressions. Manual browser testing required because CSP violations only manifest in real browser environment with LinkedIn's actual CSP headers."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "test -f apps/extension/content-scripts/bridge-helper.js",
+        "grep -q 'chrome.runtime.getURL' apps/extension/content-scripts/bootstrap.js",
+        "grep -q 'bridge-helper.js' apps/extension/manifest.json"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm run build:extension",
+        "test -f apps/extension/dist/content-scripts/bridge-helper.js"
+      ],
+      "services_to_test": [
+        "extension"
+      ]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "https://www.linkedin.com/search/results/people/",
+          "checks": [
+            "No CSP errors in console",
+            "window.LiaChrome exists",
+            "Mining menu opens correctly"
+          ]
+        },
+        {
+          "url": "https://www.instagram.com/",
+          "checks": [
+            "Extension loads",
+            "No CSP errors",
+            "window.LiaChrome exists"
+          ]
+        },
+        {
+          "url": "https://www.facebook.com/",
+          "checks": [
+            "Extension loads",
+            "No CSP errors",
+            "window.LiaChrome exists"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2026-01-27T18:11:35.979Z"
+}
