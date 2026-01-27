@@ -27,9 +27,24 @@
 
     // --- Core Logic ---
 
-    function detectProfilePage() {
+    /**
+     * Check if current page is a connections/search page where overlay should load
+     */
+    function isConnectionsOrSearchPage() {
         const url = window.location.href;
-        const isProfile = url.includes('/in/') && url.match(/\/in\/[^\/]+/);
+        return url.includes('/connections/') || url.includes('/search/results/');
+    }
+
+    /**
+     * Check if current page is a profile page
+     */
+    function isProfilePage() {
+        const url = window.location.href;
+        return url.includes('/in/') && url.match(/\/in\/[^\/]+/);
+    }
+
+    function detectProfilePage() {
+        const isProfile = isProfilePage();
 
         if (isProfile && !profileMenu) {
             console.log('[Lia 360] Perfil detectado, criando menu');
@@ -45,8 +60,7 @@
         checkForSavedState();
 
         // Check if we're already on a connections/search page on initial load
-        const currentUrl = location.href;
-        if (currentUrl.includes('/connections/') || currentUrl.includes('/search/results/')) {
+        if (isConnectionsOrSearchPage()) {
             console.log('[Lia 360] Initial load: connections/search page detected');
             initOverlay();
         }
@@ -58,7 +72,7 @@
                 console.log('[Lia 360] URL changed to:', url);
                 detectProfilePage();
                 // Also re-init Overlay logic if needed
-                if (url.includes('/connections/') || url.includes('/search/results/')) {
+                if (isConnectionsOrSearchPage()) {
                     console.log('[Lia 360] URL change: connections/search page detected');
                     initOverlay();
                 }
@@ -78,6 +92,13 @@
         console.log('[Lia 360] initOverlay() called - starting card poller');
         // Polling for connection cards to show extraction overlay
         const poller = setInterval(() => {
+            // Double-check we're still on a valid page before creating overlay
+            if (!isConnectionsOrSearchPage()) {
+                console.log('[Lia 360] No longer on connections/search page, stopping poller');
+                clearInterval(poller);
+                return;
+            }
+
             const cards = DOM.findConnectionCards();
             console.log('[Lia 360] Polling for cards... found:', cards.length);
             if (cards.length > 0) {
@@ -253,6 +274,13 @@
             const state = State.get();
 
             if (state.qualifiedLeads.size > 0) {
+                // Only restore overlay if we're on a connections/search page
+                if (!isConnectionsOrSearchPage()) {
+                    console.log('[Lia 360] Saved state found but not on connections/search page, skipping overlay restore');
+                    // Keep the state saved for when user navigates to a valid page
+                    return;
+                }
+
                 const resume = confirm(
                     `You have ${state.qualifiedLeads.size} qualified leads from a previous session.\n\n` +
                     `Scanned: ${state.totalConnectionsFound} connections\n` +
