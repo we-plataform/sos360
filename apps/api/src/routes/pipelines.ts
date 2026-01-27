@@ -82,6 +82,24 @@ pipelinesRouter.get('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         const workspaceId = req.user!.workspaceId;
+        const { scoreMin, scoreMax, sortBy } = req.query;
+
+        // Build where clause for score filtering
+        const leadWhere: Record<string, unknown> = {};
+        if (scoreMin !== undefined || scoreMax !== undefined) {
+            leadWhere.score = {
+                ...(scoreMin !== undefined && { gte: Number(scoreMin) }),
+                ...(scoreMax !== undefined && { lte: Number(scoreMax) }),
+            };
+        }
+
+        // Determine sort order
+        let leadOrderBy: Record<string, 'asc' | 'desc'> = { position: 'asc' };
+        if (sortBy === 'score') {
+            leadOrderBy = { score: 'desc' };
+        } else if (sortBy === 'score_asc') {
+            leadOrderBy = { score: 'asc' };
+        }
 
         const pipeline = await prisma.pipeline.findFirst({
             where: { id, workspaceId },
@@ -91,7 +109,8 @@ pipelinesRouter.get('/:id', async (req, res, next) => {
                     include: {
                         automations: true,
                         leads: {
-                            orderBy: { position: 'asc' },
+                            where: Object.keys(leadWhere).length > 0 ? leadWhere : undefined,
+                            orderBy: leadOrderBy,
                             select: {
                                 id: true,
                                 fullName: true,

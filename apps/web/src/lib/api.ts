@@ -378,8 +378,17 @@ class ApiClient {
     return this.request('/api/v1/pipelines');
   }
 
-  async getPipeline(id: string) {
-    return this.request(`/api/v1/pipelines/${id}`);
+  async getPipeline(id: string, params?: { scoreMin?: number; scoreMax?: number; sortBy?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/pipelines/${id}${query ? `?${query}` : ''}`);
   }
 
   async createPipeline(data: { name: string; description?: string; stages?: { name: string; color?: string }[] }) {
