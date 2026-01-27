@@ -576,7 +576,7 @@
         document.removeEventListener('keydown', escHandler);
       }
     };
-    document.addEventListener('keydown', escHandler);
+    document.addEventListener('keydown', escHandler, { passive: true });
   }
 
   async function loadAndPopulateAudiences() {

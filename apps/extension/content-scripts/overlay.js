@@ -442,12 +442,12 @@
                 });
             }
 
-            // Escape Key
+            // Escape Key - passive to avoid blocking scroll performance
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && this.container && this.container.style.display !== 'none') {
                     this.toggle(false);
                 }
-            });
+            }, { passive: true });
 
             // Tabs
             this.shadow.querySelectorAll('.lia-tab').forEach(tab => {

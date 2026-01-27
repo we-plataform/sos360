@@ -10,14 +10,14 @@
   console.log('[Lia 360] Current URL:', window.location.href);
   console.log('[Lia 360] ========================================');
 
-  // Global error handlers
+  // Global error handlers - passive to avoid blocking scroll performance
   window.addEventListener('error', (event) => {
     console.error('[Lia 360] SCRIPT ERROR:', event.error);
-  });
+  }, { passive: true });
 
   window.addEventListener('unhandledrejection', (event) => {
     console.error('[Lia 360] UNHANDLED PROMISE REJECTION:', event.reason);
-  });
+  }, { passive: true });
 
   // Visual indicator (debug badge)
   const debugBadge = document.createElement('div');
