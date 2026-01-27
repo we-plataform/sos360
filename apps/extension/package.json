@@ -1,0 +1,15 @@
+{
+  "name": "@lia360/extension",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Lia 360 Chrome Extension for lead import from social media",
+  "scripts": {
+    "build": "node esbuild.config.js",
+    "dev": "node esbuild.config.js --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

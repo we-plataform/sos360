@@ -79,7 +79,7 @@
       const self = this;
       return {
         getHumanDelay(min = 1000, max = 3000) {
-          return min + Math.random() * * (max - min);
+          return min + Math.random() * (max - min);
         },
 
         getRandomPosition(element) {
