@@ -3,6 +3,175 @@
 // Default API URL - can be overridden via chrome.storage.local
 const DEFAULT_API_URL = 'http://localhost:3001';
 
+// --- PERFORMANCE MONITORING ---
+
+// Performance metrics collector
+const performanceMetrics = {
+  startupStartTime: performance.now(),
+  startupEndTime: null,
+  apiCallCount: 0,
+  apiCallTimes: [],
+  memorySnapshots: [],
+  lastMemoryCheck: null,
+
+  // Record startup completion
+  recordStartup() {
+    this.startupEndTime = performance.now();
+    this.logStartupMetrics();
+    this.startMemoryMonitoring();
+  },
+
+  // Log startup performance metrics
+  logStartupMetrics() {
+    const startupTime = this.startupEndTime - this.startupStartTime;
+
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+    console.log('[Lia 360] 🚀 Performance Metrics - Service Worker Startup');
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+    console.log(`[Lia 360] ⏱️  Startup Time: ${startupTime.toFixed(2)}ms`);
+    console.log(`[Lia 360] 📅 Started At: ${new Date(this.startupStartTime).toISOString()}`);
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+  },
+
+  // Record an API call
+  recordApiCall(endpoint, duration) {
+    this.apiCallCount++;
+    this.apiCallTimes.push({
+      endpoint,
+      duration,
+      timestamp: Date.now()
+    });
+
+    // Keep only last 100 API calls to prevent memory growth
+    if (this.apiCallTimes.length > 100) {
+      this.apiCallTimes.shift();
+    }
+
+    // Log slow API calls (> 1 second)
+    if (duration > 1000) {
+      console.warn(`[Lia 360] ⚠️  Slow API Call: ${endpoint} took ${duration.toFixed(2)}ms`);
+    }
+  },
+
+  // Get API call statistics
+  getApiStats() {
+    if (this.apiCallTimes.length === 0) {
+      return { count: 0, avg: 0, min: 0, max: 0 };
+    }
+
+    const durations = this.apiCallTimes.map(call => call.duration);
+    const sum = durations.reduce((a, b) => a + b, 0);
+
+    return {
+      count: this.apiCallTimes.length,
+      avg: sum / this.apiCallTimes.length,
+      min: Math.min(...durations),
+      max: Math.max(...durations)
+    };
+  },
+
+  // Log API performance summary
+  logApiMetrics() {
+    const stats = this.getApiStats();
+
+    if (stats.count === 0) return;
+
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+    console.log('[Lia 360] 📊 Performance Metrics - API Calls');
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+    console.log(`[Lia 360] 📞 Total Calls: ${stats.count}`);
+    console.log(`[Lia 360] ⏱️  Avg Duration: ${stats.avg.toFixed(2)}ms`);
+    console.log(`[Lia 360] ⚡ Min: ${stats.min.toFixed(2)}ms | Max: ${stats.max.toFixed(2)}ms`);
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+  },
+
+  // Start memory monitoring
+  startMemoryMonitoring() {
+    // Take initial snapshot
+    this.takeMemorySnapshot();
+
+    // Check memory every 30 seconds
+    setInterval(() => {
+      this.takeMemorySnapshot();
+    }, 30000);
+  },
+
+  // Take a memory snapshot
+  takeMemorySnapshot() {
+    if (performance.memory) {
+      const snapshot = {
+        timestamp: Date.now(),
+        used: performance.memory.usedJSHeapSize,
+        total: performance.memory.totalJSHeapSize,
+        limit: performance.memory.jsHeapSizeLimit
+      };
+
+      this.memorySnapshots.push(snapshot);
+      this.lastMemoryCheck = Date.now();
+
+      // Keep only last 20 snapshots to prevent memory growth
+      if (this.memorySnapshots.length > 20) {
+        this.memorySnapshots.shift();
+      }
+
+      // Log memory usage in MB
+      const usedMB = (snapshot.used / 1048576).toFixed(2);
+      const totalMB = (snapshot.total / 1048576).toFixed(2);
+      const limitMB = (snapshot.limit / 1048576).toFixed(2);
+
+      // Only log occasionally or if memory is high (> 40MB)
+      if (snapshot.used > 41943040 || this.memorySnapshots.length <= 2) {
+        console.log(`[Lia 360] 💾 Memory: ${usedMB}MB used / ${totalMB}MB total / ${limitMB}MB limit`);
+      }
+    } else {
+      // performance.memory not available (non-Chrome browsers or without flag)
+      console.log('[Lia 360] 💾 Memory monitoring not available in this browser');
+    }
+  },
+
+  // Get memory usage statistics
+  getMemoryStats() {
+    if (this.memorySnapshots.length === 0) {
+      return null;
+    }
+
+    const latest = this.memorySnapshots[this.memorySnapshots.length - 1];
+    return {
+      usedMB: (latest.used / 1048576).toFixed(2),
+      totalMB: (latest.total / 1048576).toFixed(2),
+      limitMB: (latest.limit / 1048576).toFixed(2),
+      percentUsed: ((latest.used / latest.limit) * 100).toFixed(2)
+    };
+  },
+
+  // Log comprehensive performance report
+  logPerformanceReport() {
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+    console.log('[Lia 360] 📈 Performance Report');
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+
+    // Startup time
+    if (this.startupEndTime) {
+      const startupTime = this.startupEndTime - this.startupStartTime;
+      console.log(`[Lia 360] ⏱️  Startup Time: ${startupTime.toFixed(2)}ms`);
+    }
+
+    // API stats
+    const apiStats = this.getApiStats();
+    if (apiStats.count > 0) {
+      console.log(`[Lia 360] 📞 API Calls: ${apiStats.count} total, ${apiStats.avg.toFixed(2)}ms avg`);
+    }
+
+    // Memory stats
+    const memStats = this.getMemoryStats();
+    if (memStats) {
+      console.log(`[Lia 360] 💾 Memory: ${memStats.usedMB}MB / ${memStats.limitMB}MB (${memStats.percentUsed}%)`);
+    }
+
+    console.log('[Lia 360] ═══════════════════════════════════════════════════════════════');
+  }
+};
+
 // --- JWT HELPERS ---
 // Helper to decode JWT without verification (for expiration check only)
 function decodeJWT(token) {
@@ -142,6 +311,7 @@ async function refreshAccessToken() {
 }
 
 async function apiRequest(endpoint, options = {}, isRetry = false) {
+  const startTime = performance.now();
   const token = await getToken();
   const apiUrl = await getApiUrl();
 
@@ -200,9 +370,17 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
       throw new Error(errorMessage);
     }
 
+    // Record successful API call performance
+    const duration = performance.now() - startTime;
+    performanceMetrics.recordApiCall(endpoint, duration);
+
     return data;
   } catch (error) {
     console.error('[Lia 360] API Error:', error);
+
+    // Record failed API call performance too
+    const duration = performance.now() - startTime;
+    performanceMetrics.recordApiCall(`${endpoint} (FAILED)`, duration);
 
     // Handle timeout errors
     if (error.name === 'AbortError') {
@@ -2650,7 +2828,28 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 (async () => {
   console.log('[Lia 360] Checking token status on wake...');
   await checkAndRefreshToken();
+
+  // Record startup completion after initial setup
+  performanceMetrics.recordStartup();
 })();
+
+// --- PERFORMANCE MONITORING MESSAGE HANDLER ---
+// Handle requests for performance metrics
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'getPerformanceMetrics') {
+    const report = {
+      startup: performanceMetrics.startupEndTime
+        ? (performanceMetrics.startupEndTime - performanceMetrics.startupStartTime).toFixed(2) + 'ms'
+        : 'N/A',
+      api: performanceMetrics.getApiStats(),
+      memory: performanceMetrics.getMemoryStats()
+    };
+
+    sendResponse({ success: true, data: report });
+    performanceMetrics.logPerformanceReport();
+  }
+  return true; // Keep message channel open for async response
+});
 
 // --- ACTION CLICK HANDLER ---
 // Handle extension icon click to open settings overlay
