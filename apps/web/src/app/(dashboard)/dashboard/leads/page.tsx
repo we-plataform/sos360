@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Plus, Settings, RefreshCw } from 'lucide-react';
+import { Plus, Settings, RefreshCw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { KanbanBoard, KanbanPipeline, StageManager } from '@/components/kanban';
-import { LeadDetailModal, CreatePipelineDialog, CreateLeadDialog } from '@/components/leads';
+import { LeadDetailModal, CreatePipelineDialog, CreateLeadDialog, ExportLeadsDialog } from '@/components/leads';
 import { api } from '@/lib/api';
 import { socket } from '@/lib/socket';
 
@@ -17,6 +17,7 @@ export default function LeadsPage() {
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
   const [isCreatePipelineOpen, setIsCreatePipelineOpen] = useState(false);
   const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Fetch pipelines
   const { data: pipelinesData } = useQuery({
@@ -198,6 +199,14 @@ export default function LeadsPage() {
             <Plus className="mr-2 h-4 w-4" />
             Novo Lead
           </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setIsExportOpen(true)}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
         </div>
       </div>
 
@@ -286,6 +295,12 @@ export default function LeadsPage() {
           stages={pipelineData.stages}
         />
       )}
+
+      {/* Export Leads Dialog */}
+      <ExportLeadsDialog
+        open={isExportOpen}
+        onOpenChange={setIsExportOpen}
+      />
     </div>
   );
 }
