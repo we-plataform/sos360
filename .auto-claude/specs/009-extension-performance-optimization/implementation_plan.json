@@ -92,7 +92,8 @@
             "command": "wc -l ./apps/extension/content-scripts/instagram/*.js | tail -1",
             "expected": "Total lines less than original 5714"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully split instagram.js into 5 focused modules (utils.js, profile-import.js, post-import.js, followers-import.js, ui.js, and main instagram.js). Total lines: 2692 (52.9% reduction from original 5714 lines). Created backup as instagram.js.backup. Updated manifest.json to include new modules in web_accessible_resources."
         },
         {
           "id": "subtask-2-2",
@@ -111,7 +112,8 @@
             "command": "ls -la ./apps/extension/content-scripts/linkedin-*.js | wc -l",
             "expected": "At least 4 linkedin module files"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully split linkedin-dom.js into 3 focused modules: linkedin-selectors.js (217 lines) for DOM traversal, linkedin-extractors.js (473 lines) for data extraction, and refactored linkedin-dom.js (427 lines) as orchestrator with AutoScrollController. Total LinkedIn modules: 7 files. Reduced main file from 1077 to 427 lines (60% reduction). Follows same IIFE pattern as instagram modules."
         },
         {
           "id": "subtask-2-3",
@@ -653,5 +655,5 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T03:30:29.086Z"
+  "updated_at": "2026-01-27T13:45:32.487Z"
 }
