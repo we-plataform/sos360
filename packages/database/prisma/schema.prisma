@@ -202,7 +202,8 @@ model Pipeline {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  stages PipelineStage[]
+  stages        PipelineStage[]
+  scoringModel  ScoringModel?
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -226,6 +227,56 @@ model PipelineStage {
   @@unique([pipelineId, name])
   @@index([pipelineId, order])
   @@map("pipeline_stages")
+}
+
+// ============================================
+// SCORING MODELS
+// ============================================
+
+model ScoringModel {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  enabled         Boolean  @default(true)
+
+  // Scoring criteria (the ICP definition)
+  criteria        Json     @default("{}")
+  weights         Json     @default("{}")
+
+  // Thresholds for lead classification
+  thresholdHigh   Int      @default(80)
+  thresholdMedium Int      @default(50)
+
+  // AI prompts customization
+  systemPrompt    String?
+
+  pipelineId      String   @unique
+  pipeline        Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([pipelineId])
+  @@map("scoring_models")
+}
+
+model ScoreHistory {
+  id          String   @id @default(cuid())
+
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  oldScore    Int?
+  newScore    Int
+  reason      String?
+  factors     Json     @default("{}")
+
+  triggeredBy String
+
+  createdAt   DateTime @default(now())
+
+  @@index([leadId, createdAt])
+  @@map("score_history")
 }
 
 // ============================================
@@ -287,6 +338,7 @@ model Lead {
   automationLogs AutomationLog[]
   behavior       LeadBehavior?
   address        LeadAddress?
+  scoreHistories ScoreHistory[]
   // LinkedIn enrichment relations
   experiences      LeadExperience[]
   educations       LeadEducation[]

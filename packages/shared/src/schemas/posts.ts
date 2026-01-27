@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { platformSchema, paginationSchema } from './index';
+import { paginationSchema, platformSchema } from './base';
 
 // Post data schema for creating/importing posts
 export const postDataSchema = z.object({

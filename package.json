@@ -20,10 +20,13 @@
     "docker:reset": "docker-compose down -v && docker-compose up -d"
   },
   "devDependencies": {
+    "@types/supertest": "^6.0.3",
     "prettier": "^3.2.4",
     "shadcn": "^3.7.0",
+    "supertest": "^7.2.2",
     "turbo": "^2.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
   },
   "packageManager": "npm@11.6.1",
   "engines": {

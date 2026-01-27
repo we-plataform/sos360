@@ -158,6 +158,93 @@ class ApiClient {
     window.location.href = '/login';
   }
 
+  // Generic HTTP methods
+  async get<T>(endpoint: string): Promise<{ data: T }> {
+    const token = this.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`GET ${endpoint} failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async post<T>(endpoint: string, body?: any): Promise<{ data: T }> {
+    const token = this.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`POST ${endpoint} failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async put<T>(endpoint: string, body?: any): Promise<{ data: T }> {
+    const token = this.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`PUT ${endpoint} failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async delete<T>(endpoint: string): Promise<{ data: T }> {
+    const token = this.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`DELETE ${endpoint} failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   // Auth
   async login(email: string, password: string) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {

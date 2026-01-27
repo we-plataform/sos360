@@ -13,6 +13,7 @@ import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { setupRoutes } from './routes/index.js';
 import { setupSocket } from './socket/index.js';
+import { batchScoringScheduler } from './services/batch-scoring.js';
 
 // Log startup information immediately
 console.log('=== Lia360 API Starting ===');
@@ -206,6 +207,14 @@ httpServer.listen(PORT, HOST, () => {
   logger.info(`Environment: ${env.NODE_ENV}`);
   logger.info(`CORS origins: ${env.CORS_ORIGINS.join(', ')}`);
   console.log('Server is ready to accept connections');
+
+  // Start batch scoring scheduler
+  try {
+    batchScoringScheduler.start(24 * 60 * 60 * 1000); // Run daily
+    logger.info('Batch scoring scheduler started');
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to start batch scoring scheduler');
+  }
 });
 
 httpServer.on('error', (error: NodeJS.ErrnoException) => {

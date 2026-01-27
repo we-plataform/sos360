@@ -149,32 +149,6 @@
                     };
                 }
 
-                // Test pagination button (for debugging)
-                const testPaginationBtn = document.createElement('button');
-                testPaginationBtn.className = 'sos-btn';
-                testPaginationBtn.style.cssText = 'background: #f59e0b; margin-top: 8px; font-size: 12px; padding: 6px;';
-                testPaginationBtn.textContent = '🔍 Test Pagination';
-                testPaginationBtn.onclick = async () => {
-                    console.log('[Lia 360] === Manual Pagination Test ===');
-                    DOM.debugPaginationStructure();
-
-                    const controller = new DOM.AutoScrollController();
-                    const clicked = await controller.clickPaginationButton();
-
-                    console.log('[Lia 360] Pagination button clicked:', clicked);
-
-                    if (!clicked) {
-                        alert('Pagination button NOT found! Check console for details.');
-                    } else {
-                        alert('Pagination button clicked successfully! Check console.');
-                    }
-                };
-
-                const actionsDiv = document.querySelector('#sos360-linkedin-overlay .sos-actions');
-                if (actionsDiv) {
-                    actionsDiv.appendChild(testPaginationBtn);
-                }
-
                 // Stop button
                 const stopBtn = document.getElementById('sos-stop-btn');
                 if (stopBtn) {

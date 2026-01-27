@@ -1,10 +1,13 @@
 import type { Server, Socket } from 'socket.io';
 import { verifyAccessToken } from '../lib/jwt.js';
 import { logger } from '../lib/logger.js';
+import { prisma } from '@lia360/database';
+import type { WorkspaceRole } from '@lia360/shared';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
   workspaceId?: string;
+  workspaceRole?: WorkspaceRole;
 }
 
 export function setupSocket(io: Server): void {
@@ -20,6 +23,7 @@ export function setupSocket(io: Server): void {
       const payload = verifyAccessToken(token);
       socket.userId = payload.sub;
       socket.workspaceId = payload.workspaceId;
+      socket.workspaceRole = payload.workspaceRole;
       next();
     } catch {
       next(new Error('Invalid token'));
@@ -35,9 +39,51 @@ export function setupSocket(io: Server): void {
     }
 
     // Join conversation room
-    socket.on('join:conversation', (conversationId: string) => {
-      socket.join(`conversation:${conversationId}`);
-      logger.debug({ conversationId }, 'Joined conversation room');
+    socket.on('join:conversation', async (conversationId: string) => {
+      try {
+        // Verify conversation exists and user has access
+        const conversation = await prisma.conversation.findFirst({
+          where: {
+            id: conversationId,
+            lead: { workspaceId: socket.workspaceId },
+          },
+          select: {
+            id: true,
+            assignedToId: true,
+          },
+        });
+
+        if (!conversation) {
+          logger.warn(
+            { userId: socket.userId, conversationId },
+            'Unauthorized attempt to join conversation room'
+          );
+          socket.emit('error', { message: 'Conversation not found' });
+          return;
+        }
+
+        // Agents can only join conversations assigned to them
+        if (
+          socket.workspaceRole === 'agent' &&
+          conversation.assignedToId !== socket.userId
+        ) {
+          logger.warn(
+            { userId: socket.userId, conversationId, workspaceRole: socket.workspaceRole },
+            'Agent attempted to join unassigned conversation room'
+          );
+          socket.emit('error', { message: 'Access denied' });
+          return;
+        }
+
+        socket.join(`conversation:${conversationId}`);
+        logger.debug(
+          { userId: socket.userId, conversationId },
+          'Joined conversation room'
+        );
+      } catch (error) {
+        logger.error({ error, conversationId }, 'Error joining conversation room');
+        socket.emit('error', { message: 'Failed to join conversation' });
+      }
     });
 
     // Leave conversation room
