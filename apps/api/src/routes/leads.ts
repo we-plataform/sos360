@@ -6,6 +6,7 @@ import {
   importLeadsSchema,
   importPostSchema,
   leadFiltersSchema,
+  exportLeadsSchema,
   PAGINATION_DEFAULTS,
   calculateOffset,
   calculateTotalPages,
@@ -15,6 +16,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
+import { generateCsvFilename, streamCSV, createBatchGenerator } from '../lib/csv-generator.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
 
@@ -109,6 +111,163 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
         totalPages: calculateTotalPages(total, limit),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /leads/export - Export leads to CSV (streamed for large datasets)
+leadsRouter.get('/export', validate(exportLeadsSchema, 'query'), async (req, res, next) => {
+  try {
+    const workspaceId = req.user!.workspaceId;
+    const {
+      fields,
+      platform,
+      status,
+      tags,
+      pipelineStageId,
+      assignedTo,
+      search,
+      scoreMin,
+      scoreMax,
+      createdAfter,
+      createdBefore,
+    } = req.query as any;
+
+    // Build where clause
+    const where: Record<string, unknown> = { workspaceId };
+
+    if (platform) where.platform = platform;
+    if (status) where.status = status;
+    if (assignedTo) where.assignedToId = assignedTo;
+    if (pipelineStageId) where.pipelineStageId = pipelineStageId;
+    if (scoreMin !== undefined || scoreMax !== undefined) {
+      where.score = {
+        ...(scoreMin !== undefined && { gte: scoreMin }),
+        ...(scoreMax !== undefined && { lte: scoreMax }),
+      };
+    }
+    if (tags) {
+      const tagIds = tags.split(',');
+      where.tags = { some: { tagId: { in: tagIds } } };
+    }
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (createdAfter || createdBefore) {
+      where.createdAt = {};
+      if (createdAfter) {
+        (where.createdAt as Record<string, unknown>).gte = createdAfter;
+      }
+      if (createdBefore) {
+        (where.createdAt as Record<string, unknown>).lte = createdBefore;
+      }
+    }
+
+    // Agent can only export assigned leads
+    if (req.user!.workspaceRole === 'agent') {
+      where.assignedToId = req.user!.id;
+    }
+
+    // Define all available fields for export
+    const allFields = [
+      'id',
+      'fullName',
+      'username',
+      'email',
+      'phone',
+      'platform',
+      'status',
+      'score',
+      'notes',
+      'location',
+      'website',
+      'bio',
+      'avatarUrl',
+      'followersCount',
+      'followingCount',
+      'postsCount',
+      'verified',
+      'gender',
+      'priority',
+      'jobTitle',
+      'companySize',
+      'pipelineStageId',
+      'assignedTo.fullName',
+      'tags',
+      'address.street',
+      'address.city',
+      'address.state',
+      'address.zipCode',
+      'address.country',
+      'createdAt',
+      'updatedAt',
+    ] as const;
+
+    // Use selected fields or all fields
+    const selectedFields = fields && fields.length > 0
+      ? (fields as readonly string[]).filter(f => allFields.includes(f as any))
+      : [...allFields];
+
+    // Set filename for download
+    const filename = generateCsvFilename('leads');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Define batch fetcher for cursor-based pagination
+    const BATCH_SIZE = 100;
+    const fetchBatch = async (cursor: string | null) => {
+      return await prisma.lead.findMany({
+        where,
+        include: {
+          assignedTo: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          tags: {
+            include: {
+              tag: { select: { id: true, name: true, color: true } },
+            },
+          },
+          socialProfiles: true,
+          address: true,
+        },
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+      });
+    };
+
+    // Create batch generator for streaming
+    const leadGenerator = createBatchGenerator(fetchBatch, BATCH_SIZE);
+
+    // Transform leads to flat objects for CSV export (streaming)
+    async function* transformLeads() {
+      for await (const lead of leadGenerator) {
+        const row: Record<string, unknown> = {};
+
+        for (const field of selectedFields) {
+          if (field === 'assignedTo.fullName') {
+            row[field] = lead.assignedTo?.fullName || '';
+          } else if (field === 'tags') {
+            row[field] = lead.tags.map((lt: { tag: { name: string } }) => lt.tag.name).join('; ');
+          } else if (field.startsWith('address.')) {
+            const addressField = field.replace('address.', '') as keyof typeof lead.address;
+            row[field] = lead.address?.[addressField] || '';
+          } else {
+            row[field] = (lead as Record<string, unknown>)[field] || '';
+          }
+        }
+
+        yield row;
+      }
+    }
+
+    // Stream CSV to response
+    await streamCSV(res, transformLeads(), selectedFields);
   } catch (error) {
     next(error);
   }

@@ -303,6 +303,26 @@ export const conversationFiltersSchema = paginationSchema.extend({
   assignedTo: z.string().optional(),
 });
 
+// Export leads schema
+export const exportLeadsSchema = z.object({
+  // Fields to include in export (if not provided, export all available fields)
+  fields: z.array(z.string()).optional(),
+  // Filtering options
+  platform: platformSchema.optional(),
+  status: leadStatusSchema.optional(),
+  tags: z.string().optional(),
+  pipelineStageId: z.string().optional(),
+  assignedTo: z.string().optional(),
+  search: z.string().max(200).optional(),
+  scoreMin: z.coerce.number().int().min(0).max(100).optional(),
+  scoreMax: z.coerce.number().int().min(0).max(100).optional(),
+  // Date range filtering - accepts both date strings (YYYY-MM-DD) and datetime strings (ISO 8601)
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
+  // Format specification (currently only CSV supported)
+  format: z.enum(['csv']).default('csv'),
+});
+
 export * from './automations';
 export * from './enrichment';
 export * from './posts';
