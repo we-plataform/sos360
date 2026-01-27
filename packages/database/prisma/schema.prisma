@@ -113,6 +113,7 @@ model Workspace {
   pipelines   Pipeline[]
   audiences   Audience[]
   posts       Post[]
+  scoringConfig ScoringConfig?
 
   @@index([companyId])
   @@map("workspaces")
@@ -202,8 +203,7 @@ model Pipeline {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  stages        PipelineStage[]
-  scoringModel  ScoringModel?
+  stages PipelineStage[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -227,56 +227,6 @@ model PipelineStage {
   @@unique([pipelineId, name])
   @@index([pipelineId, order])
   @@map("pipeline_stages")
-}
-
-// ============================================
-// SCORING MODELS
-// ============================================
-
-model ScoringModel {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  enabled         Boolean  @default(true)
-
-  // Scoring criteria (the ICP definition)
-  criteria        Json     @default("{}")
-  weights         Json     @default("{}")
-
-  // Thresholds for lead classification
-  thresholdHigh   Int      @default(80)
-  thresholdMedium Int      @default(50)
-
-  // AI prompts customization
-  systemPrompt    String?
-
-  pipelineId      String   @unique
-  pipeline        Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([pipelineId])
-  @@map("scoring_models")
-}
-
-model ScoreHistory {
-  id          String   @id @default(cuid())
-
-  leadId      String
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  oldScore    Int?
-  newScore    Int
-  reason      String?
-  factors     Json     @default("{}")
-
-  triggeredBy String
-
-  createdAt   DateTime @default(now())
-
-  @@index([leadId, createdAt])
-  @@map("score_history")
 }
 
 // ============================================
@@ -338,7 +288,6 @@ model Lead {
   automationLogs AutomationLog[]
   behavior       LeadBehavior?
   address        LeadAddress?
-  scoreHistories ScoreHistory[]
   // LinkedIn enrichment relations
   experiences      LeadExperience[]
   educations       LeadEducation[]
@@ -800,6 +749,40 @@ model Audience {
   @@unique([workspaceId, name])
   @@index([workspaceId])
   @@map("audiences")
+}
+
+// ============================================
+// LEAD SCORING
+// ============================================
+
+model ScoringConfig {
+  id          String   @id @default(cuid())
+
+  // Scoring weights (0-100, should sum to 100)
+  jobTitleWeight            Int @default(25)  // Weight for job title match
+  companyWeight             Int @default(20)  // Weight for company relevance
+  profileCompletenessWeight Int @default(15)  // Weight for profile completeness
+  activityWeight            Int @default(20)  // Weight for activity signals
+  enrichmentWeight          Int @default(20)  // Weight for enrichment data quality
+
+  // Target criteria (ICP - Ideal Customer Profile)
+  targetJobTitles       String[]      @default([])  // e.g., ["CEO", "CTO", "VP of Engineering"]
+  targetCompanySizes    CompanySize[] @default([])  // e.g., [SIZE_51_200, SIZE_201_500]
+  targetIndustries      String[]      @default([])  // e.g., ["Technology", "Software"]
+  minProfileCompleteness Int          @default(50)  // Minimum profile completeness score (0-100)
+
+  // Additional settings
+  autoScoreOnImport Boolean @default(true)  // Automatically score new leads
+  autoScoreOnUpdate Boolean @default(true)  // Automatically rescore when lead data changes
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceId String    @unique  // One config per workspace
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("scoring_configs")
 }
 
 // ============================================

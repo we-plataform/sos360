@@ -1,241 +1,216 @@
 import { Router } from 'express';
-import {
-  createScoringModelSchema,
-  rescoreLeadSchema,
-  batchRescoreSchema,
-} from '@lia360/shared';
+import { prisma } from '@lia360/database';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { NotFoundError } from '../lib/errors.js';
-import { scoringService } from '../services/scoring.js';
+import {
+    createScoringConfigSchema,
+    updateScoringConfigSchema,
+    calculateLeadScoreSchema,
+    batchCalculateScoresSchema,
+} from '@lia360/shared';
+import {
+    calculateLeadScore,
+    batchCalculateLeadScores,
+    getScoringConfig,
+    updateScoringConfig,
+} from '../services/scoring.js';
 
 export const scoringRouter = Router();
 
-// All routes require authentication
 scoringRouter.use(authenticate);
 
-// ============================================
-// SCORING MODEL MANAGEMENT
-// ============================================
-
-// GET /pipelines/:pipelineId/scoring-model - Get scoring model
-scoringRouter.get(
-  '/pipelines/:pipelineId/scoring-model',
-  async (req, res, next) => {
+// GET /scoring/config - Get scoring configuration
+scoringRouter.get('/config', async (req, res, next) => {
     try {
-      const { pipelineId } = req.params;
-      const model = await scoringService.getScoringModel(pipelineId);
+        const workspaceId = req.user!.workspaceId;
 
-      if (!model) {
-        throw new NotFoundError('Scoring model not found');
-      }
+        const config = await getScoringConfig(workspaceId);
 
-      res.json({
-        success: true,
-        data: model,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// POST /pipelines/:pipelineId/scoring-model - Create/update scoring model
-scoringRouter.post(
-  '/pipelines/:pipelineId/scoring-model',
-  authorize('admin', 'owner'),
-  validate(createScoringModelSchema, 'body'),
-  async (req, res, next) => {
-    try {
-      const { pipelineId } = req.params;
-      const model = await scoringService.upsertScoringModel(pipelineId, req.body);
-
-      res.json({
-        success: true,
-        data: model,
-        message: 'Scoring model saved successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// DELETE /pipelines/:pipelineId/scoring-model - Delete scoring model
-scoringRouter.delete(
-  '/pipelines/:pipelineId/scoring-model',
-  authorize('admin', 'owner'),
-  async (req, res, next) => {
-    try {
-      const { pipelineId } = req.params;
-      const { prisma } = await import('@lia360/database');
-
-      const model = await prisma.scoringModel.findUnique({
-        where: { pipelineId },
-      });
-
-      if (!model) {
-        throw new NotFoundError('Scoring model not found');
-      }
-
-      await prisma.scoringModel.delete({
-        where: { pipelineId },
-      });
-
-      res.json({
-        success: true,
-        message: 'Scoring model deleted successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// ============================================
-// LEAD SCORING OPERATIONS
-// ============================================
-
-// POST /leads/:id/rescore - Manually trigger re-scoring
-scoringRouter.post(
-  '/leads/:id/rescore',
-  authorize('agent', 'manager', 'admin', 'owner'),
-  validate(rescoreLeadSchema, 'body'),
-  async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const { force } = req.body;
-
-      // Optional: Check if recently scored (unless force=true)
-      if (!force) {
-        const { prisma } = await import('@lia360/database');
-        const recentScore = await prisma.scoreHistory.findFirst({
-          where: {
-            leadId: id,
-            triggeredBy: 'manual',
-          },
-          orderBy: { createdAt: 'desc' },
+        res.json({
+            success: true,
+            data: config,
         });
+    } catch (error) {
+        next(error);
+    }
+});
 
-        if (recentScore) {
-          const hoursSinceScore = Math.floor(
-            (Date.now() - recentScore.createdAt.getTime()) / (1000 * 60 * 60)
-          );
-          if (hoursSinceScore < 1) {
-            return res.json({
-              success: true,
-              message: 'Lead was scored recently. Use force=true to rescore.',
-              data: {
-                recentlyScored: true,
-                hoursSinceScore,
-              },
+// POST /scoring/config - Create or update scoring configuration
+scoringRouter.post(
+    '/config',
+    authorize('owner', 'admin', 'manager'),
+    validate(createScoringConfigSchema),
+    async (req, res, next) => {
+        try {
+            const workspaceId = req.user!.workspaceId;
+            const data = req.body;
+
+            // Check if config already exists
+            const existingConfig = await prisma.scoringConfig.findUnique({
+                where: { workspaceId },
             });
-          }
+
+            let config;
+            if (existingConfig) {
+                // Update existing config
+                config = await updateScoringConfig(workspaceId, data);
+            } else {
+                // Create new config
+                config = await prisma.scoringConfig.create({
+                    data: {
+                        ...data,
+                        workspaceId,
+                    },
+                });
+            }
+
+            // Rescore all leads in workspace after config create/update
+            // Get all lead IDs in workspace
+            const allLeads = await prisma.lead.findMany({
+                where: { workspaceId },
+                select: { id: true },
+            });
+
+            if (allLeads.length > 0) {
+                const leadIds = allLeads.map(l => l.id);
+                // Batch rescore all leads (fire and forget - don't wait for completion)
+                batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
+                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                });
+            }
+
+            res.status(existingConfig ? 200 : 201).json({
+                success: true,
+                data: config,
+            });
+        } catch (error) {
+            next(error);
         }
-      }
-
-      const result = await scoringService.scoreLead(id, 'manual');
-
-      if (!result) {
-        throw new NotFoundError('Lead not found or no scoring model configured');
-      }
-
-      res.json({
-        success: true,
-        data: result,
-        message: 'Lead scored successfully',
-      });
-    } catch (error) {
-      next(error);
     }
-  }
 );
 
-// POST /leads/batch-rescore - Batch re-score leads
+// PATCH /scoring/config - Update scoring configuration
+scoringRouter.patch(
+    '/config',
+    authorize('owner', 'admin', 'manager'),
+    validate(updateScoringConfigSchema),
+    async (req, res, next) => {
+        try {
+            const workspaceId = req.user!.workspaceId;
+            const updates = req.body;
+
+            const config = await updateScoringConfig(workspaceId, updates);
+
+            // Rescore all leads in workspace after config update
+            // Get all lead IDs in workspace
+            const allLeads = await prisma.lead.findMany({
+                where: { workspaceId },
+                select: { id: true },
+            });
+
+            if (allLeads.length > 0) {
+                const leadIds = allLeads.map(l => l.id);
+                // Batch rescore all leads (fire and forget - don't wait for completion)
+                batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
+                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                });
+            }
+
+            res.json({
+                success: true,
+                data: config,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// POST /scoring/calculate - Calculate score for a single lead
 scoringRouter.post(
-  '/leads/batch-rescore',
-  authorize('admin', 'owner'),
-  validate(batchRescoreSchema, 'body'),
-  async (req, res, next) => {
-    try {
-      const { pipelineId, leadIds } = req.body;
-      let leadsToScore: string[] = [];
+    '/calculate',
+    validate(calculateLeadScoreSchema),
+    async (req, res, next) => {
+        try {
+            const workspaceId = req.user!.workspaceId;
+            const { leadId } = req.body;
 
-      if (leadIds && leadIds.length > 0) {
-        leadsToScore = leadIds;
-      } else if (pipelineId) {
-        // Get all leads for this pipeline
-        const { prisma } = await import('@lia360/database');
-        const leads = await prisma.lead.findMany({
-          where: {
-            pipelineStage: {
-              pipelineId,
-            },
-          },
-          select: { id: true },
-        });
-        leadsToScore = leads.map((l) => l.id);
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Either leadIds or pipelineId must be provided',
-        });
-      }
+            // Verify lead exists and belongs to workspace
+            const lead = await prisma.lead.findFirst({
+                where: { id: leadId, workspaceId },
+            });
 
-      const results = await scoringService.batchScoreLeads(
-        leadsToScore,
-        'batch_job'
-      );
+            if (!lead) {
+                throw new NotFoundError('Lead');
+            }
 
-      res.json({
-        success: true,
-        data: results,
-        message: `Batch scoring completed: ${results.succeeded}/${results.processed} succeeded`,
-      });
-    } catch (error) {
-      next(error);
+            const breakdown = await calculateLeadScore(leadId, workspaceId);
+
+            res.json({
+                success: true,
+                data: {
+                    leadId,
+                    score: breakdown.finalScore,
+                    breakdown,
+                    scoredAt: new Date().toISOString(),
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-  }
 );
 
-// GET /leads/:id/score-breakdown - Get detailed score breakdown
-scoringRouter.get('/leads/:id/score-breakdown', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const breakdown = await scoringService.getScoreBreakdown(id);
+// POST /scoring/calculate/batch - Calculate scores for multiple leads
+scoringRouter.post(
+    '/calculate/batch',
+    validate(batchCalculateScoresSchema),
+    async (req, res, next) => {
+        try {
+            const workspaceId = req.user!.workspaceId;
+            const { leadIds } = req.body;
 
-    if (!breakdown) {
-      throw new NotFoundError('Lead not found or no scoring model configured');
+            // Verify all leads exist and belong to workspace
+            const leads = await prisma.lead.findMany({
+                where: { id: { in: leadIds }, workspaceId },
+                select: { id: true },
+            });
+
+            const foundLeadIds = leads.map(l => l.id);
+            const notFoundLeadIds = leadIds.filter(id => !foundLeadIds.includes(id));
+
+            // Calculate scores for found leads
+            const results = await batchCalculateLeadScores(foundLeadIds, workspaceId);
+
+            // Format response
+            const successResults = results
+                .filter(r => !r.error)
+                .map(r => ({
+                    leadId: r.leadId,
+                    score: r.breakdown.finalScore,
+                    breakdown: r.breakdown,
+                    scoredAt: new Date().toISOString(),
+                }));
+
+            const errors = [
+                ...results
+                    .filter(r => r.error)
+                    .map(r => ({ leadId: r.leadId, error: r.error! })),
+                ...notFoundLeadIds.map(id => ({ leadId: id, error: 'Lead não encontrado' })),
+            ];
+
+            res.json({
+                success: true,
+                data: {
+                    results: successResults,
+                    totalProcessed: successResults.length,
+                    totalFailed: errors.length,
+                    errors: errors.length > 0 ? errors : undefined,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-
-    // Get score history
-    const history = await scoringService.getScoreHistory(id, 10);
-
-    res.json({
-      success: true,
-      data: {
-        ...breakdown,
-        history,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /leads/:id/score-history - Get score history
-scoringRouter.get('/leads/:id/score-history', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-
-    const history = await scoringService.getScoreHistory(id, limit);
-
-    res.json({
-      success: true,
-      data: history,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+);

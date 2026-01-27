@@ -158,93 +158,6 @@ class ApiClient {
     window.location.href = '/login';
   }
 
-  // Generic HTTP methods
-  async get<T>(endpoint: string): Promise<{ data: T }> {
-    const token = this.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      throw new Error(`GET ${endpoint} failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async post<T>(endpoint: string, body?: any): Promise<{ data: T }> {
-    const token = this.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(`POST ${endpoint} failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async put<T>(endpoint: string, body?: any): Promise<{ data: T }> {
-    const token = this.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(`PUT ${endpoint} failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async delete<T>(endpoint: string): Promise<{ data: T }> {
-    const token = this.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'DELETE',
-      headers,
-    });
-
-    if (!response.ok) {
-      throw new Error(`DELETE ${endpoint} failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
   // Auth
   async login(email: string, password: string) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
@@ -465,8 +378,17 @@ class ApiClient {
     return this.request('/api/v1/pipelines');
   }
 
-  async getPipeline(id: string) {
-    return this.request(`/api/v1/pipelines/${id}`);
+  async getPipeline(id: string, params?: { scoreMin?: number; scoreMax?: number; sortBy?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/pipelines/${id}${query ? `?${query}` : ''}`);
   }
 
   async createPipeline(data: { name: string; description?: string; stages?: { name: string; color?: string }[] }) {
@@ -628,6 +550,63 @@ class ApiClient {
   async unlinkPostFromLead(postId: string) {
     return this.request(`/api/v1/posts/${postId}/link-lead`, {
       method: 'DELETE',
+    });
+  }
+
+  // Scoring Configuration
+  async getScoringConfig() {
+    return this.request('/api/v1/scoring/config');
+  }
+
+  async createScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async calculateLeadScore(leadId: string, forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate`, {
+      method: 'POST',
+      body: JSON.stringify({ leadId, forceRecalculate }),
+    });
+  }
+
+  async batchCalculateScores(leadIds: string[], forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds, forceRecalculate }),
     });
   }
 }

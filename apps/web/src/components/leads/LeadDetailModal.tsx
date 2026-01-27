@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { X, Mail, Phone, Globe, MapPin, ExternalLink, User, Calendar, Trash2, AlertTriangle, Maximize2 } from 'lucide-react';
+import { X, Mail, Phone, Globe, MapPin, ExternalLink, User, Calendar, Trash2, AlertTriangle, Maximize2, TrendingUp, Target, Award, Activity, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { formatNumber, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, STATUS_COLORS } from '@lia360/shared';
+import { ScoreBadge } from './ScoreBadge';
 
 interface LeadDetailModalProps {
     leadId: string;
@@ -146,10 +147,142 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                                         )}
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-2xl font-bold text-indigo-600">{lead.score}</div>
-                                        <div className="text-xs text-gray-500">Score</div>
+                                        <ScoreBadge score={lead.score || 0} size="lg" showLabel={false} />
+                                        <div className="text-xs text-gray-500 mt-1">Score de Qualidade</div>
                                     </div>
                                 </div>
+
+                                {/* Score Breakdown */}
+                                {(lead.scoreBreakdown || lead.scoreExplanation) && (
+                                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-100">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-indigo-100 rounded-lg">
+                                                <TrendingUp className="h-5 w-5 text-indigo-600" />
+                                            </div>
+                                            <h4 className="text-base font-semibold text-indigo-900">Análise de Score</h4>
+                                        </div>
+
+                                        {lead.scoreExplanation && (
+                                            <div className="bg-white/70 p-3 rounded-lg border border-indigo-100 mb-4 text-sm text-gray-700">
+                                                {lead.scoreExplanation}
+                                            </div>
+                                        )}
+
+                                        {lead.scoreBreakdown && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {lead.scoreBreakdown.jobTitleMatch && (
+                                                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Target className="h-4 w-4 text-indigo-600" />
+                                                            <div className="text-xs text-gray-500">Cargo</div>
+                                                        </div>
+                                                        <div className="font-semibold text-gray-900">{lead.scoreBreakdown.jobTitleMatch.score}/100</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{lead.scoreBreakdown.jobTitleMatch.details}</div>
+                                                        {lead.scoreBreakdown.jobTitleMatch.weight && (
+                                                            <div className="text-xs text-indigo-600 mt-1">Peso: {lead.scoreBreakdown.jobTitleMatch.weight}%</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {lead.scoreBreakdown.companyRelevance && (
+                                                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Award className="h-4 w-4 text-indigo-600" />
+                                                            <div className="text-xs text-gray-500">Empresa</div>
+                                                        </div>
+                                                        <div className="font-semibold text-gray-900">{lead.scoreBreakdown.companyRelevance.score}/100</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{lead.scoreBreakdown.companyRelevance.details}</div>
+                                                        {lead.scoreBreakdown.companyRelevance.weight && (
+                                                            <div className="text-xs text-indigo-600 mt-1">Peso: {lead.scoreBreakdown.companyRelevance.weight}%</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {lead.scoreBreakdown.profileCompleteness && (
+                                                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                                                            <div className="text-xs text-gray-500">Perfil Completo</div>
+                                                        </div>
+                                                        <div className="font-semibold text-gray-900">{lead.scoreBreakdown.profileCompleteness.score}/100</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{lead.scoreBreakdown.profileCompleteness.details}</div>
+                                                        {lead.scoreBreakdown.profileCompleteness.weight && (
+                                                            <div className="text-xs text-indigo-600 mt-1">Peso: {lead.scoreBreakdown.profileCompleteness.weight}%</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {lead.scoreBreakdown.activityScore && (
+                                                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Activity className="h-4 w-4 text-indigo-600" />
+                                                            <div className="text-xs text-gray-500">Atividade</div>
+                                                        </div>
+                                                        <div className="font-semibold text-gray-900">{lead.scoreBreakdown.activityScore.score}/100</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{lead.scoreBreakdown.activityScore.details}</div>
+                                                        {lead.scoreBreakdown.activityScore.weight && (
+                                                            <div className="text-xs text-indigo-600 mt-1">Peso: {lead.scoreBreakdown.activityScore.weight}%</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {lead.scoreBreakdown.enrichmentScore && (
+                                                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Award className="h-4 w-4 text-purple-600" />
+                                                            <div className="text-xs text-gray-500">Enriquecimento</div>
+                                                        </div>
+                                                        <div className="font-semibold text-gray-900">{lead.scoreBreakdown.enrichmentScore.score}/100</div>
+                                                        <div className="text-xs text-gray-500 mt-1">{lead.scoreBreakdown.enrichmentScore.details}</div>
+                                                        {lead.scoreBreakdown.enrichmentScore.weight && (
+                                                            <div className="text-xs text-indigo-600 mt-1">Peso: {lead.scoreBreakdown.enrichmentScore.weight}%</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {(lead.scoreStrengths || lead.scoreWeaknesses || lead.scoreRecommendations) && (
+                                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                {lead.scoreStrengths && lead.scoreStrengths.length > 0 && (
+                                                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                                        <div className="text-xs font-medium text-green-800 mb-2">Pontos Fortes</div>
+                                                        <ul className="text-xs text-green-700 space-y-1">
+                                                            {lead.scoreStrengths.map((strength: string, i: number) => (
+                                                                <li key={i} className="flex items-start gap-1">
+                                                                    <span className="text-green-600 mt-0.5">•</span>
+                                                                    <span>{strength}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {lead.scoreWeaknesses && lead.scoreWeaknesses.length > 0 && (
+                                                    <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                                        <div className="text-xs font-medium text-orange-800 mb-2">Pontos de Atenção</div>
+                                                        <ul className="text-xs text-orange-700 space-y-1">
+                                                            {lead.scoreWeaknesses.map((weakness: string, i: number) => (
+                                                                <li key={i} className="flex items-start gap-1">
+                                                                    <span className="text-orange-600 mt-0.5">•</span>
+                                                                    <span>{weakness}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {lead.scoreRecommendations && lead.scoreRecommendations.length > 0 && (
+                                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                                        <div className="text-xs font-medium text-blue-800 mb-2">Recomendações</div>
+                                                        <ul className="text-xs text-blue-700 space-y-1">
+                                                            {lead.scoreRecommendations.map((recommendation: string, i: number) => (
+                                                                <li key={i} className="flex items-start gap-1">
+                                                                    <span className="text-blue-600 mt-0.5">•</span>
+                                                                    <span>{recommendation}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Stats */}
                                 <div className="grid grid-cols-3 gap-4">

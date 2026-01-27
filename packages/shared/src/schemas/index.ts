@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import { LEAD_STATUSES, COMPANY_ROLES, WORKSPACE_ROLES, USER_ROLES } from '../constants';
-import { paginationSchema, platformSchema } from './base';
-import { isCommonBreachedPassword } from '../utils/password-validation';
+import { PLATFORMS, LEAD_STATUSES, COMPANY_ROLES, WORKSPACE_ROLES, USER_ROLES } from '../constants';
 
 // Auth schemas
 export const loginSchema = z.object({
@@ -16,12 +14,7 @@ export const registerSchema = z.object({
     .min(8, 'Senha deve ter pelo menos 8 caracteres')
     .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiúscula')
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
-    .regex(/[0-9]/, 'Senha deve conter pelo menos um número')
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Senha deve conter pelo menos um caractere especial')
-    .refine(
-      (password) => !isCommonBreachedPassword(password),
-      'Esta senha foi exposta em vazamentos de dados. Por favor, escolha outra senha.'
-    ),
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um número'),
   fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   companyName: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres'),
   workspaceName: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres').optional(),
@@ -80,6 +73,7 @@ export const refreshTokenSchema = z.object({
 });
 
 // Lead schemas
+export const platformSchema = z.enum(PLATFORMS);
 export const leadStatusSchema = z.enum(LEAD_STATUSES);
 
 // New lead enum schemas
@@ -283,6 +277,12 @@ export const updateUserSchema = z.object({
   fullName: z.string().min(2).max(200).optional(),
 });
 
+// Pagination
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
 // Lead filters
 export const leadFiltersSchema = paginationSchema.extend({
   platform: platformSchema.optional(),
@@ -302,9 +302,6 @@ export const conversationFiltersSchema = paginationSchema.extend({
   platform: platformSchema.optional(),
   assignedTo: z.string().optional(),
 });
-
-// Re-export base schemas
-export { paginationSchema, platformSchema };
 
 export * from './automations';
 export * from './enrichment';

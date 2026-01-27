@@ -1,609 +1,554 @@
-import { prisma } from '@lia360/database';
+import { prisma, Lead, ScoringConfig, CompanySize } from '@lia360/database';
 import { logger } from '../lib/logger.js';
-import { analyzeLead } from '../lib/openai.js';
+import { analyzeLead, type LeadProfile } from '../lib/openai.js';
 
-// ============================================
-// TYPES
-// ============================================
+/**
+ * Lead score breakdown with individual component scores
+ */
+export type LeadScoreBreakdown = {
+    jobTitleScore: number;
+    companyScore: number;
+    profileCompletenessScore: number;
+    activityScore: number;
+    enrichmentScore: number;
+    finalScore: number;
+    explanation?: string;
+};
 
-export interface ScoringCriteria {
-  jobTitles: {
-    target: string[];
-    exclude: string[];
-    seniority: string[];
-  };
-  companies: {
-    industries: string[];
-    sizes: string[];
-    excludeIndustries: string[];
-  };
-  engagement: {
-    minFollowers?: number;
-    minConnections?: number;
-    hasRecentPosts?: boolean;
-  };
-  completeness: {
-    required: string[];
-    bonus: string[];
-  };
-}
+/**
+ * Extended Lead type with all relations needed for scoring
+ */
+type LeadWithRelations = Lead & {
+    experiences?: { id: string }[];
+    educations?: { id: string }[];
+    skills?: { id: string }[];
+    certifications?: { id: string }[];
+    languages?: { id: string }[];
+    contactInfo?: { id: string } | null;
+    posts?: { id: string }[];
+};
 
-export interface ScoringWeights {
-  jobTitle: number;
-  company: number;
-  engagement: number;
-  completeness: number;
-}
-
-export interface ScoreFactor {
-  score: number;
-  reason: string;
-}
-
-export interface ScoreBreakdown {
-  jobTitle: ScoreFactor;
-  company: ScoreFactor;
-  engagement: ScoreFactor;
-  completeness: ScoreFactor;
-}
-
-export interface ScoringResult {
-  score: number;
-  factors: ScoreBreakdown;
-  reason: string;
-  classification: 'hot' | 'warm' | 'cold';
-}
-
-export interface ScoringModelConfig {
-  id: string;
-  name: string;
-  enabled: boolean;
-  criteria: ScoringCriteria;
-  weights: ScoringWeights;
-  thresholdHigh: number;
-  thresholdMedium: number;
-  systemPrompt?: string;
-}
-
-// ============================================
-// SCORING SERVICE
-// ============================================
-
-class ScoringService {
-  /**
-   * Get scoring model configuration for a pipeline
-   */
-  async getScoringModel(pipelineId: string): Promise<ScoringModelConfig | null> {
-    const model = await prisma.scoringModel.findUnique({
-      where: { pipelineId },
-    });
-
-    if (!model || !model.enabled) {
-      return null;
-    }
-
-    return {
-      id: model.id,
-      name: model.name,
-      enabled: model.enabled,
-      criteria: model.criteria as unknown as ScoringCriteria,
-      weights: model.weights as unknown as ScoringWeights,
-      thresholdHigh: model.thresholdHigh,
-      thresholdMedium: model.thresholdMedium,
-      systemPrompt: model.systemPrompt || undefined,
-    };
-  }
-
-  /**
-   * Create or update scoring model for a pipeline
-   */
-  async upsertScoringModel(
-    pipelineId: string,
-    data: {
-      name: string;
-      description?: string;
-      enabled?: boolean;
-      criteria: ScoringCriteria;
-      weights: ScoringWeights;
-      thresholdHigh?: number;
-      thresholdMedium?: number;
-      systemPrompt?: string;
-    }
-  ): Promise<ScoringModelConfig> {
-    const model = await prisma.scoringModel.upsert({
-      where: { pipelineId },
-      create: {
-        pipelineId,
-        name: data.name,
-        description: data.description,
-        enabled: data.enabled ?? true,
-        criteria: data.criteria as any,
-        weights: data.weights as any,
-        thresholdHigh: data.thresholdHigh ?? 80,
-        thresholdMedium: data.thresholdMedium ?? 50,
-        systemPrompt: data.systemPrompt,
-      },
-      update: {
-        name: data.name,
-        description: data.description,
-        enabled: data.enabled ?? true,
-        criteria: data.criteria as any,
-        weights: data.weights as any,
-        thresholdHigh: data.thresholdHigh ?? 80,
-        thresholdMedium: data.thresholdMedium ?? 50,
-        systemPrompt: data.systemPrompt,
-      },
-    });
-
-    return {
-      id: model.id,
-      name: model.name,
-      enabled: model.enabled,
-      criteria: model.criteria as unknown as ScoringCriteria,
-      weights: model.weights as unknown as ScoringWeights,
-      thresholdHigh: model.thresholdHigh,
-      thresholdMedium: model.thresholdMedium,
-      systemPrompt: model.systemPrompt || undefined,
-    };
-  }
-
-  /**
-   * Score a single lead using OpenAI
-   */
-  async scoreLead(
+/**
+ * Calculate the lead score based on scoring configuration and lead data
+ * @param leadId - The lead ID to score
+ * @param workspaceId - The workspace ID for configuration lookup
+ * @returns Score breakdown with final score
+ */
+export async function calculateLeadScore(
     leadId: string,
-    triggeredBy: string = 'manual'
-  ): Promise<ScoringResult | null> {
-    // Fetch lead with enrichment data
-    const lead = await prisma.lead.findUnique({
-      where: { id: leadId },
-      include: {
-        pipelineStage: {
-          include: {
-            pipeline: {
-              include: {
-                scoringModel: true,
-              },
+    workspaceId: string
+): Promise<LeadScoreBreakdown> {
+    try {
+        // Fetch lead with all relations needed for scoring
+        const lead = await prisma.lead.findUnique({
+            where: { id: leadId },
+            include: {
+                experiences: { select: { id: true } },
+                educations: { select: { id: true } },
+                skills: { select: { id: true } },
+                certifications: { select: { id: true } },
+                languages: { select: { id: true } },
+                contactInfo: { select: { id: true } },
+                posts: { select: { id: true } },
             },
-          },
-        },
-        experiences: true,
-        educations: true,
-        skills: true,
-        leadPosts: { take: 5, orderBy: { date: 'desc' } },
-      },
-    });
+        });
 
-    if (!lead || !lead.pipelineStage?.pipeline?.scoringModel) {
-      logger.warn({ leadId }, 'Lead not found or no scoring model configured');
-      return null;
+        if (!lead) {
+            throw new Error(`Lead ${leadId} not found`);
+        }
+
+        // Verify lead belongs to the workspace
+        if (lead.workspaceId !== workspaceId) {
+            throw new Error('Lead does not belong to this workspace');
+        }
+
+        // Fetch scoring config for workspace (or use default)
+        let config = await prisma.scoringConfig.findUnique({
+            where: { workspaceId },
+        });
+
+        if (!config) {
+            // Create default config if none exists
+            config = await prisma.scoringConfig.create({
+                data: {
+                    workspaceId,
+                    jobTitleWeight: 25,
+                    companyWeight: 20,
+                    profileCompletenessWeight: 15,
+                    activityWeight: 20,
+                    enrichmentWeight: 20,
+                    targetJobTitles: [],
+                    targetCompanySizes: [],
+                    targetIndustries: [],
+                    minProfileCompleteness: 50,
+                    autoScoreOnImport: true,
+                    autoScoreOnUpdate: true,
+                },
+            });
+        }
+
+        // Calculate individual scores
+        const jobTitleScore = calculateJobTitleScore(lead, config);
+        const companyScore = calculateCompanyScore(lead, config);
+        const profileCompletenessScore = calculateProfileCompletenessScore(lead);
+        const activityScore = calculateActivityScore(lead);
+        const enrichmentScore = calculateEnrichmentScore(lead);
+
+        // Calculate weighted final score
+        const finalScore = Math.round(
+            (jobTitleScore * config.jobTitleWeight +
+                companyScore * config.companyWeight +
+                profileCompletenessScore * config.profileCompletenessWeight +
+                activityScore * config.activityWeight +
+                enrichmentScore * config.enrichmentWeight) / 100
+        );
+
+        // Get AI-powered explanation
+        let explanation = generateExplanation(lead, config, {
+            jobTitleScore,
+            companyScore,
+            profileCompletenessScore,
+            activityScore,
+            enrichmentScore,
+            finalScore,
+        });
+
+        // Try to enhance with OpenAI analysis
+        try {
+            const profile = buildLeadProfile(lead);
+            const criteria = buildCriteriaDescription(config);
+            const analysisResult = await analyzeLead(profile, criteria);
+            explanation = analysisResult.reason || explanation;
+        } catch (error) {
+            logger.warn({ err: error, leadId }, 'Failed to get AI explanation, using default');
+        }
+
+        const breakdown: LeadScoreBreakdown = {
+            jobTitleScore,
+            companyScore,
+            profileCompletenessScore,
+            activityScore,
+            enrichmentScore,
+            finalScore,
+            explanation,
+        };
+
+        // Update lead score in database
+        await prisma.lead.update({
+            where: { id: leadId },
+            data: { score: finalScore },
+        });
+
+        logger.info({ leadId, finalScore }, 'Lead score calculated');
+
+        return breakdown;
+    } catch (error) {
+        logger.error({ err: error, leadId }, 'Failed to calculate lead score');
+        throw error;
+    }
+}
+
+/**
+ * Calculate job title match score (0-100)
+ */
+function calculateJobTitleScore(lead: Lead, config: ScoringConfig): number {
+    if (config.targetJobTitles.length === 0) {
+        // No targeting criteria, give neutral score
+        return 50;
     }
 
-    const scoringModel = lead.pipelineStage.pipeline.scoringModel;
-    if (!scoringModel.enabled) {
-      logger.info({ leadId, pipelineId: scoringModel.pipelineId }, 'Scoring model disabled');
-      return null;
+    const jobTitle = (lead.jobTitle || lead.headline || '').toLowerCase();
+    if (!jobTitle) {
+        return 0;
     }
 
-    const criteria = scoringModel.criteria as unknown as ScoringCriteria;
-    const weights = scoringModel.weights as unknown as ScoringWeights;
+    // Check for exact or partial matches
+    let score = 0;
+    for (const targetTitle of config.targetJobTitles) {
+        const target = targetTitle.toLowerCase();
+        if (jobTitle === target) {
+            score = 100; // Exact match
+            break;
+        } else if (jobTitle.includes(target) || target.includes(jobTitle)) {
+            score = Math.max(score, 75); // Partial match
+        }
+    }
 
-    // Build criteria description for OpenAI
-    const criteriaText = this.buildCriteriaDescription(criteria);
+    // If no match found but has a job title, give some credit
+    if (score === 0 && jobTitle) {
+        score = 25;
+    }
 
-    // Build lead profile for OpenAI
-    const leadProfile = this.buildLeadProfile(lead);
+    return score;
+}
 
-    // Call OpenAI for analysis
-    const analysis = await analyzeLead(leadProfile, criteriaText);
+/**
+ * Calculate company relevance score (0-100)
+ */
+function calculateCompanyScore(lead: Lead, config: ScoringConfig): number {
+    let score = 0;
+    let factors = 0;
 
-    // Calculate detailed scores for each factor
-    const factors = await this.calculateDetailedFactors(lead, criteria);
+    // Company size match
+    if (config.targetCompanySizes.length > 0) {
+        factors++;
+        if (lead.companySize && config.targetCompanySizes.includes(lead.companySize as CompanySize)) {
+            score += 100;
+        }
+    }
 
-    // Calculate weighted final score
-    const finalScore = this.calculateWeightedScore(factors, weights);
+    // Industry match
+    if (config.targetIndustries.length > 0) {
+        factors++;
+        const leadIndustry = (lead.industry || '').toLowerCase();
+        if (leadIndustry) {
+            for (const targetIndustry of config.targetIndustries) {
+                if (leadIndustry.includes(targetIndustry.toLowerCase()) ||
+                    targetIndustry.toLowerCase().includes(leadIndustry)) {
+                    score += 100;
+                    break;
+                }
+            }
+        }
+    }
 
-    // Determine classification
-    const classification = this.getClassification(
-      finalScore,
-      scoringModel.thresholdHigh,
-      scoringModel.thresholdMedium
-    );
+    // Company name presence
+    factors++;
+    if (lead.company) {
+        score += 50; // Having a company is worth something
+    }
 
-    // Store score history
-    await this.recordScoreHistory(
-      leadId,
-      lead.score,
-      finalScore,
-      analysis.reason,
-      factors,
-      triggeredBy
-    );
+    // If no targeting criteria, give neutral score
+    if (factors === 0) {
+        return 50;
+    }
 
-    // Update lead score
-    await prisma.lead.update({
-      where: { id: leadId },
-      data: { score: finalScore },
-    });
+    return Math.round(score / factors);
+}
 
-    return {
-      score: finalScore,
-      factors,
-      reason: analysis.reason,
-      classification,
-    };
-  }
+/**
+ * Calculate profile completeness score (0-100)
+ * Based on how many fields are filled in
+ */
+function calculateProfileCompletenessScore(lead: LeadWithRelations): number {
+    const fields = [
+        lead.fullName,
+        lead.email,
+        lead.phone,
+        lead.location,
+        lead.bio,
+        lead.company,
+        lead.jobTitle || lead.headline,
+        lead.industry,
+        lead.website,
+        lead.avatarUrl,
+        lead.profileUrl,
+    ];
 
-  /**
-   * Batch score multiple leads
-   */
-  async batchScoreLeads(
+    const filledFields = fields.filter(f => f !== null && f !== undefined && f !== '').length;
+    const baseScore = (filledFields / fields.length) * 60; // Max 60 from basic fields
+
+    // Bonus points for enrichment data
+    let enrichmentBonus = 0;
+    if (lead.experiences && lead.experiences.length > 0) enrichmentBonus += 10;
+    if (lead.educations && lead.educations.length > 0) enrichmentBonus += 10;
+    if (lead.skills && lead.skills.length > 0) enrichmentBonus += 5;
+    if (lead.certifications && lead.certifications.length > 0) enrichmentBonus += 5;
+    if (lead.languages && lead.languages.length > 0) enrichmentBonus += 5;
+    if (lead.contactInfo) enrichmentBonus += 5;
+
+    return Math.min(100, Math.round(baseScore + enrichmentBonus));
+}
+
+/**
+ * Calculate activity/engagement score (0-100)
+ * Based on social metrics
+ */
+function calculateActivityScore(lead: LeadWithRelations): number {
+    let score = 0;
+
+    // Followers count (max 40 points)
+    if (lead.followersCount !== null && lead.followersCount !== undefined) {
+        if (lead.followersCount >= 10000) score += 40;
+        else if (lead.followersCount >= 5000) score += 35;
+        else if (lead.followersCount >= 1000) score += 30;
+        else if (lead.followersCount >= 500) score += 25;
+        else if (lead.followersCount >= 100) score += 20;
+        else score += 10;
+    }
+
+    // Connection count for LinkedIn (max 40 points)
+    if (lead.connectionCount !== null && lead.connectionCount !== undefined) {
+        if (lead.connectionCount >= 500) score += 40;
+        else if (lead.connectionCount >= 250) score += 30;
+        else if (lead.connectionCount >= 100) score += 20;
+        else score += 10;
+    }
+
+    // Posts count (max 30 points)
+    if (lead.postsCount !== null && lead.postsCount !== undefined) {
+        if (lead.postsCount >= 100) score += 30;
+        else if (lead.postsCount >= 50) score += 25;
+        else if (lead.postsCount >= 20) score += 20;
+        else if (lead.postsCount >= 5) score += 15;
+        else score += 10;
+    }
+
+    // Recent posts (max 20 points)
+    if (lead.posts && lead.posts.length > 0) {
+        score += Math.min(20, lead.posts.length * 4);
+    }
+
+    // Verified status bonus (10 points)
+    if (lead.verified) {
+        score += 10;
+    }
+
+    return Math.min(100, score);
+}
+
+/**
+ * Calculate enrichment data quality score (0-100)
+ * Based on enrichment status and data completeness
+ */
+function calculateEnrichmentScore(lead: LeadWithRelations): number {
+    let score = 0;
+
+    // Base score from enrichment status
+    switch (lead.enrichmentStatus) {
+        case 'complete':
+            score = 60;
+            break;
+        case 'partial':
+            score = 40;
+            break;
+        case 'failed':
+            score = 10;
+            break;
+        case 'none':
+        default:
+            score = 0;
+            break;
+    }
+
+    // Bonus for specific enrichment data
+    if (lead.experiences && lead.experiences.length > 0) {
+        score += Math.min(15, lead.experiences.length * 5);
+    }
+    if (lead.educations && lead.educations.length > 0) {
+        score += Math.min(10, lead.educations.length * 5);
+    }
+    if (lead.skills && lead.skills.length > 0) {
+        score += Math.min(10, lead.skills.length * 2);
+    }
+    if (lead.certifications && lead.certifications.length > 0) {
+        score += 5;
+    }
+
+    return Math.min(100, score);
+}
+
+/**
+ * Generate human-readable explanation of the score
+ */
+function generateExplanation(
+    _lead: Lead,
+    config: ScoringConfig,
+    breakdown: Omit<LeadScoreBreakdown, 'explanation'>
+): string {
+    const parts: string[] = [];
+
+    // Overall assessment
+    if (breakdown.finalScore >= 80) {
+        parts.push('Lead altamente qualificado.');
+    } else if (breakdown.finalScore >= 60) {
+        parts.push('Lead qualificado.');
+    } else if (breakdown.finalScore >= 40) {
+        parts.push('Lead parcialmente qualificado.');
+    } else {
+        parts.push('Lead com baixa qualificação.');
+    }
+
+    // Key strengths
+    const strengths: string[] = [];
+    if (breakdown.jobTitleScore >= 70) strengths.push('cargo compatível');
+    if (breakdown.companyScore >= 70) strengths.push('empresa relevante');
+    if (breakdown.profileCompletenessScore >= 70) strengths.push('perfil completo');
+    if (breakdown.activityScore >= 70) strengths.push('boa atividade social');
+    if (breakdown.enrichmentScore >= 70) strengths.push('dados enriquecidos');
+
+    if (strengths.length > 0) {
+        parts.push('Pontos fortes: ' + strengths.join(', ') + '.');
+    }
+
+    // Key weaknesses
+    const weaknesses: string[] = [];
+    if (breakdown.jobTitleScore < 40 && config.targetJobTitles.length > 0) {
+        weaknesses.push('cargo não corresponde ao perfil ideal');
+    }
+    if (breakdown.profileCompletenessScore < 40) {
+        weaknesses.push('perfil incompleto');
+    }
+    if (breakdown.activityScore < 40) {
+        weaknesses.push('baixa atividade social');
+    }
+    if (breakdown.enrichmentScore < 40) {
+        weaknesses.push('dados não enriquecidos');
+    }
+
+    if (weaknesses.length > 0) {
+        parts.push('Áreas de atenção: ' + weaknesses.join(', ') + '.');
+    }
+
+    return parts.join(' ');
+}
+
+/**
+ * Batch calculate scores for multiple leads
+ * @param leadIds - Array of lead IDs to score
+ * @param workspaceId - The workspace ID for configuration lookup
+ * @returns Array of score breakdowns
+ */
+export async function batchCalculateLeadScores(
     leadIds: string[],
-    triggeredBy: string = 'batch_job'
-  ): Promise<{ processed: number; succeeded: number; failed: number; errors: string[] }> {
-    const results = {
-      processed: 0,
-      succeeded: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
+    workspaceId: string
+): Promise<Array<{ leadId: string; breakdown: LeadScoreBreakdown; error?: string }>> {
+    const results: Array<{ leadId: string; breakdown: LeadScoreBreakdown; error?: string }> = [];
 
     for (const leadId of leadIds) {
-      try {
-        results.processed++;
-        await this.scoreLead(leadId, triggeredBy);
-        results.succeeded++;
-      } catch (error) {
-        results.failed++;
-        results.errors.push(`${leadId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        logger.error({ leadId, error }, 'Batch scoring failed for lead');
-      }
+        try {
+            const breakdown = await calculateLeadScore(leadId, workspaceId);
+            results.push({ leadId, breakdown });
+        } catch (error) {
+            logger.error({ err: error, leadId }, 'Failed to calculate score for lead in batch');
+            results.push({
+                leadId,
+                breakdown: {
+                    jobTitleScore: 0,
+                    companyScore: 0,
+                    profileCompletenessScore: 0,
+                    activityScore: 0,
+                    enrichmentScore: 0,
+                    finalScore: 0,
+                    explanation: 'Erro ao calcular pontuação',
+                },
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+        }
     }
 
     return results;
-  }
-
-  /**
-   * Get score history for a lead
-   */
-  async getScoreHistory(leadId: string, limit: number = 20) {
-    return prisma.scoreHistory.findMany({
-      where: { leadId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-  }
-
-  /**
-   * Get detailed score breakdown for a lead
-   */
-  async getScoreBreakdown(leadId: string): Promise<ScoringResult | null> {
-    const lead = await prisma.lead.findUnique({
-      where: { id: leadId },
-      include: {
-        pipelineStage: {
-          include: {
-            pipeline: {
-              include: {
-                scoringModel: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!lead || !lead.pipelineStage?.pipeline?.scoringModel) {
-      return null;
-    }
-
-    const scoringModel = lead.pipelineStage.pipeline.scoringModel;
-    const criteria = scoringModel.criteria as unknown as ScoringCriteria;
-    const weights = scoringModel.weights as unknown as ScoringWeights;
-
-    const factors = await this.calculateDetailedFactors(lead, criteria);
-    const finalScore = this.calculateWeightedScore(factors, weights);
-    const classification = this.getClassification(
-      finalScore,
-      scoringModel.thresholdHigh,
-      scoringModel.thresholdMedium
-    );
-
-    return {
-      score: finalScore,
-      factors,
-      reason: `Current score: ${finalScore}/100`,
-      classification,
-    };
-  }
-
-  // ============================================
-  // PRIVATE HELPERS
-  // ============================================
-
-  /**
-   * Build criteria description for OpenAI prompt
-   */
-  private buildCriteriaDescription(criteria: ScoringCriteria): string {
-    const parts: string[] = [];
-
-    if (criteria.jobTitles.target.length > 0) {
-      parts.push(`Target job titles: ${criteria.jobTitles.target.join(', ')}`);
-    }
-    if (criteria.jobTitles.exclude.length > 0) {
-      parts.push(`Exclude job titles: ${criteria.jobTitles.exclude.join(', ')}`);
-    }
-    if (criteria.companies.industries.length > 0) {
-      parts.push(`Target industries: ${criteria.companies.industries.join(', ')}`);
-    }
-    if (criteria.companies.sizes.length > 0) {
-      parts.push(`Target company sizes: ${criteria.companies.sizes.join(', ')}`);
-    }
-
-    return parts.join('. ');
-  }
-
-  /**
-   * Build lead profile for OpenAI
-   */
-  private buildLeadProfile(lead: any): any {
-    return {
-      username: lead.username || 'unknown',
-      fullName: lead.fullName || '',
-      bio: lead.bio || '',
-      headline: lead.headline || '',
-      company: lead.company || '',
-      industry: lead.industry || '',
-      location: lead.location || '',
-      followersCount: lead.followersCount,
-      connectionCount: lead.connectionCount,
-      postsCount: lead.leadPosts.length,
-      platform: lead.platform || 'unknown',
-    };
-  }
-
-  /**
-   * Calculate detailed scores for each factor
-   */
-  private async calculateDetailedFactors(
-    lead: any,
-    criteria: ScoringCriteria
-  ): Promise<ScoreBreakdown> {
-    const jobTitle = this.scoreJobTitle(lead, criteria);
-    const company = this.scoreCompany(lead, criteria);
-    const engagement = this.scoreEngagement(lead, criteria);
-    const completeness = this.scoreCompleteness(lead, criteria);
-
-    return { jobTitle, company, engagement, completeness };
-  }
-
-  /**
-   * Score job title match
-   */
-  private scoreJobTitle(lead: any, criteria: ScoringCriteria): ScoreFactor {
-    const { target, exclude, seniority } = criteria.jobTitles;
-
-    // Get job title from various fields
-    const title =
-      lead.jobTitle ||
-      lead.headline ||
-      lead.experiences?.[0]?.roleTitle ||
-      '';
-
-    if (!title) {
-      return { score: 0, reason: 'No job title information available' };
-    }
-
-    // Check exclusions first
-    if (exclude.some((ex) => title.toLowerCase().includes(ex.toLowerCase()))) {
-      return { score: 0, reason: 'Job title matches exclusion criteria' };
-    }
-
-    // Check for exact matches
-    if (target.some((t) => title.toLowerCase().includes(t.toLowerCase()))) {
-      return { score: 95, reason: 'Job title matches target profile exactly' };
-    }
-
-    // Check for seniority matches
-    if (seniority.some((s) => title.toLowerCase().includes(s.toLowerCase()))) {
-      return { score: 75, reason: 'Job title matches target seniority level' };
-    }
-
-    return { score: 40, reason: 'Job title available but not a clear match' };
-  }
-
-  /**
-   * Score company relevance
-   */
-  private scoreCompany(lead: any, criteria: ScoringCriteria): ScoreFactor {
-    const { industries, sizes, excludeIndustries } = criteria.companies;
-
-    const company = lead.company || '';
-    const industry = lead.industry || '';
-    const companySize = lead.companySize || '';
-
-    // Check exclusions
-    if (excludeIndustries.length > 0) {
-      const combinedIndustry = (company + ' ' + industry).toLowerCase();
-      if (excludeIndustries.some((ex) => combinedIndustry.includes(ex.toLowerCase()))) {
-        return { score: 0, reason: 'Company matches excluded industry' };
-      }
-    }
-
-    // Check industry match
-    if (industries.length > 0) {
-      const combinedIndustry = (company + ' ' + industry).toLowerCase();
-      if (industries.some((ind) => combinedIndustry.includes(ind.toLowerCase()))) {
-        // Bonus for size match
-        if (sizes.length > 0 && sizes.includes(companySize)) {
-          return { score: 95, reason: 'Company matches target industry and size' };
-        }
-        return { score: 80, reason: 'Company matches target industry' };
-      }
-    }
-
-    // Check size only
-    if (sizes.length > 0 && sizes.includes(companySize)) {
-      return { score: 65, reason: 'Company size matches target' };
-    }
-
-    if (!company && !industry) {
-      return { score: 0, reason: 'No company information available' };
-    }
-
-    return { score: 45, reason: 'Company information available but not a clear match' };
-  }
-
-  /**
-   * Score engagement/activity
-   */
-  private scoreEngagement(lead: any, criteria: ScoringCriteria): ScoreFactor {
-    const { minFollowers, minConnections, hasRecentPosts } = criteria.engagement;
-
-    let score = 0;
-    const reasons: string[] = [];
-
-    // Followers score
-    if (lead.followersCount) {
-      if (minFollowers && lead.followersCount >= minFollowers) {
-        score += 30;
-        reasons.push(`Good follower count (${lead.followersCount})`);
-      } else {
-        score += Math.min(20, Math.floor((lead.followersCount / 1000) * 20));
-        reasons.push(`Follower count: ${lead.followersCount}`);
-      }
-    }
-
-    // Connections score (LinkedIn)
-    if (lead.connectionCount) {
-      if (minConnections && lead.connectionCount >= minConnections) {
-        score += 30;
-        reasons.push(`Strong network (${lead.connectionCount} connections)`);
-      } else {
-        score += Math.min(20, Math.floor((lead.connectionCount / 500) * 20));
-        reasons.push(`Connections: ${lead.connectionCount}`);
-      }
-    }
-
-    // Posts score
-    if (hasRecentPosts) {
-      if (lead.postsCount && lead.postsCount > 0) {
-        score += 25;
-        reasons.push(`Active poster (${lead.postsCount} posts)`);
-      } else {
-        score += 10;
-        reasons.push('Some post activity');
-      }
-    }
-
-    // Verification bonus
-    if (lead.verified) {
-      score += 15;
-      reasons.push('Verified account');
-    }
-
-    if (score === 0) {
-      return { score: 0, reason: 'No engagement data available' };
-    }
-
-    return { score: Math.min(100, score), reason: reasons.join('. ') };
-  }
-
-  /**
-   * Score profile completeness
-   */
-  private scoreCompleteness(lead: any, criteria: ScoringCriteria): ScoreFactor {
-    // Destructure to avoid unused parameter warning (using default fields for now)
-    void criteria.completeness;
-
-    let score = 0;
-    const reasons: string[] = [];
-
-    // Check required fields
-    const requiredFields = {
-      email: lead.email,
-      jobTitle: lead.jobTitle || lead.headline,
-      company: lead.company,
-      bio: lead.bio,
-    };
-
-    const presentRequired = Object.values(requiredFields).filter((v) => v).length;
-    const requiredScore = (presentRequired / Object.keys(requiredFields).length) * 60;
-    score += requiredScore;
-    reasons.push(`${presentRequired}/${Object.keys(requiredFields).length} required fields`);
-
-    // Check bonus fields
-    const bonusFields = {
-      phone: lead.phone,
-      website: lead.website,
-      location: lead.location,
-      experiences: lead.experiences?.length > 0,
-      educations: lead.educations?.length > 0,
-      skills: lead.skills?.length > 0,
-    };
-
-    const presentBonus = Object.values(bonusFields).filter((v) => v).length;
-    const bonusScore = (presentBonus / Object.keys(bonusFields).length) * 40;
-    score += bonusScore;
-    if (presentBonus > 0) {
-      reasons.push(`${presentBonus}/${Object.keys(bonusFields).length} bonus fields`);
-    }
-
-    return { score: Math.round(score), reason: reasons.join('. ') };
-  }
-
-  /**
-   * Calculate weighted final score
-   */
-  private calculateWeightedScore(factors: ScoreBreakdown, weights: ScoringWeights): number {
-    const weightedSum =
-      factors.jobTitle.score * weights.jobTitle +
-      factors.company.score * weights.company +
-      factors.engagement.score * weights.engagement +
-      factors.completeness.score * weights.completeness;
-
-    const totalWeight =
-      weights.jobTitle + weights.company + weights.engagement + weights.completeness;
-
-    return Math.round(weightedSum / totalWeight);
-  }
-
-  /**
-   * Determine lead classification
-   */
-  private getClassification(
-    score: number,
-    thresholdHigh: number,
-    thresholdMedium: number
-  ): 'hot' | 'warm' | 'cold' {
-    if (score >= thresholdHigh) return 'hot';
-    if (score >= thresholdMedium) return 'warm';
-    return 'cold';
-  }
-
-  /**
-   * Record score history
-   */
-  private async recordScoreHistory(
-    leadId: string,
-    oldScore: number,
-    newScore: number,
-    reason: string,
-    factors: ScoreBreakdown,
-    triggeredBy: string
-  ): Promise<void> {
-    await prisma.scoreHistory.create({
-      data: {
-        leadId,
-        oldScore,
-        newScore,
-        reason,
-        factors: factors as any,
-        triggeredBy,
-      },
-    });
-  }
 }
 
-// Export singleton instance
-export const scoringService = new ScoringService();
+/**
+ * Get or create scoring config for a workspace
+ * @param workspaceId - The workspace ID
+ * @returns The scoring configuration
+ */
+export async function getScoringConfig(workspaceId: string): Promise<ScoringConfig> {
+    let config = await prisma.scoringConfig.findUnique({
+        where: { workspaceId },
+    });
+
+    if (!config) {
+        config = await prisma.scoringConfig.create({
+            data: {
+                workspaceId,
+                jobTitleWeight: 25,
+                companyWeight: 20,
+                profileCompletenessWeight: 15,
+                activityWeight: 20,
+                enrichmentWeight: 20,
+                targetJobTitles: [],
+                targetCompanySizes: [],
+                targetIndustries: [],
+                minProfileCompleteness: 50,
+                autoScoreOnImport: true,
+                autoScoreOnUpdate: true,
+            },
+        });
+    }
+
+    return config;
+}
+
+/**
+ * Update scoring configuration for a workspace
+ * @param workspaceId - The workspace ID
+ * @param data - Updated configuration data
+ * @returns The updated scoring configuration
+ */
+export async function updateScoringConfig(
+    workspaceId: string,
+    data: Partial<Omit<ScoringConfig, 'id' | 'workspaceId' | 'createdAt' | 'updatedAt'>>
+): Promise<ScoringConfig> {
+    // Get or create config first
+    await getScoringConfig(workspaceId);
+
+    // Update it
+    const config = await prisma.scoringConfig.update({
+        where: { workspaceId },
+        data,
+    });
+
+    logger.info({ workspaceId }, 'Scoring config updated');
+
+    return config;
+}
+
+/**
+ * Build a LeadProfile object for OpenAI analysis
+ */
+function buildLeadProfile(lead: Lead): LeadProfile {
+    return {
+        username: lead.username || 'unknown',
+        fullName: lead.fullName,
+        bio: lead.bio,
+        headline: lead.headline,
+        company: lead.company,
+        industry: lead.industry,
+        location: lead.location,
+        followersCount: lead.followersCount || undefined,
+        followingCount: lead.followingCount || undefined,
+        connectionCount: lead.connectionCount || undefined,
+        platform: lead.platform || undefined,
+    };
+}
+
+/**
+ * Build a human-readable description of scoring criteria for OpenAI
+ */
+function buildCriteriaDescription(config: ScoringConfig): string {
+    const parts: string[] = [];
+
+    if (config.targetJobTitles.length > 0) {
+        parts.push(`Cargos-alvo: ${config.targetJobTitles.join(', ')}`);
+    }
+
+    if (config.targetIndustries.length > 0) {
+        parts.push(`Setores: ${config.targetIndustries.join(', ')}`);
+    }
+
+    if (config.targetCompanySizes.length > 0) {
+        const sizes = config.targetCompanySizes.map((s) => {
+            switch (s) {
+                case 'SIZE_1_10': return '1-10 funcionários';
+                case 'SIZE_11_50': return '11-50 funcionários';
+                case 'SIZE_51_200': return '51-200 funcionários';
+                case 'SIZE_201_500': return '201-500 funcionários';
+                case 'SIZE_501_1000': return '501-1000 funcionários';
+                case 'SIZE_1001_5000': return '1001-5000 funcionários';
+                case 'SIZE_5001_10000': return '5001-10000 funcionários';
+                case 'SIZE_10001_PLUS': return '10000+ funcionários';
+                default: return s;
+            }
+        });
+        parts.push(`Tamanhos de empresa: ${sizes.join(', ')}`);
+    }
+
+    if (parts.length === 0) {
+        return 'Perfil profissional de qualidade geral';
+    }
+
+    return parts.join('; ');
+}

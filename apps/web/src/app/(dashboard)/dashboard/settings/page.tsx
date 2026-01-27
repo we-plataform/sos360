@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
+import { ScoringConfigDialog } from '@/components/leads';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
+import { Sliders } from 'lucide-react';
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const currentWorkspace = useAuthStore((state) => state.currentWorkspace);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [scoringConfigOpen, setScoringConfigOpen] = useState(false);
 
   const { data: users } = useQuery({
     queryKey: ['users'],
@@ -129,7 +132,38 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Lead Scoring */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sliders className="h-5 w-5" />
+              Pontuação de Leads
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-gray-500">
+              Configure os critérios e pesos para calcular automaticamente a qualidade dos leads com base no seu perfil ideal de cliente (ICP).
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="font-medium">Configurar Pontuação</p>
+                  <p className="text-xs text-gray-500">Personalizar pesos, ICP e regras</p>
+                </div>
+                <Button onClick={() => setScoringConfigOpen(true)}>Configurar</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Scoring Config Dialog */}
+      <ScoringConfigDialog
+        open={scoringConfigOpen}
+        onOpenChange={setScoringConfigOpen}
+        workspaceId={currentWorkspace?.id || ''}
+      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ export function setupRoutes(app: Express): void {
   app.use('/api/v1/users', usersRouter);
   app.use('/api/v1/audiences', audiencesRouter);
   app.use('/api/v1/posts', postsRouter);
-  app.use('/api/v1', scoringRouter);
+  app.use('/api/v1/scoring', scoringRouter);
 
   // 404 handler for API routes
   app.use('/api', (_req, res) => {

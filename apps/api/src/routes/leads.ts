@@ -17,7 +17,7 @@ import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
-import { scoringService } from '../services/scoring.js';
+import { calculateLeadScore } from '../services/scoring.js';
 
 export const leadsRouter = Router();
 
@@ -120,6 +120,9 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
   try {
     const workspaceId = req.user!.workspaceId;
     const { tags, address, pipelineStageId, ...leadData } = req.body;
+
+    // DEBUG: Log lead creation payload
+    console.log('[DEBUG-API] Creating lead payload:', { pipelineStageId, leadData });
 
 
     let profileUrl = leadData.profileUrl;
@@ -252,6 +255,10 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
           address: true,
         },
       });
+
+      // DEBUG: Log created lead
+      console.log('[DEBUG-API] Lead created:', { id: lead.id, pipelineStageId: lead.pipelineStageId });
+
     }
 
     // Emit socket event
@@ -462,6 +469,9 @@ leadsRouter.post(
 
 
       for (const leadData of leads) {
+        // DEBUG: Log received lead data with focus on avatarUrl
+        console.log('[DEBUG] Processing lead - avatarUrl received:', leadData.avatarUrl ? `YES (${leadData.avatarUrl.substring(0, 50)}...)` : 'NO');
+        console.log('[DEBUG] Full lead data:', JSON.stringify(leadData, null, 2));
         try {
           // Clean and validate lead data
           const cleanedLeadData = {
@@ -504,6 +514,7 @@ leadsRouter.post(
 
           // Ensure profileUrl exists
           const profileUrl = cleanedLeadData.profileUrl || `${platform}:${cleanedLeadData.username || 'unknown'}`;
+          console.log('[DEBUG] Cleaned lead data:', JSON.stringify({ ...cleanedLeadData, profileUrl }, null, 2));
 
           // 1. Try to find existing lead
           const existingLead = await prisma.lead.findFirst({
@@ -593,15 +604,8 @@ leadsRouter.post(
             });
           }
           imported++;
-
-          // Auto-score lead in background if pipeline has scoring model
-          if (savedLead.id && pipelineStageId) {
-            // Fire and forget - don't await to avoid slowing down import
-            scoringService.scoreLead(savedLead.id, 'import').catch((err) => {
-              console.error('Auto-scoring failed for lead:', savedLead.id, err);
-            });
-          }
-
+          // DEBUG: Verify avatarUrl was saved
+          console.log('[DEBUG] Lead saved - avatarUrl in DB:', savedLead.avatarUrl ? `YES (${savedLead.avatarUrl.substring(0, 50)}...)` : 'NO');
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
           console.error('Error importing lead:', err, leadData);
@@ -870,6 +874,9 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
     const workspaceId = req.user!.workspaceId;
     const { address, ...updates } = req.body;
 
+    // DEBUG: Log the incoming update request
+    console.log('[DEBUG] PATCH /leads/:id - Received:', { id, workspaceId, updates, address });
+
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
       where: { id, workspaceId },
@@ -896,7 +903,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
       };
     }
 
-    const lead = await prisma.lead.update({
+    let lead = await prisma.lead.update({
       where: { id },
       data: updateData,
       include: {
@@ -912,6 +919,37 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
         address: true,
       },
     });
+
+    // Trigger automatic scoring if enabled
+    try {
+      const scoringConfig = await prisma.scoringConfig.findUnique({
+        where: { workspaceId },
+      });
+
+      if (scoringConfig?.autoScoreOnUpdate) {
+        await calculateLeadScore(id, workspaceId);
+
+        // Fetch updated lead with new score
+        lead = await prisma.lead.findUnique({
+          where: { id },
+          include: {
+            assignedTo: {
+              select: { id: true, fullName: true, avatarUrl: true },
+            },
+            tags: {
+              include: {
+                tag: { select: { id: true, name: true, color: true } },
+              },
+            },
+            socialProfiles: true,
+            address: true,
+          },
+        }) as typeof lead;
+      }
+    } catch (error) {
+      // Log error but don't fail the update
+      console.error('Failed to calculate lead score:', error);
+    }
 
     // Emit socket event
     const io = req.app.get('io') as Server;
@@ -950,6 +988,8 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
     const { enrichment } = req.body;
+
+    console.log('[DEBUG] PATCH /leads/:id/enrich - Received:', { id, workspaceId, enrichment: Object.keys(enrichment || {}) });
 
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
@@ -1308,6 +1348,20 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
       data: leadUpdateData
     });
 
+    // Trigger automatic scoring if enabled
+    try {
+      const scoringConfig = await prisma.scoringConfig.findUnique({
+        where: { workspaceId },
+      });
+
+      if (scoringConfig?.autoScoreOnUpdate) {
+        await calculateLeadScore(id, workspaceId);
+      }
+    } catch (error) {
+      // Log error but don't fail the enrichment
+      console.error('Failed to calculate lead score after enrichment:', error);
+    }
+
     // Process address - either from explicit address object or parsed from location
     const addressData = address || parseLocationToAddress(existingLead.location);
     if (addressData && Object.values(addressData).some(v => v !== null && v !== undefined)) {
@@ -1329,6 +1383,8 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
         metadata: { enrichedSections, enrichmentStatus }
       }
     });
+
+    console.log(`[DEBUG] Enrichment complete: ${enrichedSections} sections for lead ${id}`);
 
     res.json({
       success: true,

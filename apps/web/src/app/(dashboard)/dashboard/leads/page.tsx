@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Plus, Settings, RefreshCw } from 'lucide-react';
+import { Plus, Settings, RefreshCw, Filter, ArrowUpDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { KanbanBoard, KanbanPipeline, StageManager } from '@/components/kanban';
@@ -17,6 +17,11 @@ export default function LeadsPage() {
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
   const [isCreatePipelineOpen, setIsCreatePipelineOpen] = useState(false);
   const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
+
+  // Score filter and sort state
+  const [scoreMin, setScoreMin] = useState<number | undefined>(undefined);
+  const [scoreMax, setScoreMax] = useState<number | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string>('');
 
   // Fetch pipelines
   const { data: pipelinesData } = useQuery({
@@ -36,8 +41,12 @@ export default function LeadsPage() {
 
   // Fetch pipeline with leads
   const { data: pipelineData, isLoading: isPipelineLoading } = useQuery({
-    queryKey: ['pipeline', selectedPipelineId],
-    queryFn: () => api.getPipeline(selectedPipelineId!) as any,
+    queryKey: ['pipeline', selectedPipelineId, scoreMin, scoreMax, sortBy],
+    queryFn: () => api.getPipeline(selectedPipelineId!, {
+      scoreMin,
+      scoreMax,
+      sortBy,
+    }) as any,
     enabled: !!selectedPipelineId,
   });
 
@@ -200,6 +209,87 @@ export default function LeadsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Score Filter and Sort Controls */}
+      {(scoreMin !== undefined || scoreMax !== undefined || sortBy) && (
+        <Card className="mb-4 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium">Filtros:</span>
+              </div>
+
+              {/* Score Range Filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Pontuação:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Mín"
+                  className="w-20 rounded border px-2 py-1 text-sm"
+                  value={scoreMin ?? ''}
+                  onChange={(e) => setScoreMin(e.target.value ? Number(e.target.value) : undefined)}
+                />
+                <span className="text-gray-500">-</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Máx"
+                  className="w-20 rounded border px-2 py-1 text-sm"
+                  value={scoreMax ?? ''}
+                  onChange={(e) => setScoreMax(e.target.value ? Number(e.target.value) : undefined)}
+                />
+              </div>
+
+              {/* Sort By */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Ordenar:</label>
+                <select
+                  className="rounded border px-2 py-1 text-sm"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="">Posição</option>
+                  <option value="score">Maior Pontuação</option>
+                  <option value="score_asc">Menor Pontuação</option>
+                </select>
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setScoreMin(undefined);
+                setScoreMax(undefined);
+                setSortBy('');
+              }}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpar
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Filter Toggle Button (when no filters are active) */}
+      {!(scoreMin !== undefined || scoreMax !== undefined || sortBy) && (
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortBy('')}
+            className="text-gray-600"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Filtros e Ordenação
+          </Button>
+        </div>
+      )}
 
       {/* Migration Banner - Disabled for now as logic depended on list query */}
       {/* {hasUnmigratedLeads && (
