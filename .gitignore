@@ -68,6 +68,7 @@ node_modules/
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
@@ -77,6 +78,8 @@ node_modules/
 >>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
 =======
 >>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
