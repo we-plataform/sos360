@@ -1,15 +1,15 @@
 {
   "active": true,
   "spec": "008-lead-data-export-to-csv",
-  "state": "planning",
+  "state": "building",
   "subtasks": {
-    "completed": 0,
-    "total": 0,
+    "completed": 6,
+    "total": 15,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Backend API - CSV Export Endpoint",
+    "current": "Frontend UI - Export Dialog",
     "id": null,
     "total": 5
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 8,
     "started_at": "2026-01-27T00:13:53.290123"
   },
-  "last_update": "2026-01-27T00:22:18.130196"
+  "last_update": "2026-01-27T01:10:55.314470"
 }
