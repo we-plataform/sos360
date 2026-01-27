@@ -137,6 +137,80 @@
   }
 
   /**
+   * Cleanup function to clear state when leaving profile/post pages
+   */
+  function cleanup() {
+    const state = window.LiaInstagramState;
+    if (!state) return;
+
+    // Stop any ongoing operations
+    state.isAutoScrolling = false;
+    state.isAutoScrollingComments = false;
+
+    // Clear profile-specific state
+    state.currentProfileUsername = null;
+    state.keywords = [];
+    state.criteria = '';
+    state.useAIQualification = false;
+
+    // Clear post-specific state
+    state.isPostPage = false;
+    state.postData = null;
+    state.currentPostUrl = null;
+    state.targetProfileCount = 300;
+    state.profilesScanned = 0;
+
+    // Clear Maps to free memory
+    if (state.qualifiedLeads && typeof state.qualifiedLeads.clear === 'function') {
+      const sizeBefore = state.qualifiedLeads.size;
+      state.qualifiedLeads.clear();
+      console.log('[Lia 360] Cleanup: cleared qualifiedLeads map (' + sizeBefore + ' entries)');
+    }
+
+    if (state.profilesFromComments && typeof state.profilesFromComments.clear === 'function') {
+      const sizeBefore = state.profilesFromComments.size;
+      state.profilesFromComments.clear();
+      console.log('[Lia 360] Cleanup: cleared profilesFromComments map (' + sizeBefore + ' entries)');
+    }
+
+    if (state.commentAuthors && typeof state.commentAuthors.clear === 'function') {
+      const sizeBefore = state.commentAuthors.size;
+      state.commentAuthors.clear();
+      console.log('[Lia 360] Cleanup: cleared commentAuthors map (' + sizeBefore + ' entries)');
+    }
+
+    // Clear arrays
+    state.pendingAIBatch = [];
+
+    // Clear counters
+    state.totalUsersFound = 0;
+    state.scannedCount = 0;
+
+    // Remove UI overlays
+    const overlay = document.getElementById('sos360-instagram-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+
+    const postButtons = document.getElementById('sos-post-actions-container');
+    if (postButtons) {
+      postButtons.remove();
+    }
+
+    // Stop any AI analysis
+    state.aiAnalyzing = false;
+
+    // Clear dialog state
+    state.dialogDetected = false;
+    state.dialogType = null;
+
+    // Clear any saved state from storage
+    chrome.storage.local.remove(['instagramState']);
+
+    console.log('[Lia 360] Cleanup completed');
+  }
+
+  /**
    * Initialize the Instagram content script
    */
   function initialize() {
@@ -163,7 +237,8 @@
 
       if (previousPostUrl && previousPostUrl !== currentUrl) {
         console.log('[Lia 360] Navigated to different post');
-        // Post overlay would be closed here
+        // Clean up when navigating to a different post
+        cleanup();
       }
 
       state.currentPostUrl = currentUrl;
@@ -177,10 +252,8 @@
     } else {
       if (state.currentPostUrl) {
         console.log('[Lia 360] Left post page');
-        if (window.LiaInstagramUI) {
-          window.LiaInstagramUI.removePostButtons();
-        }
-        state.currentPostUrl = null;
+        // Clean up when leaving post page
+        cleanup();
       }
 
       if (username) {
@@ -195,16 +268,33 @@
 
   new MutationObserver(() => {
     if (location.href !== lastUrl) {
+      const oldUrl = lastUrl;
+      const newUrl = location.href;
+
       console.log('[Lia 360] URL changed detected!');
-      console.log('[Lia 360] Old URL:', lastUrl);
-      console.log('[Lia 360] New URL:', location.href);
+      console.log('[Lia 360] Old URL:', oldUrl);
+      console.log('[Lia 360] New URL:', newUrl);
 
-      lastUrl = location.href;
+      lastUrl = newUrl;
 
+      // Cleanup when navigating away from profile or post pages
       const state = window.LiaInstagramState;
       if (state) {
+        const wasPostPage = state.isPostPage;
+        const wasProfilePage = state.currentProfileUsername !== null;
+
+        // Update state for new page
         state.currentProfileUsername = window.LiaInstagramUtils?.getCurrentProfileUsername();
         state.isPostPage = window.LiaInstagramPost?.isInstagramPostPage();
+
+        // If we're leaving a profile/post page and going to a different type of page
+        const isNowProfilePage = state.currentProfileUsername !== null;
+        const isNowPostPage = state.isPostPage;
+
+        if ((wasPostPage && !isNowPostPage) || (wasProfilePage && !isNowProfilePage && !isNowPostPage)) {
+          console.log('[Lia 360] Leaving profile/post page, cleaning up');
+          cleanup();
+        }
       }
 
       console.log('[Lia 360] Re-initializing due to URL change');

@@ -24,15 +24,17 @@
     // --- Global Variables ---
     let profileMenu = null;
     let lastUrl = location.href; // THE FIX: Declared ONCE here in module scope.
+    let autoScrollController = null;
 
     // --- Core Logic ---
 
     /**
      * Check if current page is a connections/search page where overlay should load
+     * @param {string} url - Optional URL to check, defaults to current page
      */
-    function isConnectionsOrSearchPage() {
-        const url = window.location.href;
-        return url.includes('/connections/') || url.includes('/search/results/');
+    function isConnectionsOrSearchPage(url) {
+        const checkUrl = url || window.location.href;
+        return checkUrl.includes('/connections/') || checkUrl.includes('/search/results/');
     }
 
     /**
@@ -43,6 +45,49 @@
         return url.includes('/in/') && url.match(/\/in\/[^\/]+/);
     }
 
+    /**
+     * Cleanup function to clear state when leaving profile/connection pages
+     */
+    function cleanup() {
+        // Stop any ongoing auto-scroll
+        if (autoScrollController) {
+            autoScrollController.stop();
+            autoScrollController = null;
+        }
+
+        // Remove profile menu if it exists
+        if (profileMenu) {
+            profileMenu.remove();
+            profileMenu = null;
+        }
+
+        // Remove overlay if it exists
+        const overlay = document.getElementById('sos360-linkedin-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+
+        // Clear state but preserve session storage
+        const state = State.get();
+        if (state) {
+            // Stop auto-scrolling flags
+            state.isAutoScrolling = false;
+            state.isBulkScanning = false;
+
+            // Clear qualified leads map to free memory
+            if (state.qualifiedLeads && typeof state.qualifiedLeads.clear === 'function') {
+                state.qualifiedLeads.clear();
+            }
+
+            // Clear other large data structures
+            state.scannedUrls = new Set();
+            state.totalConnectionsFound = 0;
+        }
+
+        // Clear any saved state from session storage
+        chrome.storage.local.remove(['linkedinState']);
+    }
+
     function detectProfilePage() {
         const isProfile = isProfilePage();
 
@@ -50,8 +95,8 @@
             console.log('[Lia 360] Perfil detectado, criando menu');
             profileMenu = new UI.ProfileImportMenu();
         } else if (!isProfile && profileMenu) {
-            profileMenu.remove();
-            profileMenu = null;
+            // Clean up when leaving profile page
+            cleanup();
         }
     }
 
@@ -68,8 +113,16 @@
         const urlObserver = new MutationObserver(() => {
             const url = location.href;
             if (url !== lastUrl) {
+                const oldUrl = lastUrl;
                 lastUrl = url;
                 console.log('[Lia 360] URL changed to:', url);
+
+                // Cleanup if leaving connections/search page
+                if (isConnectionsOrSearchPage(oldUrl) && !isConnectionsOrSearchPage(url)) {
+                    console.log('[Lia 360] Leaving connections/search page, cleaning up');
+                    cleanup();
+                }
+
                 detectProfilePage();
                 // Also re-init Overlay logic if needed
                 if (isConnectionsOrSearchPage()) {
@@ -108,9 +161,6 @@
 
                 // Load audiences
                 UI.loadAudiences();
-
-                // Initialize auto-scroll controller
-                let autoScrollController = null;
 
                 // Start button
                 const startBtn = document.getElementById('sos-start-btn');
