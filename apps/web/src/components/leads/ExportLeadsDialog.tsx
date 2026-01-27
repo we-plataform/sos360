@@ -11,6 +11,14 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -63,19 +71,44 @@ const DEFAULT_FIELDS = [
   'tags',
 ];
 
+interface PipelineStage {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface ExportLeadsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  stages?: PipelineStage[];
+  tags?: Tag[];
 }
 
-export function ExportLeadsDialog({ open, onOpenChange }: ExportLeadsDialogProps) {
+export function ExportLeadsDialog({ open, onOpenChange, stages = [], tags = [] }: ExportLeadsDialogProps) {
   const [selectedFields, setSelectedFields] = useState<Set<string>>(
     new Set(DEFAULT_FIELDS)
   );
   const [isExporting, setIsExporting] = useState(false);
 
+  // Filter states
+  const [selectedStageId, setSelectedStageId] = useState<string>('');
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [createdAfter, setCreatedAfter] = useState<string>('');
+  const [createdBefore, setCreatedBefore] = useState<string>('');
+
   const resetForm = () => {
     setSelectedFields(new Set(DEFAULT_FIELDS));
+    setSelectedStageId('');
+    setSelectedTagIds(new Set());
+    setCreatedAfter('');
+    setCreatedBefore('');
     setIsExporting(false);
   };
 
@@ -84,6 +117,18 @@ export function ExportLeadsDialog({ open, onOpenChange }: ExportLeadsDialogProps
       resetForm();
       onOpenChange(false);
     }
+  };
+
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(tagId)) {
+        newSet.delete(tagId);
+      } else {
+        newSet.add(tagId);
+      }
+      return newSet;
+    });
   };
 
   const handleToggleField = (fieldId: string) => {
@@ -123,6 +168,10 @@ export function ExportLeadsDialog({ open, onOpenChange }: ExportLeadsDialogProps
     try {
       const blob = await api.exportLeads({
         fields: Array.from(selectedFields),
+        stageId: selectedStageId || undefined,
+        tagIds: selectedTagIds.size > 0 ? Array.from(selectedTagIds) : undefined,
+        createdAfter: createdAfter || undefined,
+        createdBefore: createdBefore || undefined,
       });
 
       // Ensure blob has correct MIME type for CSV with UTF-8 encoding
@@ -180,30 +229,126 @@ export function ExportLeadsDialog({ open, onOpenChange }: ExportLeadsDialogProps
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleToggleAll}
-              disabled={isExporting}
-            >
-              {allSelected ? 'Desmarcar Todos' : 'Marcar Todos'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleSelectDefaults}
-              disabled={isExporting}
-            >
-              Seleção Padrão
-            </Button>
-            <span className="ml-auto text-sm text-muted-foreground flex items-center">
-              {selectedFields.size} campo{selectedFields.size !== 1 ? 's' : ''} selecionado
-              {selectedFields.size !== 1 ? 's' : ''}
-            </span>
+          {/* Filters Section */}
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium text-sm mb-3 text-foreground">Filtros</h4>
+            </div>
+
+            {/* Stage Filter */}
+            {stages.length > 0 && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="stage-filter" className="text-sm">
+                  Estágio
+                </Label>
+                <Select
+                  value={selectedStageId}
+                  onValueChange={setSelectedStageId}
+                  disabled={isExporting}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Todos os estágios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos os estágios</SelectItem>
+                    {stages.map((stage) => (
+                      <SelectItem key={stage.id} value={stage.id}>
+                        {stage.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Tags Filter */}
+            {tags.length > 0 && (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-sm mt-2">Tags</Label>
+                <div className="col-span-3 grid grid-cols-2 gap-2">
+                  {tags.map((tag) => (
+                    <div key={tag.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`tag-${tag.id}`}
+                        checked={selectedTagIds.has(tag.id)}
+                        onChange={() => handleToggleTag(tag.id)}
+                        disabled={isExporting}
+                        className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <Label
+                        htmlFor={`tag-${tag.id}`}
+                        className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Date Range Filter */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="created-after" className="text-sm">
+                  Criado após
+                </Label>
+                <Input
+                  id="created-after"
+                  type="date"
+                  value={createdAfter}
+                  onChange={(e) => setCreatedAfter(e.target.value)}
+                  disabled={isExporting}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="created-before" className="text-sm">
+                  Criado antes
+                </Label>
+                <Input
+                  id="created-before"
+                  type="date"
+                  value={createdBefore}
+                  onChange={(e) => setCreatedBefore(e.target.value)}
+                  disabled={isExporting}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleToggleAll}
+                disabled={isExporting}
+              >
+                {allSelected ? 'Desmarcar Todos' : 'Marcar Todos'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSelectDefaults}
+                disabled={isExporting}
+              >
+                Seleção Padrão
+              </Button>
+              <span className="ml-auto text-sm text-muted-foreground flex items-center">
+                {selectedFields.size} campo{selectedFields.size !== 1 ? 's' : ''} selecionado
+                {selectedFields.size !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
 
           {/* Field Selection */}

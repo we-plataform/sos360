@@ -42,6 +42,14 @@ export default function LeadsPage() {
     enabled: !!selectedPipelineId,
   });
 
+  // Fetch tags for export dialog
+  const { data: tagsData } = useQuery({
+    queryKey: ['tags'],
+    queryFn: () => api.getTags() as any,
+  });
+
+  const tags = tagsData || [];
+
   useEffect(() => {
     if (pipelineData) {
       console.log('[DEBUG-WEB] PipelineData stages:', pipelineData.stages?.length);
@@ -300,6 +308,8 @@ export default function LeadsPage() {
       <ExportLeadsDialog
         open={isExportOpen}
         onOpenChange={setIsExportOpen}
+        stages={pipelineData?.stages || []}
+        tags={tags}
       />
     </div>
   );
