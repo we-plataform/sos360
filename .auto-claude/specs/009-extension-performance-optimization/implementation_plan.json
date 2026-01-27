@@ -183,7 +183,8 @@
               "Overlay loads only when navigating to connections page"
             ]
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented feature detection with isConnectionsOrSearchPage() helper. Added page type checks in initOverlay() polling and checkForSavedState(). Overlay now only loads on connections/search pages, not on profile pages."
         },
         {
           "id": "subtask-3-3",
@@ -657,6 +658,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T13:56:32.284Z",
+  "updated_at": "2026-01-27T13:59:33.959Z",
   "recoveryNote": "Task recovered from stuck state at 2026-01-27T13:52:14.684Z"
 }
