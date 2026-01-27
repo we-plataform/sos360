@@ -593,7 +593,7 @@ leadsRouter.post(
           imported++;
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
-          console.error('Error importing lead:', err, leadData);
+          console.error('Error importing lead:', err);
           if ((err as { code?: string }).code === 'P2002') {
             duplicates++;
           } else {
