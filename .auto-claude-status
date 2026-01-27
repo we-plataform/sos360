@@ -7,6 +7,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
@@ -36,11 +37,14 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
   "spec": "004-add-rate-limiting-to-ai-analysis-and-enrichment-en",
   "state": "complete",
   "subtasks": {
     "completed": 10,
     "total": 10,
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -54,10 +58,13 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -91,12 +98,18 @@
     "id": null,
     "total": 4
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+    "current": "Complete",
+    "id": null,
+    "total": 4
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -117,10 +130,13 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
     "number": 12,
     "started_at": "2026-01-27T00:15:21.281808"
   },
   "last_update": "2026-01-27T04:20:00.000000"
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -142,6 +158,8 @@
   },
   "last_update": "2026-01-27T00:40:00.000000"
 >>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
+=======
+>>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
