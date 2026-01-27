@@ -543,6 +543,63 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Scoring Configuration
+  async getScoringConfig() {
+    return this.request('/api/v1/scoring/config');
+  }
+
+  async createScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateScoringConfig(data: {
+    jobTitleWeight?: number;
+    companyWeight?: number;
+    profileCompletenessWeight?: number;
+    activityWeight?: number;
+    enrichmentWeight?: number;
+    targetJobTitles?: string[];
+    targetCompanySizes?: string[];
+    targetIndustries?: string[];
+    minProfileCompleteness?: number;
+    autoScoreOnImport?: boolean;
+    autoScoreOnUpdate?: boolean;
+  }) {
+    return this.request('/api/v1/scoring/config', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async calculateLeadScore(leadId: string, forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate`, {
+      method: 'POST',
+      body: JSON.stringify({ leadId, forceRecalculate }),
+    });
+  }
+
+  async batchCalculateScores(leadIds: string[], forceRecalculate = false) {
+    return this.request(`/api/v1/scoring/calculate/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds, forceRecalculate }),
+    });
+  }
 }
 
 export const api = new ApiClient(API_URL);
