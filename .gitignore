@@ -48,9 +48,10 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
-
 # Agent
-#.agent/
+
 
 # Auto Claude data directory
 .auto-claude/
+node_modules/
+.auto-claude/worktrees/*/node_modules/
