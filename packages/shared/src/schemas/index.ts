@@ -303,6 +303,33 @@ export const conversationFiltersSchema = paginationSchema.extend({
   assignedTo: z.string().optional(),
 });
 
+// Duplicate check schemas
+export const checkDuplicatesQuerySchema = z.object({
+  email: z.string().email().optional(),
+  phone: z.string().max(50).optional(),
+  platform: platformSchema.optional(),
+  profileUrl: z.string().url().optional(),
+});
+
+export const duplicateLeadSchema = z.object({
+  id: z.string(),
+  fullName: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
+  platform: platformSchema.nullable().optional(),
+  username: z.string().max(100).nullable().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  matchReasons: z.object({
+    email: z.boolean().optional(),
+    phone: z.boolean().optional(),
+    profileUrl: z.boolean().optional(),
+  }),
+});
+
+export const checkDuplicatesResponseSchema = z.object({
+  duplicates: z.array(duplicateLeadSchema),
+});
+
 export * from './automations';
 export * from './enrichment';
 export * from './posts';
