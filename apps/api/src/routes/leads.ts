@@ -13,7 +13,7 @@ import {
 } from '@lia360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { importRateLimit, analyzeRateLimit, analyzeBatchRateLimit, analyzeDeepRateLimit } from '../middleware/rate-limit.js';
+import { importRateLimit, analyzeRateLimit, analyzeBatchRateLimit, analyzeDeepRateLimit, enrichRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
@@ -954,7 +954,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
 });
 
 // PATCH /leads/:id/enrich - Enrich lead with LinkedIn data
-leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent'), async (req, res, next) => {
+leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent'), enrichRateLimit, async (req, res, next) => {
   try {
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
