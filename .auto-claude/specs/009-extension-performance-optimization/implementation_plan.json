@@ -1,0 +1,656 @@
+{
+  "feature": "Extension Performance Optimization",
+  "description": "Optimize the Chrome extension for minimal memory usage and fast load times. Target: <500ms load time, <50MB memory usage, no scroll performance impact.",
+  "workflow_type": "feature",
+  "workflow_rationale": "This is a feature enhancement that requires multiple phases of optimization across the extension codebase. While it involves only the extension service, the complexity requires phased implementation: benchmarking, code splitting, lazy loading, memory optimization, event optimization, API optimization, and final verification.",
+  "phases": [
+    {
+      "id": "phase-1-setup",
+      "name": "Setup & Performance Baseline",
+      "type": "setup",
+      "description": "Establish performance benchmarks and add profiling instrumentation to measure current state",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add performance monitoring instrumentation to background.js",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/background.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Load extension, open Chrome DevTools for service worker, verify console shows performance metrics on startup"
+          },
+          "status": "completed"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create performance benchmark script to measure initial load time and memory usage",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [
+            "./apps/extension/scripts/benchmark.js"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "node ./apps/extension/scripts/benchmark.js --baseline",
+            "expected": "Baseline metrics saved to benchmark-results.json"
+          },
+          "status": "completed"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Document current performance metrics in PERFORMANCE.md",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [
+            "./apps/extension/PERFORMANCE.md"
+          ],
+          "patterns_from": [
+            "./apps/extension/README.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify PERFORMANCE.md exists with baseline metrics: load time, memory usage, script sizes"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-split",
+      "name": "Code Splitting & Modularization",
+      "type": "implementation",
+      "description": "Split large content scripts into smaller, focused modules to reduce initial parse time",
+      "depends_on": [
+        "phase-1-setup"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Split instagram.js (5714 lines) into focused modules: profile-import, post-import, followers-import, ui",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/instagram.js"
+          ],
+          "files_to_create": [
+            "./apps/extension/content-scripts/instagram/profile-import.js",
+            "./apps/extension/content-scripts/instagram/post-import.js",
+            "./apps/extension/content-scripts/instagram/followers-import.js",
+            "./apps/extension/content-scripts/instagram/ui.js"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "wc -l ./apps/extension/content-scripts/instagram/*.js | tail -1",
+            "expected": "Total lines less than original 5714"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Split linkedin-dom.js (1077 lines) into smaller, focused selector modules",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/linkedin-dom.js"
+          ],
+          "files_to_create": [
+            "./apps/extension/content-scripts/linkedin-selectors.js",
+            "./apps/extension/content-scripts/linkedin-extractors.js"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "ls -la ./apps/extension/content-scripts/linkedin-*.js | wc -l",
+            "expected": "At least 4 linkedin module files"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Update manifest.json to load new modular scripts in correct dependency order",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/manifest.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/manifest.json"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Load extension in Chrome, verify no manifest errors, verify content scripts load"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-lazy",
+      "name": "Lazy Loading Implementation",
+      "type": "implementation",
+      "description": "Implement lazy loading for content scripts so they only load when needed",
+      "depends_on": [
+        "phase-2-split"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Create lightweight bootstrap script that dynamically loads platform-specific modules",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [
+            "./apps/extension/content-scripts/bootstrap.js"
+          ],
+          "patterns_from": [
+            "./apps/extension/content-scripts/settings-manager.js"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Load LinkedIn page, verify in DevTools that only bootstrap + linkedin modules load"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Implement feature detection to load overlay UI only when on search/connections pages",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/linkedin-core.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/content-scripts/linkedin-core.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "https://www.linkedin.com/in/someprofile/",
+            "checks": [
+              "Extension loads on profile page",
+              "No overlay UI initially present",
+              "Overlay loads only when navigating to connections page"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Update manifest.json to use bootstrap.js as only content script initially",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/manifest.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/manifest.json"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Reload extension, verify it loads correctly on all platforms (LinkedIn, Instagram, Facebook)"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-memory",
+      "name": "Memory Optimization",
+      "type": "implementation",
+      "description": "Fix memory leaks and implement proper cleanup of state objects",
+      "depends_on": [
+        "phase-3-lazy"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Implement Map size limits and LRU eviction for qualifiedLeads and commentAuthors",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/instagram.js",
+            "./apps/extension/content-scripts/linkedin-core.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/content-scripts/settings-manager.js"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run extension for 10 minutes importing leads, check memory stays under 50MB in Chrome task manager"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Add cleanup functions to clear state when leaving profile pages",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/linkedin-core.js",
+            "./apps/extension/content-scripts/instagram.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Navigate between multiple profile pages, verify memory doesn't continuously increase"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Replace polling with requestIdleCallback for non-critical background tasks",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/linkedin-core.js",
+            "./apps/extension/content-scripts/overlay.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Check DevTools Performance tab, verify no long-running tasks blocking main thread"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-events",
+      "name": "Event Listener Optimization",
+      "type": "implementation",
+      "description": "Optimize event listeners and MutationObservers to reduce overhead",
+      "depends_on": [
+        "phase-4-memory"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Add cleanup logic for event listeners when not needed (e.g., when leaving profile pages)",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/background.js",
+            "./apps/extension/content-scripts/linkedin-core.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Navigate to different page types, verify in DevTools that listeners are properly removed"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Make MutationObserver more specific - observe only relevant DOM subtrees instead of document.body",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/linkedin-core.js",
+            "./apps/extension/content-scripts/instagram.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Check DevTools Performance tab while scrolling, verify MutationObserver doesn't trigger excessively"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-3",
+          "description": "Implement passive event listeners for scroll events to improve performance",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/content-scripts/overlay.js",
+            "./apps/extension/content-scripts/instagram.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "https://www.linkedin.com/in/someprofile/",
+            "checks": [
+              "Scroll smoothly on LinkedIn",
+              "No jank or stuttering visible",
+              "Frame rate stays near 60fps in DevTools Performance"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-api",
+      "name": "API Optimization",
+      "type": "implementation",
+      "description": "Optimize API calls with batching, debouncing, and connection pooling",
+      "depends_on": [
+        "phase-5-events"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Implement request batching for lead import API calls",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/background.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/background.js"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Import multiple leads, verify in Network tab that requests are batched (not 1 request per lead)"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Add debouncing for analyze-batch API calls during auto-scroll",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/background.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run auto-scroll with AI analysis, verify API calls are debounced (not on every profile)"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-3",
+          "description": "Implement API connection keep-alive to reduce connection overhead",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/background.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Check Network tab, verify HTTP/2 connections are reused (multiple requests same connection)"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-7-build",
+      "name": "Build Optimization",
+      "type": "implementation",
+      "description": "Add build pipeline with minification and bundling for smaller payloads",
+      "depends_on": [
+        "phase-6-api"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "Set up esbuild or webpack for minifying extension JavaScript",
+          "service": "extension",
+          "files_to_modify": [],
+          "files_to_create": [
+            "./apps/extension/esbuild.config.js",
+            "./apps/extension/package.json"
+          ],
+          "patterns_from": [
+            "./package.json"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd ./apps/extension && npm run build",
+            "expected": "Build output directory created with minified files"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "Configure build process to generate source maps for debugging",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/esbuild.config.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "ls -la ./apps/extension/dist/*.map | wc -l",
+            "expected": "Multiple .map files present in dist/"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-3",
+          "description": "Update manifest.json to reference minified build output files",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/manifest.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/manifest.json"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Load extension from dist/, verify all functionality works with minified code"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-4",
+          "description": "Add build script to package.json and update root turbo.json",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/package.json",
+            "./turbo.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./turbo.json"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm run build --workspace=@lia360/extension",
+            "expected": "Extension builds successfully without errors"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-8-verify",
+      "name": "Performance Verification & Documentation",
+      "type": "integration",
+      "description": "Verify all performance targets are met and document improvements",
+      "depends_on": [
+        "phase-7-build"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-8-1",
+          "description": "Run final performance benchmarks and compare to baseline",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/PERFORMANCE.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "node ./apps/extension/scripts/benchmark.js --compare",
+            "expected": "Benchmark shows improvement: load time <500ms, memory <50MB, smaller bundle sizes"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-8-2",
+          "description": "Test extension on all platforms (LinkedIn, Instagram, Facebook) for performance",
+          "all_services": false,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Load LinkedIn profile page - verify loads in <500ms",
+              "Scroll LinkedIn connections page - verify no jank (60fps)",
+              "Import leads from LinkedIn - verify memory stays <50MB",
+              "Load Instagram profile - verify loads in <500ms",
+              "Load Facebook profile - verify loads in <500ms",
+              "Check Chrome task manager - verify memory under 50MB during normal use"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-8-3",
+          "description": "Document optimization techniques and update README with performance guidelines",
+          "service": "extension",
+          "files_to_modify": [
+            "./apps/extension/README.md",
+            "./apps/extension/PERFORMANCE.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "./apps/extension/README.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify README has performance section, PERFORMANCE.md documents all optimizations"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 8,
+    "total_subtasks": 24,
+    "services_involved": [
+      "extension"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential phases with clear dependencies - each phase builds on previous optimizations"
+    },
+    "startup_command": "source .auto-claude/.venv/bin/activate && python .auto-claude/run.py --spec 009 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "manual",
+      "e2e"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "Extension loads in under 500ms on social media sites",
+      "Memory usage stays under 50MB during normal operation",
+      "No noticeable impact on page scroll performance",
+      "Extension handles network errors gracefully without crashes",
+      "Background script efficiently manages API connections",
+      "Content scripts only run on supported social platforms"
+    ],
+    "verification_steps": [
+      {
+        "name": "Performance Benchmarking",
+        "command": "node ./apps/extension/scripts/benchmark.js --compare",
+        "expected_outcome": "All metrics improved: load time <500ms, memory <50MB, bundle sizes reduced",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Manual Platform Testing",
+        "command": null,
+        "expected_outcome": "Extension works smoothly on LinkedIn, Instagram, Facebook with no performance issues",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Build Verification",
+        "command": "npm run build --workspace=@lia360/extension",
+        "expected_outcome": "Extension builds successfully with minified code and source maps",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "Medium risk performance optimization. Manual testing required to verify smooth operation on all platforms. Performance benchmarking validates optimization goals."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null,
+      "notes": "Chrome extension testing is primarily manual/browser-based"
+    },
+    "integration_tests": {
+      "required": false,
+      "commands": [],
+      "services_to_test": [],
+      "notes": "No backend integration changes - extension optimization only"
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": [],
+      "notes": "E2E validation done via manual platform testing in verification phase"
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "https://www.linkedin.com/in/*",
+          "checks": [
+            "loads in <500ms",
+            "no scroll jank",
+            "memory <50MB"
+          ]
+        },
+        {
+          "url": "https://www.instagram.com/*",
+          "checks": [
+            "loads in <500ms",
+            "no scroll jank",
+            "memory <50MB"
+          ]
+        },
+        {
+          "url": "https://www.facebook.com/*",
+          "checks": [
+            "loads in <500ms",
+            "no scroll jank",
+            "memory <50MB"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": [],
+      "notes": "No database schema changes"
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2026-01-27T03:24:48.398Z"
+}
