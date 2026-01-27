@@ -65,6 +65,21 @@ scoringRouter.post(
                 });
             }
 
+            // Rescore all leads in workspace after config create/update
+            // Get all lead IDs in workspace
+            const allLeads = await prisma.lead.findMany({
+                where: { workspaceId },
+                select: { id: true },
+            });
+
+            if (allLeads.length > 0) {
+                const leadIds = allLeads.map(l => l.id);
+                // Batch rescore all leads (fire and forget - don't wait for completion)
+                batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
+                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                });
+            }
+
             res.status(existingConfig ? 200 : 201).json({
                 success: true,
                 data: config,
@@ -86,6 +101,21 @@ scoringRouter.patch(
             const updates = req.body;
 
             const config = await updateScoringConfig(workspaceId, updates);
+
+            // Rescore all leads in workspace after config update
+            // Get all lead IDs in workspace
+            const allLeads = await prisma.lead.findMany({
+                where: { workspaceId },
+                select: { id: true },
+            });
+
+            if (allLeads.length > 0) {
+                const leadIds = allLeads.map(l => l.id);
+                // Batch rescore all leads (fire and forget - don't wait for completion)
+                batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
+                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                });
+            }
 
             res.json({
                 success: true,
