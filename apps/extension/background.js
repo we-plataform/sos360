@@ -183,6 +183,169 @@ function getLeadBatcher(platform) {
   return leadBatchers[normalizedPlatform] || leadBatchers.generic;
 }
 
+// --- API DEBOUNCING SYSTEM ---
+
+/**
+ * Debounces analyze-batch API calls during auto-scroll
+ * Prevents rapid successive API calls by accumulating profiles and sending in batches
+ */
+class AnalyzeBatchDebouncer {
+  constructor(options = {}) {
+    this.debounceDelay = options.debounceDelay || 2000; // 2 seconds default
+    this.minBatchSize = options.minBatchSize || 3; // Minimum profiles before triggering
+    this.maxBatchSize = options.maxBatchSize || 20; // Maximum profiles per batch
+    this.pendingProfiles = [];
+    this.pendingCriteria = '';
+    this.timer = null;
+    this.isProcessing = false;
+
+    // Bind methods
+    this.flush = this.flush.bind(this);
+  }
+
+  /**
+   * Add profiles to be analyzed (debounced)
+   * @param {Array} profiles - Profiles to analyze
+   * @param {string} criteria - AI analysis criteria
+   * @returns {Promise} Resolves when analysis is complete
+   */
+  async analyze(profiles, criteria = '') {
+    // If no criteria, return immediately (no AI analysis needed)
+    if (!criteria || criteria.trim() === '') {
+      return null;
+    }
+
+    return new Promise((resolve, reject) => {
+      // Add profiles to pending queue
+      this.pendingProfiles.push(...profiles);
+      this.pendingCriteria = criteria;
+
+      // Store promise resolve/reject for this batch
+      this.currentResolve = resolve;
+      this.currentReject = reject;
+
+      // Clear existing timer
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+
+      // Flush immediately if we have enough profiles
+      if (this.pendingProfiles.length >= this.maxBatchSize) {
+        this.flush();
+      } else if (this.pendingProfiles.length >= this.minBatchSize) {
+        // Otherwise wait for debounce delay to accumulate more profiles
+        this.timer = setTimeout(this.flush, this.debounceDelay);
+      }
+    });
+  }
+
+  /**
+   * Flush pending profiles to analyze-batch API
+   */
+  async flush() {
+    if (this.isProcessing || this.pendingProfiles.length === 0) {
+      return;
+    }
+
+    // Clear timer
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+
+    this.isProcessing = true;
+
+    // Take snapshot of pending data
+    const profilesToAnalyze = this.pendingProfiles.splice(0, this.maxBatchSize);
+    const criteria = this.pendingCriteria;
+    const remainingProfiles = this.pendingProfiles.splice(0);
+
+    try {
+      console.log(`[AnalyzeBatchDebouncer] Analyzing ${profilesToAnalyze.length} profiles with AI (debounced)`);
+
+      const startTime = performance.now();
+      const response = await apiRequest('/api/v1/leads/analyze-batch', {
+        method: 'POST',
+        body: JSON.stringify({
+          profiles: profilesToAnalyze,
+          criteria: criteria
+        })
+      });
+      const duration = performance.now() - startTime;
+
+      console.log(`[AnalyzeBatchDebouncer] Analysis completed: ${profilesToAnalyze.length} profiles in ${duration.toFixed(2)}ms`);
+
+      // Record metrics
+      performanceMetrics.recordApiCall('/api/v1/leads/analyze-batch', duration);
+
+      // Resolve with response
+      if (this.currentResolve) {
+        this.currentResolve(response?.data);
+      }
+
+      // If there are remaining profiles, schedule them for analysis
+      if (remainingProfiles.length > 0) {
+        this.pendingProfiles = remainingProfiles;
+        this.timer = setTimeout(this.flush, this.debounceDelay);
+      }
+
+    } catch (error) {
+      console.error('[AnalyzeBatchDebouncer] Analysis failed:', error);
+
+      // Reject with error
+      if (this.currentReject) {
+        this.currentReject(error);
+      }
+    } finally {
+      this.isProcessing = false;
+
+      // Clear promise handlers
+      this.currentResolve = null;
+      this.currentReject = null;
+    }
+  }
+
+  /**
+   * Force immediate flush of all pending profiles
+   */
+  async forceFlush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    return this.flush();
+  }
+
+  /**
+   * Get number of pending profiles
+   */
+  getPendingCount() {
+    return this.pendingProfiles.length;
+  }
+
+  /**
+   * Clear all pending profiles
+   */
+  clear() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.pendingProfiles = [];
+    this.pendingCriteria = '';
+    this.currentResolve = null;
+    this.currentReject = null;
+    this.isProcessing = false;
+  }
+}
+
+// Create global debouncer instance
+const analyzeBatchDebouncer = new AnalyzeBatchDebouncer({
+  debounceDelay: 2000, // 2 seconds
+  minBatchSize: 3, // Analyze when we have at least 3 profiles
+  maxBatchSize: 20 // Max 20 profiles per batch
+});
+
 // --- PERFORMANCE MONITORING ---
 
 // Performance metrics collector
@@ -1732,14 +1895,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           // Pass criteria for AI analysis if provided
           const criteria = request.data.criteria || '';
           const deepScan = request.data.deepScan || false;
-          const response = await apiRequest('/api/v1/leads/analyze-batch', {
-            method: 'POST',
-            body: JSON.stringify({
-              profiles: request.data.profiles,
-              criteria: request.data.criteria
-            })
-          });
-          sendResponse({ success: true, data: response.data });
+          const profiles = request.data.profiles || [];
+
+          // Use debouncer to prevent rapid API calls during auto-scroll
+          const result = await analyzeBatchDebouncer.analyze(profiles, criteria);
+          sendResponse({ success: true, data: result });
           break;
         }
 
