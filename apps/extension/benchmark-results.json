@@ -1,0 +1,230 @@
+{
+  "timestamp": "2026-01-27T03:27:18.953Z",
+  "summary": {
+    "totalSize": 363709,
+    "totalLines": 9551,
+    "totalCodeLines": 7251,
+    "largestFile": {
+      "path": "content-scripts/instagram.js",
+      "sizeBytes": 200069,
+      "sizeKB": "195.38",
+      "totalLines": 5715,
+      "blankLines": 795,
+      "commentLines": 613,
+      "codeLines": 4307
+    },
+    "fileCount": 10,
+    "totalSizeKB": "355.18"
+  },
+  "groups": {
+    "linkedin": {
+      "fileCount": 5,
+      "totalSize": 108807,
+      "totalSizeKB": "106.26",
+      "totalLines": 2338,
+      "totalCodeLines": 1817,
+      "files": [
+        {
+          "path": "content-scripts/linkedin-utils.js",
+          "sizeKB": "9.18",
+          "lines": 228,
+          "codeLines": 168
+        },
+        {
+          "path": "content-scripts/linkedin-state.js",
+          "sizeKB": "3.02",
+          "lines": 83,
+          "codeLines": 64
+        },
+        {
+          "path": "content-scripts/linkedin-dom.js",
+          "sizeKB": "51.31",
+          "lines": 1078,
+          "codeLines": 811
+        },
+        {
+          "path": "content-scripts/linkedin-ui.js",
+          "sizeKB": "30.35",
+          "lines": 634,
+          "codeLines": 535
+        },
+        {
+          "path": "content-scripts/linkedin-core.js",
+          "sizeKB": "12.40",
+          "lines": 315,
+          "codeLines": 239
+        }
+      ]
+    },
+    "instagram": {
+      "fileCount": 2,
+      "totalSize": 205158,
+      "totalSizeKB": "200.35",
+      "totalLines": 5880,
+      "totalCodeLines": 4420,
+      "files": [
+        {
+          "path": "content-scripts/settings-manager.js",
+          "sizeKB": "4.97",
+          "lines": 165,
+          "codeLines": 113
+        },
+        {
+          "path": "content-scripts/instagram.js",
+          "sizeKB": "195.38",
+          "lines": 5715,
+          "codeLines": 4307
+        }
+      ]
+    },
+    "facebook": {
+      "fileCount": 2,
+      "totalSize": 9358,
+      "totalSizeKB": "9.14",
+      "totalLines": 319,
+      "totalCodeLines": 223,
+      "files": [
+        {
+          "path": "content-scripts/settings-manager.js",
+          "sizeKB": "4.97",
+          "lines": 165,
+          "codeLines": 113
+        },
+        {
+          "path": "content-scripts/facebook.js",
+          "sizeKB": "4.17",
+          "lines": 154,
+          "codeLines": 110
+        }
+      ]
+    },
+    "dashboard": {
+      "fileCount": 1,
+      "totalSize": 7760,
+      "totalSizeKB": "7.58",
+      "totalLines": 248,
+      "totalCodeLines": 188,
+      "files": [
+        {
+          "path": "content-scripts/dashboard-sync.js",
+          "sizeKB": "7.58",
+          "lines": 248,
+          "codeLines": 188
+        }
+      ]
+    },
+    "shared": {
+      "fileCount": 2,
+      "totalSize": 32626,
+      "totalSizeKB": "31.86",
+      "totalLines": 766,
+      "totalCodeLines": 603,
+      "files": [
+        {
+          "path": "content-scripts/settings-manager.js",
+          "sizeKB": "4.97",
+          "lines": 165,
+          "codeLines": 113
+        },
+        {
+          "path": "content-scripts/overlay.js",
+          "sizeKB": "26.89",
+          "lines": 601,
+          "codeLines": 490
+        }
+      ]
+    }
+  },
+  "individualFiles": [
+    {
+      "path": "content-scripts/instagram.js",
+      "sizeBytes": 200069,
+      "sizeKB": "195.38",
+      "totalLines": 5715,
+      "blankLines": 795,
+      "commentLines": 613,
+      "codeLines": 4307
+    },
+    {
+      "path": "content-scripts/linkedin-dom.js",
+      "sizeBytes": 52542,
+      "sizeKB": "51.31",
+      "totalLines": 1078,
+      "blankLines": 168,
+      "commentLines": 99,
+      "codeLines": 811
+    },
+    {
+      "path": "content-scripts/linkedin-ui.js",
+      "sizeBytes": 31076,
+      "sizeKB": "30.35",
+      "totalLines": 634,
+      "blankLines": 80,
+      "commentLines": 19,
+      "codeLines": 535
+    },
+    {
+      "path": "content-scripts/overlay.js",
+      "sizeBytes": 27537,
+      "sizeKB": "26.89",
+      "totalLines": 601,
+      "blankLines": 75,
+      "commentLines": 36,
+      "codeLines": 490
+    },
+    {
+      "path": "content-scripts/linkedin-core.js",
+      "sizeBytes": 12695,
+      "sizeKB": "12.40",
+      "totalLines": 315,
+      "blankLines": 47,
+      "commentLines": 29,
+      "codeLines": 239
+    },
+    {
+      "path": "content-scripts/linkedin-utils.js",
+      "sizeBytes": 9402,
+      "sizeKB": "9.18",
+      "totalLines": 228,
+      "blankLines": 27,
+      "commentLines": 33,
+      "codeLines": 168
+    },
+    {
+      "path": "content-scripts/dashboard-sync.js",
+      "sizeBytes": 7760,
+      "sizeKB": "7.58",
+      "totalLines": 248,
+      "blankLines": 38,
+      "commentLines": 22,
+      "codeLines": 188
+    },
+    {
+      "path": "content-scripts/settings-manager.js",
+      "sizeBytes": 5089,
+      "sizeKB": "4.97",
+      "totalLines": 165,
+      "blankLines": 15,
+      "commentLines": 37,
+      "codeLines": 113
+    },
+    {
+      "path": "content-scripts/facebook.js",
+      "sizeBytes": 4269,
+      "sizeKB": "4.17",
+      "totalLines": 154,
+      "blankLines": 33,
+      "commentLines": 11,
+      "codeLines": 110
+    },
+    {
+      "path": "content-scripts/linkedin-state.js",
+      "sizeBytes": 3092,
+      "sizeKB": "3.02",
+      "totalLines": 83,
+      "blankLines": 11,
+      "commentLines": 8,
+      "codeLines": 64
+    }
+  ]
+}

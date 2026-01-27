@@ -43,6 +43,11 @@
       ],
       "js": [
         "content-scripts/settings-manager.js",
+        "content-scripts/instagram/utils.js",
+        "content-scripts/instagram/profile-import.js",
+        "content-scripts/instagram/post-import.js",
+        "content-scripts/instagram/followers-import.js",
+        "content-scripts/instagram/ui.js",
         "content-scripts/instagram.js"
       ],
       "run_at": "document_idle"
@@ -65,6 +70,8 @@
         "content-scripts/settings-manager.js",
         "content-scripts/linkedin-utils.js",
         "content-scripts/linkedin-state.js",
+        "content-scripts/linkedin-selectors.js",
+        "content-scripts/linkedin-extractors.js",
         "content-scripts/linkedin-dom.js",
         "content-scripts/linkedin-ui.js",
         "content-scripts/linkedin-core.js"
@@ -99,6 +106,11 @@
     {
       "resources": [
         "styles/overlay.css",
+        "content-scripts/instagram/utils.js",
+        "content-scripts/instagram/profile-import.js",
+        "content-scripts/instagram/post-import.js",
+        "content-scripts/instagram/followers-import.js",
+        "content-scripts/instagram/ui.js",
         "icon-128.png",
         "icon-48.png",
         "icon-16.png"

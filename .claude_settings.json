@@ -20,6 +20,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
       "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
       "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
@@ -88,6 +89,16 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
+      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
+      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/009-extension-performance-optimization/.auto-claude/specs/009-extension-performance-optimization/**)",
+>>>>>>> auto-claude/009-extension-performance-optimization
       "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",

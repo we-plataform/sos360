@@ -9,6 +9,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
@@ -21,10 +22,18 @@
     "completed": 15,
     "total": 16,
 >>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
+=======
+  "spec": "009-extension-performance-optimization",
+  "state": "building",
+  "subtasks": {
+    "completed": 2,
+    "total": 25,
+>>>>>>> auto-claude/009-extension-performance-optimization
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
+<<<<<<< HEAD
 <<<<<<< HEAD
     "current": "Integration & Testing",
     "id": null,
@@ -115,12 +124,18 @@
     "id": null,
     "total": 4
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+    "current": "Setup & Performance Baseline",
+    "id": null,
+    "total": 3
+>>>>>>> auto-claude/009-extension-performance-optimization
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -182,4 +197,10 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+    "number": 4,
+    "started_at": "2026-01-27T00:14:07.433505"
+  },
+  "last_update": "2026-01-27T00:30:29.135682"
+>>>>>>> auto-claude/009-extension-performance-optimization
 }
