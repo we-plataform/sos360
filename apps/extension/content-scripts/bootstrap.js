@@ -123,7 +123,8 @@
         }
 
         /**
-         * Load all scripts for a platform
+         * Load all scripts for a platform sequentially
+         * Scripts are loaded in order to ensure dependencies are available
          * @param {string} platformKey - Platform identifier
          * @returns {Promise<void>}
          */
@@ -135,16 +136,17 @@
                 return;
             }
 
-            console.log(`[Lia Bootstrap] Loading ${config.scripts.length} ${config.name} modules...`);
+            console.log(`[Lia Bootstrap] Loading ${config.scripts.length} ${config.name} modules sequentially...`);
 
-            const loadPromises = config.scripts.map(scriptPath => {
-                return this.loadScript(scriptPath).catch(error => {
+            for (const scriptPath of config.scripts) {
+                try {
+                    await this.loadScript(scriptPath);
+                } catch (error) {
                     console.error(`[Lia Bootstrap] Error loading ${scriptPath}:`, error);
                     // Continue loading other scripts even if one fails
-                });
-            });
+                }
+            }
 
-            await Promise.all(loadPromises);
             console.log(`[Lia Bootstrap] ${config.name} platform loaded successfully`);
         }
 
