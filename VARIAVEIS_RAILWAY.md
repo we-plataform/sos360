@@ -41,7 +41,7 @@ DIRECT_URL=postgresql://postgres.doewttvwknkhjzhzceub:Farinelli%4063@aws-0-sa-ea
 # JWT - ✅ Está correta (mas idealmente deveria ser diferente de SUPABASE_SERVICE_KEY)
 JWT_SECRET=sb_secret_Sbc7112MXDLBIL4vctr1SA_HGsoW3vx
 JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+REFRESH_TOKEN_EXPIRES_IN=30d
 
 # CORS - 🔴 FALTA ESTA VARIÁVEL!
 CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
@@ -114,7 +114,7 @@ DATABASE_URL=[mantenha]
 DIRECT_URL=[mantenha]
 JWT_SECRET=[mantenha]
 JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+REFRESH_TOKEN_EXPIRES_IN=30d
 SUPABASE_URL=[mantenha]
 SUPABASE_SERVICE_KEY=[mantenha]
 ```

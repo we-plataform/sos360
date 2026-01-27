@@ -62,7 +62,7 @@ DIRECT_URL=postgresql://usuario:senha@host:porta/database
 # JWT
 JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres-aleatorios
 JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+REFRESH_TOKEN_EXPIRES_IN=30d
 
 # CORS - IMPORTANTE: Adicione a URL do seu frontend
 CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
@@ -165,7 +165,7 @@ Preencha os seguintes campos:
 | `DIRECT_URL` | `postgresql://...` | ⚠️ Recomendado |
 | `JWT_SECRET` | `sua-chave-32-chars` | ✅ Sim |
 | `JWT_EXPIRES_IN` | `15m` | ✅ Sim |
-| `REFRESH_TOKEN_EXPIRES_IN` | `7d` | ✅ Sim |
+| `REFRESH_TOKEN_EXPIRES_IN` | `30d` | ✅ Sim |
 | `CORS_ORIGINS` | `https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*` | ✅ Sim |
 | `SUPABASE_URL` | `https://...supabase.co` | ⚠️ Opcional |
 | `SUPABASE_SERVICE_KEY` | `sb_secret_...` | ⚠️ Opcional |

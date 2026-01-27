@@ -14,6 +14,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
       "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
       "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-ai-powered-lead-scoring-and-qualification/**)",
@@ -42,6 +43,16 @@
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 =======
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
+=======
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Glob(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Grep(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+      "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/011-reduce-refresh-token-expiration-from-365-days-to-3/.auto-claude/specs/011-reduce-refresh-token-expiration-from-365-days-to-3/**)",
+>>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
       "Read(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Write(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
       "Edit(/Users/farinelli/Documents/Projects/lia360-web/.auto-claude/**)",
