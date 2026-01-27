@@ -293,6 +293,19 @@ class ApiClient {
     });
   }
 
+  async checkDuplicateLeads(params?: { email?: string; phone?: string; platform?: string; profileUrl?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/leads/check-duplicates${query ? `?${query}` : ''}`);
+  }
+
   // Tags
   async getTags() {
     return this.request('/api/v1/tags');
