@@ -3,23 +3,23 @@
   "spec": "011-reduce-refresh-token-expiration-from-365-days-to-3",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 3,
     "total": 16,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Update Configuration Files",
+    "current": "Update Redis TTL Values",
     "id": null,
-    "total": 2
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 3,
-    "started_at": "2026-01-27T00:14:41.061687"
+    "number": 1,
+    "started_at": "2026-01-27T09:45:56.118622"
   },
-  "last_update": "2026-01-27T00:32:25.936977"
+  "last_update": "2026-01-27T09:45:56.179459"
 }
