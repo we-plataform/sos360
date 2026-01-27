@@ -3,23 +3,23 @@
   "spec": "015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-",
   "state": "building",
   "subtasks": {
-    "completed": 2,
+    "completed": 6,
     "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Fix Phase - Extract Bridge Helper",
+    "current": "Harden Phase - Validate and Test",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 3,
+    "number": 7,
     "started_at": "2026-01-27T15:05:27.597160"
   },
-  "last_update": "2026-01-27T15:10:47.590576"
+  "last_update": "2026-01-27T15:22:54.788027"
 }
