@@ -123,6 +123,49 @@
         }
 
         /**
+         * Inject LiaChrome bridge helper
+         * Loads external script that provides window.LiaChrome API
+         * @returns {Promise<void>}
+         */
+        async injectBridgeHelper() {
+            return new Promise((resolve, reject) => {
+                // Check if already loaded
+                if (window.LiaChrome) {
+                    console.log('[Lia Bootstrap] LiaChrome bridge already exists, skipping injection...');
+                    resolve();
+                    return;
+                }
+
+                // Set up ready event listener
+                const readyHandler = () => {
+                    window.removeEventListener('lia-chrome-ready', readyHandler);
+                    console.log('[Lia Bootstrap] ✓ LiaChrome bridge ready');
+                    resolve();
+                };
+
+                window.addEventListener('lia-chrome-ready', readyHandler);
+
+                // Create script element
+                const script = document.createElement('script');
+                const scriptUrl = chrome.runtime.getURL('content-scripts/bridge-helper.js');
+
+                script.src = scriptUrl;
+                script.onload = () => {
+                    console.log('[Lia Bootstrap] ✓ Bridge helper script loaded');
+                };
+
+                script.onerror = (error) => {
+                    window.removeEventListener('lia-chrome-ready', readyHandler);
+                    console.error('[Lia Bootstrap] ✗ Failed to load bridge helper:', error);
+                    reject(error);
+                };
+
+                // Insert script into DOM
+                (document.head || document.documentElement).appendChild(script);
+            });
+        }
+
+        /**
          * Load all scripts for a platform
          * @param {string} platformKey - Platform identifier
          * @returns {Promise<void>}
@@ -160,6 +203,9 @@
                     console.log('[Lia Bootstrap] Not a supported platform, exiting...');
                     return;
                 }
+
+                // Inject LiaChrome bridge helper first (required for all platform scripts)
+                await this.injectBridgeHelper();
 
                 // Load platform-specific scripts
                 await this.loadPlatformScripts(this.currentPlatform);
