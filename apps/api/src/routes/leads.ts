@@ -17,6 +17,7 @@ import { importRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
+import { calculateLeadScore } from '../services/scoring.js';
 
 export const leadsRouter = Router();
 
@@ -902,7 +903,7 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
       };
     }
 
-    const lead = await prisma.lead.update({
+    let lead = await prisma.lead.update({
       where: { id },
       data: updateData,
       include: {
@@ -918,6 +919,37 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
         address: true,
       },
     });
+
+    // Trigger automatic scoring if enabled
+    try {
+      const scoringConfig = await prisma.scoringConfig.findUnique({
+        where: { workspaceId },
+      });
+
+      if (scoringConfig?.autoScoreOnUpdate) {
+        await calculateLeadScore(id, workspaceId);
+
+        // Fetch updated lead with new score
+        lead = await prisma.lead.findUnique({
+          where: { id },
+          include: {
+            assignedTo: {
+              select: { id: true, fullName: true, avatarUrl: true },
+            },
+            tags: {
+              include: {
+                tag: { select: { id: true, name: true, color: true } },
+              },
+            },
+            socialProfiles: true,
+            address: true,
+          },
+        }) as typeof lead;
+      }
+    } catch (error) {
+      // Log error but don't fail the update
+      console.error('Failed to calculate lead score:', error);
+    }
 
     // Emit socket event
     const io = req.app.get('io') as Server;
@@ -1315,6 +1347,20 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
       where: { id },
       data: leadUpdateData
     });
+
+    // Trigger automatic scoring if enabled
+    try {
+      const scoringConfig = await prisma.scoringConfig.findUnique({
+        where: { workspaceId },
+      });
+
+      if (scoringConfig?.autoScoreOnUpdate) {
+        await calculateLeadScore(id, workspaceId);
+      }
+    } catch (error) {
+      // Log error but don't fail the enrichment
+      console.error('Failed to calculate lead score after enrichment:', error);
+    }
 
     // Process address - either from explicit address object or parsed from location
     const addressData = address || parseLocationToAddress(existingLead.location);
