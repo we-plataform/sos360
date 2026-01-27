@@ -66,6 +66,64 @@ Atualmente a extensão funciona sem ícones. Para adicionar ícones:
 }
 ```
 
+## ⚡ Performance
+
+### Performance Guidelines
+
+A extensão foi otimizada para garantir carga rápida e uso eficiente de memória:
+
+- ✅ **Tempo de Carga**: ~36ms (meta: < 500ms)
+- ✅ **Uso de Memória**: ~18MB (meta: < 50MB)
+- ✅ **Tamanho do Bundle**: 181.46 KB (redução de 48.9%)
+- ✅ **Carregamento Lazy**: Scripts carregados por plataforma
+
+### Optimization Techniques
+
+A extensão utiliza várias técnicas de otimização:
+
+1. **Code Splitting**: Scripts divididos por plataforma e responsabilidade
+2. **Lazy Loading**: Bootstrap orquestra carregamento sob demanda
+3. **Selector Optimization**: Seletores CSS otimizados e centralizados
+4. **Caching**: LRU cache para queries DOM frequentes
+5. **Code Reduction**: Remoção de código duplicado e não utilizado
+
+### Performance Monitoring
+
+Para monitorar a performance em tempo de desenvolvimento:
+
+```javascript
+// No console do navegador em qualquer rede social:
+// Ver uso de memória
+performance.memory
+
+// Ver tempo de execução dos scripts
+performance.getEntriesByType('measure')
+
+// Ver todas as entradas de performance
+performance.getEntries()
+```
+
+Para métricas detalhadas e análise de performance, consulte [`PERFORMANCE.md`](./PERFORMANCE.md).
+
+### Best Practices for Development
+
+Ao adicionar novos recursos à extensão:
+
+1. **Mantenha arquivos pequenos**: Divida código em módulos focados (< 30 KB se possível)
+2. **Use lazy loading**: Carregue scripts apenas quando necessário
+3. **Otimize seletores**: Use seletores CSS eficientes e específicos
+4. **Evite DOM excessivo**: Minimize manipulações desnecessárias do DOM
+5. **Implemente cache**: Use cache para operações repetitivas
+6. **Teste performance**: Verifique o impacto antes de commitar
+
 ## 📚 Documentação Completa
 
-Veja [`TESTE_EXTENSAO.md`](../../TESTE_EXTENSAO.md) para guia completo de testes.
+### Documentação de Performance
+- [`PERFORMANCE.md`](./PERFORMANCE.md) - Métricas detalhadas de performance e técnicas de otimização
+
+### Documentação de Testes
+- Veja [`TESTE_EXTENSAO.md`](../../TESTE_EXTENSAO.md) para guia completo de testes.
+
+### Outros Recursos
+- [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) - Solução de problemas comuns
+- [`scripts/benchmark.js`](./scripts/benchmark.js) - Script de benchmark de performance

@@ -304,6 +304,164 @@ performance.getEntries()
 4. **Performance Monitoring**: Add telemetry for production metrics
 5. **Continuous Optimization**: Set up performance regression tests
 
+## 🛠️ Performance Best Practices
+
+### Guidelines for Ongoing Development
+
+When working on the extension, follow these performance guidelines:
+
+#### 1. File Size Management
+- **Target**: Keep individual files under 30 KB when possible
+- **Split**: Break large files into focused, single-responsibility modules
+- **Audit**: Regularly review file sizes using the benchmark script
+
+```bash
+# Run benchmark to check current performance
+node scripts/benchmark.js
+```
+
+#### 2. Code Organization Principles
+- **Separation of Concerns**: Keep DOM, extraction, UI, and business logic separate
+- **Modularity**: Create reusable utilities instead of duplicating code
+- **Platform-Specific**: Load only platform-specific code when needed
+
+Example structure:
+```
+linkedin/
+├── linkedin-selectors.js    # Centralized selectors
+├── linkedin-dom.js          # DOM utilities
+├── linkedin-extractors.js   # Data extraction
+├── linkedin-ui.js           # UI components
+├── linkedin-core.js         # Orchestration
+├── linkedin-utils.js        # Helper functions
+└── linkedin-state.js        # State management
+```
+
+#### 3. DOM Optimization
+- **Cache Queries**: Store DOM queries in variables when used multiple times
+- **Use Efficient Selectors**: Prefer ID and class selectors over complex CSS selectors
+- **Batch Updates**: Group DOM updates together to minimize reflows
+- **Avoid Layout Thrashing**: Read layout properties before writing
+
+```javascript
+// ❌ Bad - Multiple queries
+const element1 = document.querySelector('.container .item');
+const element2 = document.querySelector('.container .item .title');
+
+// ✅ Good - Cache and use efficient selectors
+const container = document.querySelector('.container');
+const title = container.querySelector('.item .title');
+```
+
+#### 4. Event Handling
+- **Debounce**: Use debouncing for frequent events (scroll, resize)
+- **Passive Listeners**: Use passive event listeners for scroll/touch
+- **Cleanup**: Remove event listeners when no longer needed
+
+```javascript
+// ✅ Debounced scroll handler
+const debouncedScroll = debounce(handleScroll, 100);
+window.addEventListener('scroll', debouncedScroll, { passive: true });
+
+// ✅ Cleanup
+window.removeEventListener('scroll', debouncedScroll);
+```
+
+#### 5. Memory Management
+- **Clean Up**: Remove unused references and event listeners
+- **Avoid Leaks**: Be careful with closures and circular references
+- **Monitor**: Regularly check memory usage in DevTools
+
+```javascript
+// ✅ Cleanup on unload
+window.addEventListener('beforeunload', () => {
+  // Remove event listeners
+  // Clear caches
+  // Close connections
+});
+```
+
+#### 6. Selector Best Practices
+- **Centralize**: Keep all selectors in dedicated files (e.g., `*-selectors.js`)
+- **Optimize**: Use specific, efficient selectors
+- **Document**: Comment complex selectors with their purpose
+
+```javascript
+// linkedin-selectors.js
+export const SELECTORS = {
+  // Profile sections
+  PROFILE_HEADER: 'section.top-card-layout',
+  PROFILE_ABOUT: 'section.about',
+
+  // Post elements
+  POST_CONTAINER: '.feed-shared-update-v2',
+  POST_AUTHOR: '.feed-shared-actor__name',
+};
+```
+
+#### 7. Caching Strategy
+- **LRU Cache**: Use the LRU map utility for frequently accessed data
+- **Session Storage**: Store user preferences during session
+- **Avoid Over-caching**: Don't cache everything, only what improves performance
+
+```javascript
+// ✅ Use LRU cache for DOM queries
+import { LRUMap } from './lru-map.js';
+
+const domCache = new LRUMap(50);
+function getCachedElement(selector) {
+  if (!domCache.has(selector)) {
+    domCache.set(selector, document.querySelector(selector));
+  }
+  return domCache.get(selector);
+}
+```
+
+#### 8. Lazy Loading
+- **Load on Demand**: Load scripts only when the platform is detected
+- **Prioritize**: Load critical functionality first
+- **Defer**: Defer non-critical features until after initial render
+
+The `bootstrap.js` script handles this automatically:
+```javascript
+// Loads only platform-specific scripts
+if (platform === 'linkedin') {
+  await loadScript('./content-scripts/linkedin/linkedin-selectors.js');
+  await loadScript('./content-scripts/linkedin/linkedin-dom.js');
+  // ...
+}
+```
+
+### Performance Checklist
+
+Before committing changes, verify:
+
+- [ ] **File Size**: New/modified files are under 30 KB (or justified if larger)
+- [ ] **No Duplication**: Code doesn't duplicate existing functionality
+- [ ] **Efficient Selectors**: CSS selectors are optimized
+- [ ] **DOM Queries**: DOM queries are cached when reused
+- [ ] **Event Listeners**: Event listeners are properly cleaned up
+- [ ] **Memory**: No obvious memory leaks (check DevTools)
+- [ ] **Lazy Loading**: Platform-specific code uses lazy loading
+- [ ] **Benchmark**: Run benchmark script to verify impact
+
+### Regression Prevention
+
+To prevent performance regressions:
+
+1. **Benchmark Before/After**: Run benchmark script before and after changes
+2. **Compare Metrics**: Ensure load time and memory usage don't degrade
+3. **Code Review**: Have performance implications reviewed
+4. **Automated Tests**: Add performance tests for critical paths
+
+```bash
+# Compare before and after
+node scripts/benchmark.js > before.txt
+# ... make changes ...
+node scripts/benchmark.js > after.txt
+diff before.txt after.txt
+```
+
 ## 🔗 Related Documentation
 
 - [README.md](./README.md) - Extension overview
