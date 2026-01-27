@@ -103,3 +103,123 @@ export const defaultRateLimit = rateLimit({
     return ip === 'unknown';
   },
 });
+
+export const analyzeRateLimit = rateLimit({
+  windowMs: RATE_LIMITS.analyze.windowMs,
+  max: RATE_LIMITS.analyze.max,
+  message: {
+    success: false,
+    error: {
+      type: 'rate_limited',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: 'Muitas análises. Tente novamente em alguns minutos.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP
+    if (req.user?.id) {
+      return `user:${req.user.id}:analyze`;
+    }
+    const ip = getClientIp(req);
+    return `ip:${ip}:analyze`;
+  },
+  skip: (req) => {
+    // Skip if we can't determine identity
+    if (req.user?.id) return false;
+    const ip = getClientIp(req);
+    return ip === 'unknown';
+  },
+});
+
+export const analyzeBatchRateLimit = rateLimit({
+  windowMs: RATE_LIMITS.analyzeBatch.windowMs,
+  max: RATE_LIMITS.analyzeBatch.max,
+  message: {
+    success: false,
+    error: {
+      type: 'rate_limited',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: 'Muitas análises em lote. Tente novamente em alguns minutos.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP
+    if (req.user?.id) {
+      return `user:${req.user.id}:analyze-batch`;
+    }
+    const ip = getClientIp(req);
+    return `ip:${ip}:analyze-batch`;
+  },
+  skip: (req) => {
+    // Skip if we can't determine identity
+    if (req.user?.id) return false;
+    const ip = getClientIp(req);
+    return ip === 'unknown';
+  },
+});
+
+export const analyzeDeepRateLimit = rateLimit({
+  windowMs: RATE_LIMITS.analyzeDeep.windowMs,
+  max: RATE_LIMITS.analyzeDeep.max,
+  message: {
+    success: false,
+    error: {
+      type: 'rate_limited',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: 'Muitas análises profundas. Tente novamente em alguns minutos.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP
+    if (req.user?.id) {
+      return `user:${req.user.id}:analyze-deep`;
+    }
+    const ip = getClientIp(req);
+    return `ip:${ip}:analyze-deep`;
+  },
+  skip: (req) => {
+    // Skip if we can't determine identity
+    if (req.user?.id) return false;
+    const ip = getClientIp(req);
+    return ip === 'unknown';
+  },
+});
+
+export const enrichRateLimit = rateLimit({
+  windowMs: RATE_LIMITS.enrich.windowMs,
+  max: RATE_LIMITS.enrich.max,
+  message: {
+    success: false,
+    error: {
+      type: 'rate_limited',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: 'Muitas requisições de enriquecimento. Tente novamente em alguns minutos.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise use IP
+    if (req.user?.id) {
+      return `user:${req.user.id}:enrich`;
+    }
+    const ip = getClientIp(req);
+    return `ip:${ip}:enrich`;
+  },
+  skip: (req) => {
+    // Skip if we can't determine identity
+    if (req.user?.id) return false;
+    const ip = getClientIp(req);
+    return ip === 'unknown';
+  },
+});
