@@ -660,6 +660,10 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
 
   const headers = {
     'Content-Type': 'application/json',
+    // Add connection keep-alive headers for HTTP/1.1 fallback
+    // (HTTP/2 has built-in multiplexing, but these help with HTTP/1.1 servers)
+    'Connection': 'keep-alive',
+    'Keep-Alive': 'timeout=5, max=1000',
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
@@ -677,10 +681,17 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
+    // Determine if we should use keepalive
+    // keepalive: true allows requests to outlive the page and enables connection pooling
+    // Limit: max 64KB body size, so we check request body size
+    const useKeepalive = options.useKeepalive !== false && // default to true unless explicitly disabled
+                         (!options.body || options.body.length < 65536); // under 64KB
+
     const response = await fetch(url, {
       ...options,
       headers,
-      signal: controller.signal
+      signal: controller.signal,
+      keepalive: useKeepalive
     });
 
     clearTimeout(timeoutId);

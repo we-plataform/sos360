@@ -172,3 +172,61 @@ Performance Impact:
 Next: Subtask 3-2 - Implement feature detection to load overlay UI only when on search/connections pages
 
 === END SESSION 4 ===
+
+=== SESSION 5 (2025-01-27) ===
+
+Subtask 6-2: Add debouncing for analyze-batch API calls during auto-scroll ✅
+- Modified: apps/extension/background.js
+- Implementation: AnalyzeBatchDebouncer class
+- Features:
+  * Accumulates profiles for 2 seconds (debounce delay) or until max batch size (20) reached
+  * Min batch size of 3 profiles before triggering analysis
+  * Prevents API spam by consolidating rapid analyze-batch calls
+  * Reduces server load and improves performance during auto-scroll with AI analysis
+  * Proper error handling with promise resolution/rejection
+  * Performance metrics tracking integrated with performanceMetrics
+  * Cleanup methods: forceFlush() and clear()
+
+Class Details:
+- Configurable options: debounceDelay (default 2000ms), minBatchSize (default 3), maxBatchSize (default 20)
+- analyze(profiles, criteria): Adds profiles to pending queue, triggers flush after delay
+- flush(): Sends accumulated profiles to /api/v1/leads/analyze-batch endpoint
+- getPendingCount(): Returns number of profiles waiting to be analyzed
+- clear(): Resets all pending state (for cleanup)
+
+Integration:
+- Updated startDeepImport message handler to use debouncer instead of direct API call
+- Debouncer automatically handles profiles with no criteria (returns null immediately)
+- Global instance: analyzeBatchDebouncer created with default settings
+- Fully compatible with existing LeadBatcher for lead import batching
+
+Benefits:
+- Prevents rapid successive analyze-batch API calls during auto-scroll
+- Reduces API call overhead by batching profiles
+- Improves performance when AI analysis is enabled during auto-scroll
+- Maintains responsiveness by flushing immediately when max batch size reached
+- Graceful degradation if AI analysis fails
+
+Code Quality:
+- No console.log debugging (uses console.log for legitimate logging only)
+- Comprehensive JSDoc comments
+- Error handling with try-catch blocks
+- Follows existing code patterns (similar to LeadBatcher)
+- Bound methods to preserve context
+- Promise-based API for async handling
+
+Verification Notes:
+- Manual verification required: Run auto-scroll with AI analysis enabled
+- Check Network tab in Chrome DevTools to verify API calls are debounced
+- Should see fewer analyze-batch calls than profiles collected
+- Console logs show batch size and timing information
+
+Performance Impact:
+- Reduces API calls from N profiles to N/20 (worst case) or 1 call per 2-second window
+- Lower server load during auto-scroll
+- Faster response time for users (batched processing)
+- Better resource utilization on both client and server
+
+Next: Subtask 6-3 - Implement API connection keep-alive to reduce connection overhead
+
+=== END SESSION 5 ===

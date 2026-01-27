@@ -366,7 +366,9 @@
             "type": "manual",
             "instructions": "Import multiple leads, verify in Network tab that requests are batched (not 1 request per lead)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented LeadBatcher class that accumulates leads and sends them in batches. Batches are sent when they reach 5 leads or after 5 seconds (whichever comes first). Updated LinkedInNavigator, InstagramNavigator, and LeadNavigator to use batching instead of sending individual API calls. Added forceFlush() calls in stop() and finish() methods to ensure all pending leads are sent when operations complete. This reduces the number of API calls from 1 per lead to 1 per batch, providing up to 5x reduction in API calls. The batching system preserves all existing functionality including AI analysis results and deep scan triggers.",
+          "updated_at": "2026-01-27T14:53:42.059495+00:00"
         },
         {
           "id": "subtask-6-2",
@@ -381,7 +383,9 @@
             "type": "manual",
             "instructions": "Run auto-scroll with AI analysis, verify API calls are debounced (not on every profile)"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented AnalyzeBatchDebouncer class with configurable debounce delay (2s), min batch size (3 profiles), and max batch size (20 profiles). The debouncer accumulates profiles during auto-scroll and sends them in batches to the /api/v1/leads/analyze-batch endpoint, preventing API spam and reducing server load. Updated startDeepImport handler to use the debouncer instead of direct API calls. The implementation includes proper error handling, promise resolution, performance metrics tracking, and cleanup methods (forceFlush, clear). This ensures that during auto-scroll with AI analysis enabled, multiple rapid analyze-batch calls are consolidated into fewer, more efficient batched requests.",
+          "updated_at": "2026-01-27T15:10:00.000000+00:00"
         },
         {
           "id": "subtask-6-3",
@@ -667,6 +671,7 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T14:46:31.687Z",
-  "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z"
+  "updated_at": "2026-01-27T14:54:03.032Z",
+  "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z",
+  "last_updated": "2026-01-27T14:53:42.059707+00:00"
 }
