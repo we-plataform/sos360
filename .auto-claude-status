@@ -3,7 +3,7 @@
   "spec": "008-lead-data-export-to-csv",
   "state": "building",
   "subtasks": {
-    "completed": 11,
+    "completed": 12,
     "total": 15,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 13,
+    "number": 14,
     "started_at": "2026-01-27T00:13:53.290123"
   },
-  "last_update": "2026-01-27T01:29:33.617022"
+  "last_update": "2026-01-27T01:51:02.054326"
 }
