@@ -14,7 +14,7 @@ Este documento define os requisitos mínimos de segurança para o MVP, cobrindo 
 |-----------|-----------|----------|
 | Algoritmo | HS256 | RS256 |
 | Access Token TTL | 15 minutos | 15 minutos |
-| Refresh Token TTL | 7 dias | 7 dias |
+| Refresh Token TTL | 30 dias | 30 dias |
 | Issuer | snapleads-api | snapleads-api |
 
 #### Estrutura do Access Token
@@ -836,7 +836,7 @@ REDIS_URL="redis://localhost:6379"
 # Auth
 JWT_SECRET="your-super-secret-jwt-key-at-least-32-chars"
 JWT_EXPIRES_IN="15m"
-REFRESH_TOKEN_EXPIRES_IN="7d"
+REFRESH_TOKEN_EXPIRES_IN="30d"
 
 # Encryption
 ENCRYPTION_KEY="64-char-hex-string-for-aes-256"
