@@ -26,6 +26,16 @@
     let lastUrl = location.href; // THE FIX: Declared ONCE here in module scope.
     let autoScrollController = null;
 
+    // --- Event Listener & Cleanup Tracking ---
+    let urlObserver = null;
+    let beforeUnloadHandler = null;
+    let messageListener = null;
+    let domContentLoadedHandler = null;
+    let overlayTimers = {
+        timeout: null,
+        idle: null
+    };
+
     // --- Core Logic ---
 
     /**
@@ -46,9 +56,11 @@
     }
 
     /**
-     * Cleanup function to clear state when leaving profile/connection pages
+     * Cleanup function to clear state and remove event listeners when leaving profile/connection pages
      */
     function cleanup() {
+        console.log('[Lia 360] Running cleanup...');
+
         // Stop any ongoing auto-scroll
         if (autoScrollController) {
             autoScrollController.stop();
@@ -65,6 +77,37 @@
         const overlay = document.getElementById('sos360-linkedin-overlay');
         if (overlay) {
             overlay.remove();
+        }
+
+        // Disconnect MutationObserver to prevent memory leaks
+        if (urlObserver) {
+            urlObserver.disconnect();
+            urlObserver = null;
+            console.log('[Lia 360] Disconnected URL observer');
+        }
+
+        // Remove beforeunload event listener
+        if (beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            beforeUnloadHandler = null;
+            console.log('[Lia 360] Removed beforeunload handler');
+        }
+
+        // Remove chrome.runtime.onMessage listener
+        if (messageListener) {
+            chrome.runtime.onMessage.removeListener(messageListener);
+            messageListener = null;
+            console.log('[Lia 360] Removed message listener');
+        }
+
+        // Cancel any pending timers from overlay initialization
+        if (overlayTimers.timeout) {
+            clearTimeout(overlayTimers.timeout);
+            overlayTimers.timeout = null;
+        }
+        if (overlayTimers.idle) {
+            cancelIdleCallback(overlayTimers.idle);
+            overlayTimers.idle = null;
         }
 
         // Clear state but preserve session storage
@@ -86,6 +129,8 @@
 
         // Clear any saved state from session storage
         chrome.storage.local.remove(['linkedinState']);
+
+        console.log('[Lia 360] Cleanup complete');
     }
 
     function detectProfilePage() {
@@ -110,7 +155,8 @@
             initOverlay();
         }
 
-        const urlObserver = new MutationObserver(() => {
+        // Create and store URL observer for cleanup
+        urlObserver = new MutationObserver(() => {
             const url = location.href;
             if (url !== lastUrl) {
                 const oldUrl = lastUrl;
@@ -135,17 +181,28 @@
         if (document.body) {
             urlObserver.observe(document.body, { childList: true, subtree: true });
         } else {
-            document.addEventListener('DOMContentLoaded', () => {
+            // Store reference to DOMContentLoaded handler for cleanup
+            domContentLoadedHandler = () => {
                 urlObserver.observe(document.body, { childList: true, subtree: true });
-            }, { once: true });
+            };
+            document.addEventListener('DOMContentLoaded', domContentLoadedHandler, { once: true });
         }
     }
 
     function initOverlay() {
         console.log('[Lia 360] initOverlay() called - starting idle callback card checker');
+
+        // Clear any existing timers before starting new ones
+        if (overlayTimers.timeout) {
+            clearTimeout(overlayTimers.timeout);
+            overlayTimers.timeout = null;
+        }
+        if (overlayTimers.idle) {
+            cancelIdleCallback(overlayTimers.idle);
+            overlayTimers.idle = null;
+        }
+
         // Use requestIdleCallback for non-critical background task of checking for cards
-        let timeoutHandle = null;
-        let idleHandle = null;
         const maxWaitTime = 30000; // 30 seconds max wait
         const startTime = Date.now();
 
@@ -326,19 +383,19 @@
 
             // No cards found yet, schedule next check during idle time
             if (typeof requestIdleCallback !== 'undefined') {
-                idleHandle = requestIdleCallback(checkForCards, { timeout: 2000 });
+                overlayTimers.idle = requestIdleCallback(checkForCards, { timeout: 2000 });
             } else {
                 // Fallback for browsers that don't support requestIdleCallback
-                timeoutHandle = setTimeout(checkForCards, 1000);
+                overlayTimers.timeout = setTimeout(checkForCards, 1000);
             }
         }
 
         // Start the idle callback loop
         if (typeof requestIdleCallback !== 'undefined') {
-            idleHandle = requestIdleCallback(checkForCards, { timeout: 2000 });
+            overlayTimers.idle = requestIdleCallback(checkForCards, { timeout: 2000 });
         } else {
             // Fallback for browsers that don't support requestIdleCallback
-            timeoutHandle = setTimeout(checkForCards, 1000);
+            overlayTimers.timeout = setTimeout(checkForCards, 1000);
         }
     }
 
@@ -388,22 +445,24 @@
     // --- Initialization ---
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initProfileDetection);
+        domContentLoadedHandler = initProfileDetection;
+        document.addEventListener('DOMContentLoaded', domContentLoadedHandler);
     } else {
         initProfileDetection();
     }
 
-    // --- beforeunload handler ---
-    window.addEventListener('beforeunload', async () => {
+    // --- beforeunload handler (store reference for cleanup) ---
+    beforeUnloadHandler = async () => {
         const state = State.get();
         if (state.isAutoScrolling) {
             state.isAutoScrolling = false;
             await State.saveState();
         }
-    });
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
 
-    // --- Message Listener ---
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // --- Message Listener (store reference for cleanup) ---
+    messageListener = (request, sender, sendResponse) => {
         (async () => {
             if (request.action === 'extractProfile') {
                 const p = await DOM.extractCurrentProfile();
@@ -412,6 +471,7 @@
             // ... other handlers
         })();
         return true;
-    });
+    };
+    chrome.runtime.onMessage.addListener(messageListener);
 
 })();

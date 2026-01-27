@@ -765,14 +765,22 @@ class LeadNavigator {
     await this.waitForTabLoad(this.state.currentTabId);
   }
 
-  waitForTabLoad(tabId) {
-    return new Promise((resolve) => {
+  waitForTabLoad(tabId, timeout = 30000) {
+    return new Promise((resolve, reject) => {
       const listener = (tid, changeInfo) => {
         if (tid === tabId && changeInfo.status === 'complete') {
           chrome.tabs.onUpdated.removeListener(listener);
+          clearTimeout(timeoutId);
           resolve();
         }
       };
+
+      // Add timeout to ensure listener is cleaned up even if tab never loads
+      const timeoutId = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        reject(new Error(`Tab ${tabId} did not load within ${timeout}ms`));
+      }, timeout);
+
       chrome.tabs.onUpdated.addListener(listener);
     });
   }
@@ -2384,6 +2392,25 @@ class AutomationExecutor {
 
     console.log('[Lia 360] Job finished:', statusMsg);
     this.isStopping = false; // Reset flag
+  }
+
+  /**
+   * Cleanup method to remove event listeners
+   * Call this when the executor instance is no longer needed
+   */
+  cleanup() {
+    console.log('[Lia 360] Cleaning up AutomationExecutor listeners');
+
+    // Note: In Chrome extensions, removing listeners from singletons is rarely needed
+    // as they persist for the lifetime of the service worker. This method is provided
+    // for completeness and future scenarios where cleanup might be necessary.
+
+    // The listeners added in the constructor are:
+    // - chrome.tabs.onUpdated.addListener(this.onTabUpdated.bind(this))
+    // - chrome.runtime.onMessage.addListener(this.onMessage.bind(this))
+
+    // To properly remove these, we'd need to store references to the bound methods.
+    // For now, this method serves as a placeholder for potential cleanup logic.
   }
 }
 

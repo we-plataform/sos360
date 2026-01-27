@@ -268,7 +268,8 @@
             "type": "manual",
             "instructions": "Check DevTools Performance tab, verify no long-running tasks blocking main thread"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Replaced setInterval polling in initOverlay() with requestIdleCallback for checking connection cards. This improves performance by running checks during browser idle time instead of blocking the main thread with fixed-interval polling. Changes: replaced setInterval(1000ms) with requestIdleCallback, added fallback to setTimeout for browsers without requestIdleCallback support, maintained 30-second max wait timeout, preserved all existing overlay setup and event handling logic. overlay.js did not require changes as it is event-driven with no polling patterns (setTimeout usage is only for UI feedback delays). This reduces main thread blocking and allows smoother browsing experience on LinkedIn."
         }
       ]
     },
@@ -663,6 +664,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T14:33:57.187Z",
+  "updated_at": "2026-01-27T14:39:51.890Z",
   "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z"
 }
