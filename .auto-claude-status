@@ -3,23 +3,23 @@
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
-    "completed": 2,
+    "completed": 4,
     "total": 14,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Shared Validation Schemas",
+    "current": "Backend Scoring Service",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
+    "number": 7,
     "started_at": "2026-01-26T23:38:00.573663"
   },
-  "last_update": "2026-01-26T23:46:33.250728"
+  "last_update": "2026-01-27T00:08:15.503227"
 }

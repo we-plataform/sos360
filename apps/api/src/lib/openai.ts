@@ -34,6 +34,22 @@ export type AnalysisResult = {
     reason: string;
 };
 
+export type ScoreBreakdown = {
+    jobTitleScore: number;
+    companyScore: number;
+    profileCompletenessScore: number;
+    activityScore: number;
+    enrichmentScore: number;
+    finalScore: number;
+};
+
+export type DetailedScoringResult = {
+    explanation: string;
+    strengths: string[];
+    weaknesses: string[];
+    recommendation: string;
+};
+
 export async function analyzeLead(profile: LeadProfile, criteria: string): Promise<AnalysisResult> {
     if (!openai) {
         return {
@@ -366,6 +382,155 @@ export async function analyzeLeadDeep(
             buyingIntent: 'Low',
             confidenceScore: 0,
             reason: 'Analysis failed due to error',
+        };
+    }
+}
+
+/**
+ * Generate detailed AI-powered scoring explanation based on breakdown scores
+ * @param profile - The lead profile data
+ * @param criteria - Scoring criteria description
+ * @param breakdown - The calculated score breakdown
+ * @returns Detailed scoring analysis with explanation and recommendations
+ */
+export async function generateDetailedScoringExplanation(
+    profile: LeadProfile,
+    criteria: string,
+    breakdown: ScoreBreakdown
+): Promise<DetailedScoringResult> {
+    if (!openai) {
+        return {
+            explanation: 'OpenAI não configurado. Análise detalhada indisponível.',
+            strengths: [],
+            weaknesses: [],
+            recommendation: 'Configure OpenAI para análises detalhadas.',
+        };
+    }
+
+    try {
+        const isLinkedIn = profile.platform === 'linkedin' || profile.headline || profile.company;
+
+        const profileDescription = isLinkedIn
+            ? `
+      - Nome: ${profile.fullName || 'N/A'}
+      - Cargo: ${profile.headline || 'N/A'}
+      - Empresa: ${profile.company || 'N/A'}
+      - Setor: ${profile.industry || 'N/A'}
+      - Localização: ${profile.location || 'N/A'}
+      - Bio: ${profile.bio || 'N/A'}
+      - Conexões: ${profile.connectionCount || 'N/A'}
+      `
+            : `
+      - Nome: ${profile.fullName || 'N/A'}
+      - Username: ${profile.username}
+      - Bio: ${profile.bio || 'N/A'}
+      - Localização: ${profile.location || 'N/A'}
+      - Seguidores: ${profile.followersCount || 'N/A'}
+      - Seguindo: ${profile.followingCount || 'N/A'}
+      `;
+
+        const breakdownDescription = `
+      - Pontuação de Cargo: ${breakdown.jobTitleScore}/100
+      - Pontuação de Empresa: ${breakdown.companyScore}/100
+      - Completude de Perfil: ${breakdown.profileCompletenessScore}/100
+      - Atividade Social: ${breakdown.activityScore}/100
+      - Dados Enriquecidos: ${breakdown.enrichmentScore}/100
+      - PONTUAÇÃO FINAL: ${breakdown.finalScore}/100
+    `;
+
+        const platformContext = isLinkedIn
+            ? 'perfil profissional do LinkedIn'
+            : 'perfil social do Instagram';
+
+        const prompt = `
+      Você é um especialista em qualificação de leads B2B. Analise este ${platformContext} e forneça uma explicação detalhada da pontuação calculada.
+
+      CRITÉRIOS DE QUALIFICAÇÃO DO CLIENTE:
+      ${criteria}
+
+      DADOS DO LEAD:
+      ${profileDescription}
+
+      PONTUAÇÕES CALCULADAS (algoritmo):
+      ${breakdownDescription}
+
+      TAREFA:
+      Com base nas pontuações calculadas e nos dados do perfil, forneça uma análise detalhada que explique:
+
+      1. POR QUE o lead recebeu esta pontuação (correlacione os dados do perfil com as pontuações específicas)
+      2. PONTOS FORTES específicos que elevam a pontuação (cite dados reais do perfil)
+      3. PONTOS FRACOS específicos que reduzem a pontuação (cite o que falta ou está fraco)
+      4. RECOMENDAÇÃO de ação (vale a pena entrar em contato? Como priorizar?)
+
+      DIRETRIZES:
+      - Seja específico e cite dados reais do perfil
+      - Explique como cada pontuação componente contribui para o score final
+      - Para scores altos (70+): enfatize por que é um lead valioso
+      - Para scores médios (40-69): explique o potencial e o que poderia melhorar
+      - Para scores baixos (<40): seja honesto sobre as limitações
+      - A linguagem deve ser profissional mas conversacional
+      - Mantenha a explicação concisa mas informativa (2-4 sentenças)
+      - Limite pontos fortes e fracos a 2-3 itens cada (os mais relevantes)
+
+      Responda em JSON:
+      {
+        "explanation": "Explicação clara e concisa da pontuação em 2-4 sentenças",
+        "strengths": ["ponto forte 1", "ponto forte 2", ...],
+        "weaknesses": ["ponto fraco 1", "ponto fraco 2", ...],
+        "recommendation": "Recomendação de ação clara e prática em 1 sentença"
+      }
+    `;
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'Você é um assistente de qualificação de leads B2B especializado em análise detalhada. Forneça explicações claras, específicas e acionáveis em português. Use dados concretos do perfil do lead.'
+                },
+                { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' },
+        });
+
+        const content = response.choices[0].message.content;
+        if (!content) throw new Error('Empty response from OpenAI');
+
+        const result = JSON.parse(content) as DetailedScoringResult;
+
+        // Validate result structure
+        if (!result.explanation || !Array.isArray(result.strengths) || !Array.isArray(result.weaknesses) || !result.recommendation) {
+            throw new Error('Invalid response structure from OpenAI');
+        }
+
+        return result;
+    } catch (error) {
+        logger.error({ err: error }, 'Detailed scoring explanation failed');
+
+        // Return fallback explanation based on final score
+        const { finalScore } = breakdown;
+        let explanation = '';
+        let recommendation = '';
+
+        if (finalScore >= 70) {
+            explanation = 'Lead altamente qualificado com boa correspondência aos critérios.';
+            recommendation = 'Priorize este lead para contato imediato.';
+        } else if (finalScore >= 50) {
+            explanation = 'Lead qualificado com potencial razoável.';
+            recommendation = 'Considere contato após leads de maior prioridade.';
+        } else if (finalScore >= 30) {
+            explanation = 'Lead parcialmente qualificado com sinais mistos.';
+            recommendation = 'Avalie com cautela antes de investir tempo.';
+        } else {
+            explanation = 'Lead com baixa qualificação segundo os critérios.';
+            recommendation = 'Baixa prioridade - foque em leads mais qualificados.';
+        }
+
+        return {
+            explanation,
+            strengths: [],
+            weaknesses: ['Análise detalhada indisponível'],
+            recommendation,
         };
     }
 }
