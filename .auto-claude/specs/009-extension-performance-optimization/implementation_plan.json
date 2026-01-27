@@ -433,7 +433,8 @@
             "command": "cd ./apps/extension && npm run build",
             "expected": "Build output directory created with minified files"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully set up esbuild for minifying extension JavaScript. Created package.json with esbuild dependency and build scripts. Created esbuild.config.js to bundle and minify all 20 JavaScript files (background.js, popup.js, and all content scripts). Fixed syntax error in instagram/utils.js. Build output to dist/ directory with minified files and source maps. All static files (manifest.json, popup.html, styles, icons) are copied to dist/. Verified build works: npm run build completes successfully, all files minified with source maps generated."
         },
         {
           "id": "subtask-7-2",
@@ -449,7 +450,8 @@
             "command": "ls -la ./apps/extension/dist/*.map | wc -l",
             "expected": "Multiple .map files present in dist/"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Source map generation already configured in subtask 7-1 (sourcemap: true on line 92 of esbuild.config.js). Verified 21 source map files generated for all entry points (background.js, popup.js, and all content scripts). Source maps enable debugging of minified code in Chrome DevTools, mapping minified code back to original source files for easier debugging and error tracking."
         },
         {
           "id": "subtask-7-3",
@@ -673,7 +675,7 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T15:02:39.968Z",
+  "updated_at": "2026-01-27T15:06:16.358Z",
   "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z",
   "last_updated": "2026-01-27T14:53:42.059707+00:00"
 }
