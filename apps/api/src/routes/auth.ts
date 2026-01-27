@@ -353,12 +353,12 @@ authRouter.post('/select-context', validate(selectContextSchema), async (req, re
     });
     const refreshToken = signRefreshToken(userId);
 
-    // Store refresh token
+    // Store refresh token (expires in 30 days to match token expiration)
     await storage.set(
       `refresh:${userId}:${refreshToken.slice(-10)}`,
       refreshToken,
       'EX',
-      7 * 24 * 60 * 60
+      30 * 24 * 60 * 60
     );
 
     // Get user details
