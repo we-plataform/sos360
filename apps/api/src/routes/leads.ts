@@ -121,10 +121,6 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
     const workspaceId = req.user!.workspaceId;
     const { tags, address, pipelineStageId, ...leadData } = req.body;
 
-    // DEBUG: Log lead creation payload
-    console.log('[DEBUG-API] Creating lead payload:', { pipelineStageId, leadData });
-
-
     let profileUrl = leadData.profileUrl;
 
     if (!profileUrl) {
@@ -255,10 +251,6 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
           address: true,
         },
       });
-
-      // DEBUG: Log created lead
-      console.log('[DEBUG-API] Lead created:', { id: lead.id, pipelineStageId: lead.pipelineStageId });
-
     }
 
     // Emit socket event
@@ -472,9 +464,6 @@ leadsRouter.post(
 
 
       for (const leadData of leads) {
-        // DEBUG: Log received lead data with focus on avatarUrl
-        console.log('[DEBUG] Processing lead - avatarUrl received:', leadData.avatarUrl ? `YES (${leadData.avatarUrl.substring(0, 50)}...)` : 'NO');
-        console.log('[DEBUG] Full lead data:', JSON.stringify(leadData, null, 2));
         try {
           // Clean and validate lead data
           const cleanedLeadData = {
@@ -517,7 +506,6 @@ leadsRouter.post(
 
           // Ensure profileUrl exists
           const profileUrl = cleanedLeadData.profileUrl || `${platform}:${cleanedLeadData.username || 'unknown'}`;
-          console.log('[DEBUG] Cleaned lead data:', JSON.stringify({ ...cleanedLeadData, profileUrl }, null, 2));
 
           // 1. Try to find existing lead
           const existingLead = await prisma.lead.findFirst({
@@ -607,11 +595,9 @@ leadsRouter.post(
             });
           }
           imported++;
-          // DEBUG: Verify avatarUrl was saved
-          console.log('[DEBUG] Lead saved - avatarUrl in DB:', savedLead.avatarUrl ? `YES (${savedLead.avatarUrl.substring(0, 50)}...)` : 'NO');
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
-          console.error('Error importing lead:', err, leadData);
+          console.error('Error importing lead:', err);
           if ((err as { code?: string }).code === 'P2002') {
             duplicates++;
           } else {
@@ -877,9 +863,6 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
     const workspaceId = req.user!.workspaceId;
     const { address, ...updates } = req.body;
 
-    // DEBUG: Log the incoming update request
-    console.log('[DEBUG] PATCH /leads/:id - Received:', { id, workspaceId, updates, address });
-
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
       where: { id, workspaceId },
@@ -991,8 +974,6 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
     const { enrichment } = req.body;
-
-    console.log('[DEBUG] PATCH /leads/:id/enrich - Received:', { id, workspaceId, enrichment: Object.keys(enrichment || {}) });
 
     // Check lead exists
     const existingLead = await prisma.lead.findFirst({
@@ -1386,8 +1367,6 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
         metadata: { enrichedSections, enrichmentStatus }
       }
     });
-
-    console.log(`[DEBUG] Enrichment complete: ${enrichedSections} sections for lead ${id}`);
 
     res.json({
       success: true,

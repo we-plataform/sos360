@@ -4,6 +4,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
@@ -34,10 +35,18 @@
   "subtasks": {
     "completed": 10,
     "total": 10,
+=======
+  "spec": "010-remove-excessive-debug-logging-that-exposes-sensit",
+  "state": "complete",
+  "subtasks": {
+    "completed": 4,
+    "total": 4,
+>>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
+<<<<<<< HEAD
     "current": "Complete",
     "id": null,
     "total": 4
@@ -53,12 +62,18 @@
     "id": null,
     "total": 4
 >>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
+=======
+    "current": "Remove Debug Logging",
+    "id": null,
+    "total": 4
+>>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -89,4 +104,10 @@
   },
   "last_update": "2026-01-27T10:09:08.008819"
 >>>>>>> auto-claude/011-reduce-refresh-token-expiration-from-365-days-to-3
+=======
+    "number": 5,
+    "started_at": "2026-01-27T00:14:42.043657"
+  },
+  "last_update": "2026-01-27T00:40:00.000000"
+>>>>>>> auto-claude/010-remove-excessive-debug-logging-that-exposes-sensit
 }

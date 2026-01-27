@@ -326,7 +326,7 @@ postsRouter.post(
             results.push({ id: newPost.id, postUrl: postData.postUrl, status: 'created' });
           }
         } catch (err) {
-          console.error('Error importing post:', err, postData);
+          console.error('Error importing post:', err);
           errors++;
         }
       }
