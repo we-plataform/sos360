@@ -13,7 +13,7 @@ import {
 } from '@lia360/shared';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { importRateLimit } from '../middleware/rate-limit.js';
+import { importRateLimit, analyzeRateLimit } from '../middleware/rate-limit.js';
 import { NotFoundError } from '../lib/errors.js';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
@@ -296,6 +296,7 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
 leadsRouter.post(
   '/analyze',
   authorize('owner', 'admin', 'manager', 'agent'),
+  analyzeRateLimit,
   async (req, res, next) => {
     try {
       const { profile, criteria } = req.body;
