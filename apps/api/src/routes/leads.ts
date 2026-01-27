@@ -115,6 +115,106 @@ leadsRouter.get('/', validate(leadFiltersSchema, 'query'), async (req, res, next
   }
 });
 
+// GET /leads/check-duplicates - Check for potential duplicate leads
+leadsRouter.get('/check-duplicates', authorize('owner', 'admin', 'manager', 'agent'), async (req, res, next) => {
+  try {
+    const workspaceId = req.user!.workspaceId;
+    const { email, phone, platform, profileUrl } = req.query as { email?: string; phone?: string; platform?: string; profileUrl?: string };
+
+    // Build search conditions
+    const orConditions: any[] = [];
+
+    if (email) {
+      orConditions.push({ email: email });
+    }
+
+    if (phone) {
+      orConditions.push({ phone: phone });
+    }
+
+    if (platform && profileUrl) {
+      // Check in socialProfiles
+      orConditions.push({
+        socialProfiles: {
+          some: {
+            platform: platform,
+            profileUrl: profileUrl
+          }
+        }
+      });
+      // Legacy check
+      orConditions.push({
+        platform: platform,
+        profileUrl: profileUrl
+      });
+    }
+
+    // If no search criteria provided, return empty result
+    if (orConditions.length === 0) {
+      return res.json({
+        success: true,
+        duplicates: []
+      });
+    }
+
+    // Search for potential duplicates
+    const potentialDuplicates = await prisma.lead.findMany({
+      where: {
+        workspaceId,
+        OR: orConditions
+      },
+      include: {
+        socialProfiles: true
+      }
+    });
+
+    // Build response with match reasons
+    const duplicates = potentialDuplicates.map(lead => {
+      const matchReasons: { email?: boolean; phone?: boolean; profileUrl?: boolean } = {};
+
+      if (email && lead.email === email) {
+        matchReasons.email = true;
+      }
+
+      if (phone && lead.phone === phone) {
+        matchReasons.phone = true;
+      }
+
+      if (platform && profileUrl) {
+        // Check socialProfiles
+        const hasProfileMatch = lead.socialProfiles.some(
+          sp => sp.platform === platform && sp.profileUrl === profileUrl
+        );
+        if (hasProfileMatch) {
+          matchReasons.profileUrl = true;
+        }
+        // Check legacy fields
+        if (lead.platform === platform && lead.profileUrl === profileUrl) {
+          matchReasons.profileUrl = true;
+        }
+      }
+
+      return {
+        id: lead.id,
+        fullName: lead.fullName,
+        email: lead.email,
+        phone: lead.phone,
+        platform: lead.platform,
+        username: lead.username,
+        avatarUrl: lead.avatarUrl,
+        matchReasons
+      };
+    });
+
+    res.json({
+      success: true,
+      duplicates
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /leads - Create lead
 leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(createLeadSchema), async (req, res, next) => {
   try {
@@ -278,6 +378,8 @@ leadsRouter.post('/', authorize('owner', 'admin', 'manager', 'agent'), validate(
       data: {
         ...lead,
         tags: lead.tags.map((lt: { tag: { id: string; name: string; color: string } }) => lt.tag),
+        isDuplicate: !!existingLead,
+        duplicateLeadId: existingLead?.id || null,
       },
     });
   } catch (error) {
@@ -461,7 +563,7 @@ leadsRouter.post(
       let duplicates = 0;
       let errors = 0;
       const leadResults: { id: string; profileUrl: string }[] = [];
-
+      const duplicateLeads: { id: string; profileUrl: string; username?: string | null; fullName?: string | null; email?: string | null; phone?: string | null }[] = [];
 
       for (const leadData of leads) {
         try {
@@ -545,6 +647,17 @@ leadsRouter.post(
           };
 
           if (existingLead) {
+            // Track duplicate lead details
+            duplicateLeads.push({
+              id: existingLead.id,
+              profileUrl: existingLead.profileUrl || profileUrl,
+              username: existingLead.username,
+              fullName: existingLead.fullName,
+              email: existingLead.email,
+              phone: existingLead.phone,
+            });
+            duplicates++;
+
             savedLead = await prisma.lead.update({
               where: { id: existingLead.id },
               data: {
@@ -593,8 +706,8 @@ leadsRouter.post(
               },
               select: selectFields,
             });
+            imported++;
           }
-          imported++;
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
           console.error('Error importing lead:', err);
@@ -624,8 +737,13 @@ leadsRouter.post(
           jobId: importJob.id,
           status: 'completed',
           totalLeads: leads.length,
-          result: { imported, duplicates, errors },
-          message: `Importação concluída: ${imported} leads importados`,
+          result: {
+            imported,
+            duplicates,
+            errors,
+            duplicateLeads // Detailed information about duplicate leads
+          },
+          message: `Importação concluída: ${imported} leads importados${duplicates > 0 ? `, ${duplicates} duplicatas atualizadas` : ''}`,
           leadResults // Return the list of imported IDs
         },
       });

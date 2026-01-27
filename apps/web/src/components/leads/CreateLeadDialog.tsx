@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { Platform } from '@lia360/shared';
+import { DuplicateWarningDialog, type DuplicateLead } from './DuplicateWarningDialog';
 
 const platforms: Platform[] = [
   'instagram',
@@ -118,6 +119,10 @@ export function CreateLeadDialog({
 }: CreateLeadDialogProps) {
   const queryClient = useQueryClient();
 
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [bulkImportData, setBulkImportData] = useState('');
+  const [bulkPlatform, setBulkPlatform] = useState<Platform | undefined>();
+
   const [formData, setFormData] = useState<CreateLeadForm>({
     fullName: '',
     email: '',
@@ -130,6 +135,9 @@ export function CreateLeadDialog({
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateLeads, setDuplicateLeads] = useState<DuplicateLead[]>([]);
+  const [pendingFormData, setPendingFormData] = useState<CreateLeadForm | null>(null);
 
   const resetForm = () => {
     setFormData({
@@ -142,8 +150,36 @@ export function CreateLeadDialog({
       location: '',
       notes: '',
     });
+    setBulkImportData('');
+    setBulkPlatform(undefined);
     setErrors({});
   };
+
+  const checkDuplicatesMutation = useMutation({
+    mutationFn: async (data: CreateLeadForm) => {
+      const params: { email?: string; phone?: string; platform?: string; profileUrl?: string } = {};
+      if (data.email) params.email = data.email;
+      if (data.phone) params.phone = data.phone;
+      if (data.platform && formData.website) params.platform = data.platform;
+      if (data.website) params.profileUrl = data.website;
+
+      const response = await api.checkDuplicateLeads(params);
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      if (data && data.duplicates && data.duplicates.length > 0) {
+        setDuplicateLeads(data.duplicates);
+        setPendingFormData(variables);
+        setShowDuplicateWarning(true);
+      } else {
+        createLeadMutation.mutate(variables);
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error checking duplicates:', error);
+      createLeadMutation.mutate(variables);
+    },
+  });
 
   const createLeadMutation = useMutation({
     mutationFn: async (data: CreateLeadForm) => {
@@ -159,11 +195,18 @@ export function CreateLeadDialog({
       });
       return lead;
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
       queryClient.refetchQueries({ queryKey: ['pipeline', pipelineId], type: 'active' });
       queryClient.refetchQueries({ queryKey: ['pipeline-leads'], type: 'active' });
-      toast.success('Lead criado com sucesso!');
+
+      // Check if this was a duplicate lead that was merged
+      if (response.isDuplicate) {
+        toast.success('Lead atualizado (duplicata encontrada e mesclada)');
+      } else {
+        toast.success('Lead criado com sucesso!');
+      }
+
       resetForm();
       onOpenChange(false);
       onSuccess?.();
@@ -173,25 +216,89 @@ export function CreateLeadDialog({
     },
   });
 
+  const bulkImportMutation = useMutation({
+    mutationFn: async (data: { platform: Platform | undefined; jsonData: string; stageId: string }) => {
+      let leads;
+      try {
+        leads = JSON.parse(data.jsonData);
+      } catch (error) {
+        throw new Error('JSON inválido. Verifique o formato dos dados.');
+      }
+
+      if (!Array.isArray(leads)) {
+        throw new Error('Os dados devem ser um array de leads.');
+      }
+
+      const result = await api.importLeads({
+        platform: data.platform,
+        leads: leads,
+        pipelineStageId: data.stageId,
+      });
+      return result;
+    },
+    onSuccess: (result: any) => {
+      queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['pipeline', pipelineId], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['pipeline-leads'], type: 'active' });
+
+      const { imported, duplicates, errors } = result;
+      const message = result.message || `Importação concluída`;
+
+      if (duplicates > 0) {
+        toast.success(`${message} - ${imported} novos, ${duplicates} duplicatas atualizadas${errors > 0 ? `, ${errors} erros` : ''}`);
+      } else {
+        toast.success(`${message} - ${imported} leads importados${errors > 0 ? `, ${errors} erros` : ''}`);
+      }
+
+      setBulkImportData('');
+      setIsBulkMode(false);
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao importar leads');
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const result = createLeadFormSchema.safeParse(formData);
+    if (isBulkMode) {
+      // Bulk import
+      if (!bulkImportData.trim()) {
+        toast.error('Por favor, insira os dados para importar');
+        return;
+      }
 
-    if (!result.success) {
-      const fieldErrors: FormErrors = {};
-      result.error.errors.forEach((err) => {
-        const field = err.path[0] as keyof FormErrors;
-        if (field) {
-          fieldErrors[field] = err.message;
-        }
+      bulkImportMutation.mutate({
+        platform: bulkPlatform,
+        jsonData: bulkImportData,
+        stageId: stages[0]?.id || '',
       });
-      setErrors(fieldErrors);
-      return;
-    }
+    } else {
+      // Single lead creation
+      const result = createLeadFormSchema.safeParse(formData);
 
-    setErrors({});
-    createLeadMutation.mutate(result.data);
+      if (!result.success) {
+        const fieldErrors: FormErrors = {};
+        result.error.errors.forEach((err) => {
+          const field = err.path[0] as keyof FormErrors;
+          if (field) {
+            fieldErrors[field] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+
+      setErrors({});
+
+      if (result.data.email || result.data.phone || result.data.website) {
+        checkDuplicatesMutation.mutate(result.data);
+      } else {
+        createLeadMutation.mutate(result.data);
+      }
+    }
   };
 
   const handleChange = (
@@ -204,19 +311,100 @@ export function CreateLeadDialog({
     }
   };
 
+  const handleDuplicateWarningProceed = () => {
+    setShowDuplicateWarning(false);
+    if (pendingFormData) {
+      createLeadMutation.mutate(pendingFormData);
+      setPendingFormData(null);
+    }
+  };
+
+  const handleDuplicateWarningCancel = () => {
+    setShowDuplicateWarning(false);
+    setDuplicateLeads([]);
+    setPendingFormData(null);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Novo Lead</DialogTitle>
+            <DialogTitle>{isBulkMode ? 'Importar Leads em Massa' : 'Novo Lead'}</DialogTitle>
             <DialogDescription>
-              Adicione um novo lead manualmente ao seu pipeline.
+              {isBulkMode
+                ? 'Importe múltiplos leads de uma vez usando JSON.'
+                : 'Adicione um novo lead manualmente ao seu pipeline.'}
             </DialogDescription>
           </DialogHeader>
 
+          {/* Mode Toggle */}
+          <div className="flex gap-2 border-b pb-2 mb-4">
+            <Button
+              type="button"
+              variant={!isBulkMode ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setIsBulkMode(false)}
+              className={!isBulkMode ? 'bg-primary text-primary-foreground' : ''}
+            >
+              Lead Individual
+            </Button>
+            <Button
+              type="button"
+              variant={isBulkMode ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setIsBulkMode(true)}
+              className={isBulkMode ? 'bg-primary text-primary-foreground' : ''}
+            >
+              Importação em Massa
+            </Button>
+          </div>
+
           <div className="grid gap-4 py-4">
-            {/* Nome completo - obrigatório */}
+            {isBulkMode ? (
+              <>
+                {/* Bulk Import Mode */}
+                <div className="grid gap-2">
+                  <Label htmlFor="bulkPlatform">Plataforma</Label>
+                  <select
+                    id="bulkPlatform"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={bulkPlatform || ''}
+                    onChange={(e) =>
+                      setBulkPlatform(e.target.value ? (e.target.value as Platform) : undefined)
+                    }
+                  >
+                    <option value="">Selecione uma plataforma</option>
+                    {platforms.map((platform) => (
+                      <option key={platform} value={platform}>
+                        {platformLabels[platform]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="bulkData">
+                    Dados dos Leads (JSON) <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="bulkData"
+                    value={bulkImportData}
+                    onChange={(e) => setBulkImportData(e.target.value)}
+                    placeholder='[&#10;  {&#10;    "username": "joaosilva",&#10;    "fullName": "João Silva",&#10;    "email": "joao@example.com",&#10;    "bio": "Descrição do perfil"&#10;  },&#10;  ...&#10;]'
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cole um array JSON com os dados dos leads. Campos disponíveis: username, fullName, email, phone, bio, website, location, avatarUrl, followersCount, etc.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Single Lead Mode */}
+                {/* Nome completo - obrigatório */}
             <div className="grid gap-2">
               <Label htmlFor="fullName">
                 Nome completo <span className="text-red-500">*</span>
@@ -357,6 +545,9 @@ export function CreateLeadDialog({
               <span className="text-red-500">*</span> Campos obrigatórios. Email
               ou telefone deve ser preenchido.
             </p>
+              </>
+            )}
+          </div>
           </div>
 
           <DialogFooter>
@@ -367,12 +558,34 @@ export function CreateLeadDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createLeadMutation.isPending}>
-              {createLeadMutation.isPending ? 'Criando...' : 'Criar Lead'}
+            <Button
+              type="submit"
+              disabled={
+                isBulkMode
+                  ? bulkImportMutation.isPending
+                  : createLeadMutation.isPending || checkDuplicatesMutation.isPending
+              }
+            >
+              {isBulkMode
+                ? bulkImportMutation.isPending
+                  ? 'Importando...'
+                  : 'Importar Leads'
+                : createLeadMutation.isPending || checkDuplicatesMutation.isPending
+                ? 'Verificando...'
+                : 'Criar Lead'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+
+    <DuplicateWarningDialog
+      open={showDuplicateWarning}
+      onOpenChange={setShowDuplicateWarning}
+      duplicates={duplicateLeads}
+      onProceed={handleDuplicateWarningProceed}
+      onCancel={handleDuplicateWarningCancel}
+    />
+  </>
   );
 }
