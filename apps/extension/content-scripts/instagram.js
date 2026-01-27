@@ -266,7 +266,7 @@
   let lastUrl = location.href;
   console.log('[Lia 360] Setting up SPA URL observer. Initial URL:', lastUrl);
 
-  new MutationObserver(() => {
+  const urlObserver = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       const oldUrl = lastUrl;
       const newUrl = location.href;
@@ -300,7 +300,27 @@
       console.log('[Lia 360] Re-initializing due to URL change');
       initialize();
     }
-  }).observe(document, { subtree: true, childList: true });
+  });
+
+  // Observe title element instead of entire document for better performance
+  const observeUrl = () => {
+    const titleElement = document.querySelector('title');
+    if (titleElement) {
+      urlObserver.observe(titleElement, { subtree: true, childList: true });
+    } else {
+      // Fallback to observing head if title not available yet
+      const headElement = document.head;
+      if (headElement) {
+        urlObserver.observe(headElement, { childList: true });
+      }
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeUrl, { once: true });
+  } else {
+    observeUrl();
+  }
 
   // Post observer to inject buttons
   const postObserver = new MutationObserver(() => {
@@ -311,7 +331,19 @@
       }
     }
   });
-  postObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Observe main content area instead of entire body for better performance
+  const observePostButtons = () => {
+    // Target the main article container where posts are rendered
+    const mainContainer = document.querySelector('main') || document.querySelector('article') || document.body;
+    postObserver.observe(mainContainer, { childList: true, subtree: true });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observePostButtons, { once: true });
+  } else {
+    observePostButtons();
+  }
 
   console.log('[Lia 360] Calling initial initialize()...');
   initialize();

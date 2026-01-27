@@ -178,14 +178,27 @@
             }
         });
 
-        if (document.body) {
-            urlObserver.observe(document.body, { childList: true, subtree: true });
-        } else {
+        // Observe title element instead of entire body for better performance
+        // The title changes on every navigation in SPAs, making it a reliable proxy for URL changes
+        const observeUrl = () => {
+            const titleElement = document.querySelector('title');
+            if (titleElement) {
+                urlObserver.observe(titleElement, { subtree: true, childList: true });
+            } else {
+                // Fallback to observing head if title not available yet
+                const headElement = document.head;
+                if (headElement) {
+                    urlObserver.observe(headElement, { childList: true });
+                }
+            }
+        };
+
+        if (document.readyState === 'loading') {
             // Store reference to DOMContentLoaded handler for cleanup
-            domContentLoadedHandler = () => {
-                urlObserver.observe(document.body, { childList: true, subtree: true });
-            };
+            domContentLoadedHandler = observeUrl;
             document.addEventListener('DOMContentLoaded', domContentLoadedHandler, { once: true });
+        } else {
+            observeUrl();
         }
     }
 

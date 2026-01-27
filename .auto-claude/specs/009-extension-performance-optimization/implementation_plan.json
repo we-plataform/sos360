@@ -297,7 +297,8 @@
             "type": "manual",
             "instructions": "Navigate to different page types, verify in DevTools that listeners are properly removed"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented comprehensive event listener cleanup logic. LinkedIn Core: Added tracking variables for all listeners (urlObserver, beforeUnloadHandler, messageListener, domContentLoadedHandler, overlayTimers). Enhanced cleanup() function to disconnect MutationObserver, remove beforeunload and chrome.runtime.onMessage listeners, cancel pending timers (setTimeout and requestIdleCallback). Updated initProfileDetection() to store observer reference for cleanup. Updated initOverlay() to track and cancel timers before creating new ones. Background Service Worker: Added timeout to waitForTabLoad() to ensure listener cleanup even if tabs never load completely (30s timeout). Added cleanup() method to AutomationExecutor class for future extensibility. These changes prevent memory leaks from orphaned event listeners and ensure proper resource cleanup when navigating between pages."
         },
         {
           "id": "subtask-5-2",
@@ -313,7 +314,8 @@
             "type": "manual",
             "instructions": "Check DevTools Performance tab while scrolling, verify MutationObserver doesn't trigger excessively"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Optimized MutationObserver targets in both linkedin-core.js and instagram.js. LinkedIn: Changed URL observer from document.body to title element (reliable proxy for SPA navigation). Added fallback to document.head if title not available. Instagram: Changed SPA URL observer from document to title element. Changed post button injection observer from document.body to main/article container (more specific target). These optimizations significantly reduce MutationObserver triggers because title element changes only on navigation, and main container is smaller than entire body. This improves scroll performance and reduces main thread overhead."
         },
         {
           "id": "subtask-5-3",
@@ -664,6 +666,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T14:39:51.890Z",
+  "updated_at": "2026-01-27T14:43:24.175Z",
   "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z"
 }
