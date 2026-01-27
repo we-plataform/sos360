@@ -27,6 +27,37 @@
 
     // --- Core Logic ---
 
+    /**
+     * Checks if the current URL is a connections or search page where the mining overlay should appear.
+     * Uses specific URL patterns to avoid false positives on general LinkedIn pages.
+     * @param {string} [url] - The URL to check. Defaults to window.location.href.
+     * @returns {boolean} - True if the overlay should be shown.
+     */
+    function isConnectionsOrSearchPage(url) {
+        try {
+            const checkUrl = (url && typeof url === 'string') ? url : (window.location?.href || '');
+
+            if (!checkUrl || typeof checkUrl !== 'string') {
+                return false;
+            }
+
+            // Use specific URL patterns to avoid false positives
+            // - /mynetwork/invite-connect/connections - LinkedIn connections page
+            // - /search/results/people - People search results
+            // - /search/results/companies - Company search results
+            // - /search/results/all - All search results
+            const result = checkUrl.includes('/mynetwork/invite-connect/connections') ||
+                          checkUrl.includes('/search/results/people') ||
+                          checkUrl.includes('/search/results/companies') ||
+                          checkUrl.includes('/search/results/all');
+
+            return result;
+        } catch (error) {
+            console.error('[Lia 360] Error in isConnectionsOrSearchPage:', error);
+            return false;
+        }
+    }
+
     function detectProfilePage() {
         const url = window.location.href;
         const isProfile = url.includes('/in/') && url.match(/\/in\/[^\/]+/);
@@ -45,8 +76,7 @@
         checkForSavedState();
 
         // Check if we're already on a connections/search page on initial load
-        const currentUrl = location.href;
-        if (currentUrl.includes('/connections/') || currentUrl.includes('/search/results/')) {
+        if (isConnectionsOrSearchPage(location.href)) {
             console.log('[Lia 360] Initial load: connections/search page detected');
             initOverlay();
         }
@@ -58,7 +88,7 @@
                 console.log('[Lia 360] URL changed to:', url);
                 detectProfilePage();
                 // Also re-init Overlay logic if needed
-                if (url.includes('/connections/') || url.includes('/search/results/')) {
+                if (isConnectionsOrSearchPage(url)) {
                     console.log('[Lia 360] URL change: connections/search page detected');
                     initOverlay();
                 }
