@@ -1,0 +1,59 @@
+{
+  "files_to_modify": {
+    "extension": [
+      "./apps/extension/manifest.json",
+      "./apps/extension/background.js",
+      "./apps/extension/content-scripts/linkedin-core.js",
+      "./apps/extension/content-scripts/instagram.js",
+      "./apps/extension/content-scripts/settings-manager.js",
+      "./apps/extension/content-scripts/dashboard-sync.js"
+    ]
+  },
+  "files_to_reference": [
+    "./apps/extension/content-scripts/linkedin-core.js",
+    "./apps/extension/content-scripts/instagram.js"
+  ],
+  "patterns": {
+    "manifest_pattern": "Manifest V3 with service_worker, content_scripts loaded at document_idle",
+    "content_script_pattern": "IIFE pattern with global error handlers, console logging for debugging",
+    "state_management_pattern": "Using Map objects for state, chrome.storage.local for persistence",
+    "api_pattern": "apiRequest wrapper function with JWT auth, token refresh, error handling",
+    "event_listener_pattern": "Multiple chrome.* event listeners without cleanup, MutationObserver for DOM changes"
+  },
+  "existing_implementations": {
+    "description": "Chrome extension with 2687-line background.js and 9211 lines of content scripts total",
+    "relevant_files": [
+      "./apps/extension/background.js (2687 lines)",
+      "./apps/extension/content-scripts/instagram.js (5714 lines - largest)",
+      "./apps/extension/content-scripts/linkedin-dom.js (1077 lines)",
+      "./apps/extension/content-scripts/linkedin-ui.js (633 lines)",
+      "./apps/extension/content-scripts/linkedin-core.js (314 lines)",
+      "./apps/extension/content-scripts/overlay.js (600 lines)",
+      "./apps/extension/content-scripts/dashboard-sync.js (247 lines)",
+      "./apps/extension/popup.js (522 lines)"
+    ],
+    "api_endpoints_used": [
+      "/api/v1/leads/import",
+      "/api/v1/leads/analyze",
+      "/api/v1/leads/analyze-batch",
+      "/api/v1/leads/analyze-deep",
+      "/api/v1/leads/import-post",
+      "/api/v1/audiences",
+      "/api/v1/pipelines",
+      "/api/v1/posts",
+      "/api/v1/automations/jobs",
+      "/api/v1/auth/login",
+      "/api/v1/auth/me"
+    ]
+  },
+  "performance_issues_found": {
+    "large_scripts": "instagram.js is 5714 lines, total content scripts 9211 lines - no code splitting",
+    "polling": "Multiple setInterval calls throughout content scripts, no requestIdleCallback usage",
+    "memory_leaks": "Large Map objects without cleanup (qualifiedLeads, commentAuthors)",
+    "no_lazy_loading": "All content scripts load immediately at document_idle",
+    "mutation_observers": "Watching entire document.body without specificity",
+    "event_listeners": "10+ chrome.* event listeners without cleanup logic",
+    "no_bundling": "Vanilla JS with no minification or tree-shaking",
+    "api_efficiency": "Individual API calls without batching or debouncing"
+  }
+}

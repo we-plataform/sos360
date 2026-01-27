@@ -1,0 +1,35 @@
+{
+  "project_type": "monorepo",
+  "services": {
+    "extension": {
+      "path": "./apps/extension",
+      "tech_stack": ["vanilla-javascript", "chrome-manifest-v3"],
+      "port": null,
+      "dev_command": "chrome://extensions -> Load unpacked -> ./apps/extension",
+      "test_command": null
+    },
+    "api": {
+      "path": "./apps/api",
+      "tech_stack": ["express", "typescript", "node"],
+      "port": 3001,
+      "dev_command": "npm run api:dev",
+      "test_command": "npm run test --workspace=@lia360/api"
+    },
+    "web": {
+      "path": "./apps/web",
+      "tech_stack": ["nextjs", "typescript", "react"],
+      "port": 3000,
+      "dev_command": "npm run web:dev",
+      "test_command": "npm run test --workspace=@lia360/web"
+    }
+  },
+  "infrastructure": {
+    "docker": true,
+    "database": "postgresql"
+  },
+  "conventions": {
+    "build_tool": "turbo",
+    "package_manager": "npm",
+    "node_version": ">=20.0.0"
+  }
+}
