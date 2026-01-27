@@ -293,6 +293,51 @@ class ApiClient {
     });
   }
 
+  async exportLeads(params?: {
+    fields?: string[];
+    stageId?: string;
+    tagIds?: string[];
+    createdAfter?: string;
+    createdBefore?: string;
+  }): Promise<Blob> {
+    const token = this.getToken();
+
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.fields && params.fields.length > 0) {
+        searchParams.append('fields', params.fields.join(','));
+      }
+      if (params.stageId) {
+        searchParams.append('stageId', params.stageId);
+      }
+      if (params.tagIds && params.tagIds.length > 0) {
+        params.tagIds.forEach((tagId) => searchParams.append('tagIds', tagId));
+      }
+      if (params.createdAfter) {
+        searchParams.append('createdAfter', params.createdAfter);
+      }
+      if (params.createdBefore) {
+        searchParams.append('createdBefore', params.createdBefore);
+      }
+    }
+
+    const query = searchParams.toString();
+    const url = `${this.baseUrl}/api/v1/leads/export${query ? `?${query}` : ''}`;
+
+    const response = await fetch(url, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error?.detail || 'Export failed');
+    }
+
+    return response.blob();
+  }
+
   // Tags
   async getTags() {
     return this.request('/api/v1/tags');
