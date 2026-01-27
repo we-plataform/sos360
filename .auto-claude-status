@@ -3,23 +3,23 @@
   "spec": "006-ai-powered-lead-scoring-and-qualification",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 2,
     "total": 14,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Database Schema",
+    "current": "Shared Validation Schemas",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 3,
+    "number": 4,
     "started_at": "2026-01-26T23:38:00.573663"
   },
-  "last_update": "2026-01-26T23:44:45.779325"
+  "last_update": "2026-01-26T23:46:33.250728"
 }
