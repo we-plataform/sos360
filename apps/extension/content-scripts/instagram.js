@@ -84,28 +84,44 @@
     audiences: [],
   };
 
-  // --- Load Modules ---
-  const moduleDir = chrome.runtime.getURL('content-scripts/instagram/');
+  // --- Load LRU Map utility first (needed for state) ---
+  loadScript(chrome.runtime.getURL('content-scripts/lru-map.js'), () => {
+    console.log('[Lia 360] LRU Map module loaded');
 
-  // Load utility module first (others depend on it)
-  loadScript(`${moduleDir}utils.js`, () => {
-    console.log('[Lia 360] Utils module loaded');
+    // Initialize Maps with LRU wrapper after module loads
+    const LRUMap = window.LiaLRUMap?.LRUMap;
+    if (LRUMap) {
+      // Replace Maps with LRU Maps (max 500 entries each for memory control)
+      window.LiaInstagramState.qualifiedLeads = new LRUMap({ maxSize: 500, name: 'InstagramQualifiedLeads' });
+      window.LiaInstagramState.commentAuthors = new LRUMap({ maxSize: 500, name: 'InstagramCommentAuthors' });
+      console.log('[Lia 360] LRU Maps initialized for qualifiedLeads and commentAuthors');
+    } else {
+      console.warn('[Lia 360] LRUMap not available, using regular Maps (potential memory leak)');
+    }
 
-    // Load feature modules in order
-    loadScript(`${moduleDir}profile-import.js`, () => {
-      console.log('[Lia 360] Profile import module loaded');
+    // --- Load Modules ---
+    const moduleDir = chrome.runtime.getURL('content-scripts/instagram/');
 
-      loadScript(`${moduleDir}post-import.js`, () => {
-        console.log('[Lia 360] Post import module loaded');
+    // Load utility module first (others depend on it)
+    loadScript(`${moduleDir}utils.js`, () => {
+      console.log('[Lia 360] Utils module loaded');
 
-        loadScript(`${moduleDir}followers-import.js`, () => {
-          console.log('[Lia 360] Followers import module loaded');
+      // Load feature modules in order
+      loadScript(`${moduleDir}profile-import.js`, () => {
+        console.log('[Lia 360] Profile import module loaded');
 
-          loadScript(`${moduleDir}ui.js`, () => {
-            console.log('[Lia 360] UI module loaded');
+        loadScript(`${moduleDir}post-import.js`, () => {
+          console.log('[Lia 360] Post import module loaded');
 
-            // All modules loaded, initialize
-            initialize();
+          loadScript(`${moduleDir}followers-import.js`, () => {
+            console.log('[Lia 360] Followers import module loaded');
+
+            loadScript(`${moduleDir}ui.js`, () => {
+              console.log('[Lia 360] UI module loaded');
+
+              // All modules loaded, initialize
+              initialize();
+            });
           });
         });
       });

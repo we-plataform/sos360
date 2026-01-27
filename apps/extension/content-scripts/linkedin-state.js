@@ -7,11 +7,19 @@
 
     console.log('[Lia 360] Loading State module...');
 
+    // Check if LRUMap is available (loaded by bootstrap before this module)
+    const LRUMap = window.LiaLRUMap?.LRUMap;
+    if (!LRUMap) {
+        console.warn('[Lia 360] LRUMap not available, using regular Map (potential memory leak)');
+    }
+
     // Initial State
     const state = {
         isAutoScrolling: false,
         isBulkScanning: false,
-        qualifiedLeads: new Map(), // Note: Map is not directly JSON serializable
+        qualifiedLeads: LRUMap
+            ? new LRUMap({ maxSize: 500, name: 'LinkedInQualifiedLeads' })
+            : new Map(), // Note: Map is not directly JSON serializable
         keywords: [],
         totalConnectionsFound: 0,
         scannedHistoryCount: 0,
@@ -21,6 +29,10 @@
         selectedPipeline: null,
         selectedStage: null,
     };
+
+    if (LRUMap) {
+        console.log('[Lia 360] Using LRU Map for qualifiedLeads (max 500 entries)');
+    }
 
     window.LiaState = {
         get: () => state,
@@ -33,7 +45,11 @@
         },
 
         saveState: async function () {
-            const serializedLeads = Array.from(state.qualifiedLeads.entries());
+            // Use toArray() if LRUMap, otherwise use Array.from
+            const serializedLeads = state.qualifiedLeads.toArray
+                ? state.qualifiedLeads.toArray()
+                : Array.from(state.qualifiedLeads.entries());
+
             const data = {
                 isBulkScanning: state.isBulkScanning,
                 qualifiedLeads: serializedLeads,
@@ -53,7 +69,14 @@
                 if (data && (Date.now() - data.timestamp < 30 * 60 * 1000)) {
                     if (data.isBulkScanning) {
                         state.isBulkScanning = true;
-                        state.qualifiedLeads = new Map(data.qualifiedLeads);
+
+                        // Use fromArray() if LRUMap, otherwise use new Map()
+                        if (state.qualifiedLeads.fromArray) {
+                            state.qualifiedLeads.fromArray(data.qualifiedLeads);
+                        } else {
+                            state.qualifiedLeads = new Map(data.qualifiedLeads);
+                        }
+
                         state.scannedHistoryCount = data.scannedHistoryCount || 0;
                         state.totalConnectionsFound = state.scannedHistoryCount;
                         state.selectedAudience = data.selectedAudience;
