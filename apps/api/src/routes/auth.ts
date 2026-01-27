@@ -116,12 +116,12 @@ authRouter.post(
       });
       const refreshToken = signRefreshToken(user.id);
 
-      // Store refresh token (expires in 365 days to match token expiration)
+      // Store refresh token (expires in 30 days to match token expiration)
       await storage.set(
         `refresh:${user.id}:${refreshToken.slice(-10)}`,
         refreshToken,
         'EX',
-        365 * 24 * 60 * 60
+        30 * 24 * 60 * 60
       );
 
       res.status(201).json({
