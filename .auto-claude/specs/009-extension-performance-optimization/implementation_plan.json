@@ -251,7 +251,8 @@
             "type": "manual",
             "instructions": "Navigate between multiple profile pages, verify memory doesn't continuously increase"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented comprehensive cleanup functions for both LinkedIn and Instagram. LinkedIn Core: Added cleanup() function that stops auto-scrolling, removes profile menu and overlay, clears qualifiedLeads map and other state, resets counters, and removes storage. Moved autoScrollController to module scope for cleanup access. Updated detectProfilePage() to call cleanup when leaving profile pages. Updated URL observer to call cleanup when leaving connections/search pages with old URL checking. Made isConnectionsOrSearchPage() accept optional URL parameter. Instagram: Added cleanup() function that stops all operations (auto-scrolling, AI analysis), clears all Maps (qualifiedLeads, profilesFromComments, commentAuthors) with size logging, resets profile/post-specific state, clears arrays and counters, removes UI overlays, and clears storage. Updated initialize() to call cleanup when navigating between different posts or leaving post pages. Updated URL observer to detect page type changes and call cleanup appropriately. These changes prevent memory leaks when navigating between multiple profile pages."
         },
         {
           "id": "subtask-4-3",
@@ -662,6 +663,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-27T14:06:13.681Z",
-  "recoveryNote": "Task recovered from stuck state at 2026-01-27T13:52:14.684Z"
+  "updated_at": "2026-01-27T14:33:57.187Z",
+  "recoveryNote": "Task recovered from stuck state at 2026-01-27T14:33:52.819Z"
 }

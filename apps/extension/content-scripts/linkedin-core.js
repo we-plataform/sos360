@@ -142,20 +142,29 @@
     }
 
     function initOverlay() {
-        console.log('[Lia 360] initOverlay() called - starting card poller');
-        // Polling for connection cards to show extraction overlay
-        const poller = setInterval(() => {
+        console.log('[Lia 360] initOverlay() called - starting idle callback card checker');
+        // Use requestIdleCallback for non-critical background task of checking for cards
+        let timeoutHandle = null;
+        let idleHandle = null;
+        const maxWaitTime = 30000; // 30 seconds max wait
+        const startTime = Date.now();
+
+        function checkForCards() {
             // Double-check we're still on a valid page before creating overlay
             if (!isConnectionsOrSearchPage()) {
-                console.log('[Lia 360] No longer on connections/search page, stopping poller');
-                clearInterval(poller);
+                console.log('[Lia 360] No longer on connections/search page, stopping card checker');
+                return;
+            }
+
+            // Check if we've exceeded max wait time
+            if (Date.now() - startTime > maxWaitTime) {
+                console.log('[Lia 360] Card checker timeout reached');
                 return;
             }
 
             const cards = DOM.findConnectionCards();
-            console.log('[Lia 360] Polling for cards... found:', cards.length);
+            console.log('[Lia 360] Checking for cards... found:', cards.length);
             if (cards.length > 0) {
-                clearInterval(poller);
                 console.log('[Lia 360] Cards found! Creating overlay...');
                 UI.createOverlay();
 
@@ -312,9 +321,25 @@
                         document.getElementById(UI.UI_ID).style.display = 'none';
                     };
                 }
+                return; // Exit checkForCards - overlay created successfully
             }
-        }, 1000);
-        setTimeout(() => clearInterval(poller), 30000);
+
+            // No cards found yet, schedule next check during idle time
+            if (typeof requestIdleCallback !== 'undefined') {
+                idleHandle = requestIdleCallback(checkForCards, { timeout: 2000 });
+            } else {
+                // Fallback for browsers that don't support requestIdleCallback
+                timeoutHandle = setTimeout(checkForCards, 1000);
+            }
+        }
+
+        // Start the idle callback loop
+        if (typeof requestIdleCallback !== 'undefined') {
+            idleHandle = requestIdleCallback(checkForCards, { timeout: 2000 });
+        } else {
+            // Fallback for browsers that don't support requestIdleCallback
+            timeoutHandle = setTimeout(checkForCards, 1000);
+        }
     }
 
     async function checkForSavedState() {
