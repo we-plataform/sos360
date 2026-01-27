@@ -28,7 +28,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().default(''),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('30d'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('365d'),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
