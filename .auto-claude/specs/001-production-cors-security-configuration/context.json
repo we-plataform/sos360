@@ -1,0 +1,43 @@
+{
+  "files_to_modify": {
+    "api": [
+      "apps/api/src/config/env.ts",
+      "apps/api/src/index.ts"
+    ],
+    "documentation": [
+      "DEPLOY_API.md",
+      "DEPLOY_RENDER.md",
+      "VARIAVEIS_RAILWAY.md",
+      "docs/PRODUCTION_DEPLOYMENT_NEON.md"
+    ]
+  },
+  "files_to_reference": [
+    "apps/api/src/config/env.ts",
+    "apps/api/src/index.ts",
+    "docs/architecture/SECURITY.md"
+  ],
+  "patterns": {
+    "environment_variable_pattern": "All environment variables are validated in apps/api/src/config/env.ts using Zod schemas. The schema validates, transforms (e.g., .split() for arrays), and exports a typed 'env' object.",
+    "cors_configuration": "CORS is configured in apps/api/src/index.ts using the cors() middleware with a callback function that validates origins. Socket.io also has CORS configuration at line 54-58.",
+    "security_pattern": "The security documentation (docs/architecture/SECURITY.md) lines 400-423 shows the intended pattern: using process.env.EXTENSION_ID in an allowedOrigins array with exact matching."
+  },
+  "existing_implementations": {
+    "description": "Found security vulnerability in apps/api/src/index.ts lines 76-79: ALL chrome-extension:// origins are currently allowed without checking the specific extension ID.",
+    "vulnerable_code": "if (origin.startsWith('chrome-extension://')) { return callback(null, true); }",
+    "security_impact": "Any Chrome extension can make requests to the API in production, not just the official Lia360 extension",
+    "deployment_issue": "Multiple deployment guides (DEPLOY_API.md, DEPLOY_RENDER.md, VARIAVEIS_RAILWAY.md) recommend CORS_ORIGINS with 'chrome-extension://*' which perpetuates this vulnerability"
+  },
+  "chrome_extension_context": {
+    "manifest_file": "apps/extension/manifest.json",
+    "current_version": "1.0.1",
+    "extension_id_note": "Extension ID will be assigned when published to Chrome Web Store. Developer should use chrome://extensions/ to get the unpacked extension ID during development."
+  },
+  "deployment_context": {
+    "platforms": ["Railway", "Render", "Fly.io"],
+    "current_documentation": "Multiple deployment docs exist in Portuguese and English",
+    "environment_variable_documentation": "Shows CORS_ORIGINS but no CHROME_EXTENSION_ID variable documented yet",
+    "production_url": "https://lia360api-production.up.railway.app (current production, may have issues)"
+  },
+  "workflow_type": "refactor",
+  "workflow_rationale": "This is a REFACTOR workflow because we're changing security behavior from allowing all extensions to only allowing a specific extension ID. The change follows a stage-based approach: 1) Add new CHROME_EXTENSION_ID variable and validation logic alongside the old permissive code, 2) Test that the extension still works, 3) Update documentation to use the new secure pattern, 4) Verify production deployment works with the new configuration. This staged approach ensures no breaking changes during deployment."
+}

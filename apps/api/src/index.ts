@@ -47,13 +47,98 @@ app.set('trust proxy', true);
 
 const httpServer = createServer(app);
 
+// Socket.io origin validation function - mirrors Express CORS logic
+const socketIoOriginFunc = (
+  origin: string | undefined,
+  callback: (err: Error | null, success?: boolean) => void
+) => {
+  // Allow requests with no origin (like mobile apps, Postman, curl, or Chrome extensions in some cases)
+  if (!origin) {
+    return callback(null, true);
+  }
+
+  // Validate Chrome extensions against CHROME_EXTENSION_ID
+  if (origin.startsWith('chrome-extension://')) {
+    const extensionId = origin.replace('chrome-extension://', '');
+
+    // If CHROME_EXTENSION_ID is configured, only allow that specific extension
+    if (env.CHROME_EXTENSION_ID) {
+      if (extensionId === env.CHROME_EXTENSION_ID) {
+        return callback(null, true);
+      }
+      // Extension ID mismatch - reject
+      if (env.NODE_ENV === 'production') {
+        logger.warn({
+          origin,
+          extensionId,
+          expectedExtensionId: env.CHROME_EXTENSION_ID
+        }, 'Socket.io: Chrome extension rejected - ID mismatch');
+      }
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // If CHROME_EXTENSION_ID is not set, allow in development mode only
+    if (env.NODE_ENV === 'development') {
+      logger.warn({
+        origin,
+        extensionId,
+        message: 'CHROME_EXTENSION_ID not set - allowing extension in development mode'
+      }, 'Socket.io: Chrome extension allowed (development mode)');
+      return callback(null, true);
+    }
+
+    // In production, reject if CHROME_EXTENSION_ID is not configured
+    logger.warn({
+      origin,
+      extensionId,
+      message: 'CHROME_EXTENSION_ID not configured - rejecting extension in production'
+    }, 'Socket.io: Chrome extension rejected - missing CHROME_EXTENSION_ID');
+    return callback(new Error('Not allowed by CORS'));
+  }
+
+  // Check if origin matches any configured origin (exact match or wildcard)
+  const isAllowed = env.CORS_ORIGINS.some((allowedOrigin) => {
+    // Exact match
+    if (allowedOrigin === origin) {
+      return true;
+    }
+
+    // Wildcard match (e.g., https://*.vercel.app)
+    if (allowedOrigin.includes('*')) {
+      const pattern = allowedOrigin.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}$`);
+      return regex.test(origin);
+    }
+
+    return false;
+  });
+
+  if (isAllowed || env.CORS_ORIGINS.includes('*')) {
+    return callback(null, true);
+  }
+
+  // In development, allow all localhost origins
+  if (env.NODE_ENV === 'development') {
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+  }
+
+  // Log rejected origins in production for debugging
+  if (env.NODE_ENV === 'production') {
+    logger.warn({ origin, allowedOrigins: env.CORS_ORIGINS }, 'Socket.io: Origin rejected');
+  }
+
+  callback(new Error('Not allowed by CORS'));
+};
+
 // Socket.io
 console.log('Initializing Socket.io...');
 let io: Server;
 try {
   io = new Server(httpServer, {
     cors: {
-      origin: env.CORS_ORIGINS,
+      origin: socketIoOriginFunc,
       credentials: true,
     },
   });
@@ -73,9 +158,43 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Allow Chrome extensions (chrome-extension://)
+    // Validate Chrome extensions against CHROME_EXTENSION_ID
     if (origin.startsWith('chrome-extension://')) {
-      return callback(null, true);
+      const extensionId = origin.replace('chrome-extension://', '');
+
+      // If CHROME_EXTENSION_ID is configured, only allow that specific extension
+      if (env.CHROME_EXTENSION_ID) {
+        if (extensionId === env.CHROME_EXTENSION_ID) {
+          return callback(null, true);
+        }
+        // Extension ID mismatch - reject
+        if (env.NODE_ENV === 'production') {
+          logger.warn({
+            origin,
+            extensionId,
+            expectedExtensionId: env.CHROME_EXTENSION_ID
+          }, 'CORS: Chrome extension rejected - ID mismatch');
+        }
+        return callback(new Error('Not allowed by CORS'));
+      }
+
+      // If CHROME_EXTENSION_ID is not set, allow in development mode only
+      if (env.NODE_ENV === 'development') {
+        logger.warn({
+          origin,
+          extensionId,
+          message: 'CHROME_EXTENSION_ID not set - allowing extension in development mode'
+        }, 'CORS: Chrome extension allowed (development mode)');
+        return callback(null, true);
+      }
+
+      // In production, reject if CHROME_EXTENSION_ID is not configured
+      logger.warn({
+        origin,
+        extensionId,
+        message: 'CHROME_EXTENSION_ID not configured - rejecting extension in production'
+      }, 'CORS: Chrome extension rejected - missing CHROME_EXTENSION_ID');
+      return callback(new Error('Not allowed by CORS'));
     }
 
     // Check if origin matches any configured origin (exact match or wildcard)

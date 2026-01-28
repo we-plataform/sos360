@@ -31,7 +31,10 @@ JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=7d
 
 # CORS - IMPORTANTE: Adicione a URL do seu frontend Vercel
-CORS_ORIGINS=https://seu-app.vercel.app,https://seu-app-git-*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://seu-app.vercel.app,https://seu-app-git-*.vercel.app
+
+# Chrome Extension
+CHROME_EXTENSION_ID=your-extension-id-here
 
 # Redis (Opcional)
 REDIS_URL=rediss://...
@@ -44,7 +47,15 @@ SUPABASE_SERVICE_KEY=sua-service-key
 **Nota sobre CORS_ORIGINS:**
 - Adicione a URL do frontend na Vercel
 - Inclua padrões wildcard do Vercel: `https://seu-app-git-*.vercel.app`
-- Mantenha `chrome-extension://*` para a extensão funcionar
+
+**Nota sobre CHROME_EXTENSION_ID:**
+- Necessário para que a extensão Chrome possa se comunicar com a API
+- Para obter o ID da extensão:
+  1. Abra o Chrome e vá para `chrome://extensions/`
+  2. Ative o "Modo do desenvolvedor" (Developer mode)
+  3. Encontre sua extensão Lia360 na lista
+  4. Copie o ID mostrado (algo como `abcdefghijklmnop`)
+  5. Use este ID na variável `CHROME_EXTENSION_ID`
 
 ---
 
@@ -226,7 +237,8 @@ primary_region = "gru"
 # Configurar variáveis uma por uma
 flyctl secrets set DATABASE_URL="postgresql://..."
 flyctl secrets set JWT_SECRET="sua-chave-secreta"
-flyctl secrets set CORS_ORIGINS="https://seu-app.vercel.app,chrome-extension://*"
+flyctl secrets set CORS_ORIGINS="https://seu-app.vercel.app"
+flyctl secrets set CHROME_EXTENSION_ID="your-extension-id"
 
 # Ou todas de uma vez via arquivo
 flyctl secrets import < .env.production
@@ -316,8 +328,11 @@ Não deve ter erros de CORS.
 1. Verifique se `CORS_ORIGINS` inclui a URL exata do frontend
 2. No Vercel, URLs de preview podem ser diferentes - adicione wildcards:
    ```
-   CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
+   CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app
    ```
+3. Para erros de CORS da extensão Chrome:
+   - Verifique se `CHROME_EXTENSION_ID` está configurado corretamente
+   - Obtenha o ID correto em `chrome://extensions/`
 
 ### Erro de conexão com banco
 

@@ -65,7 +65,10 @@ JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=30d
 
 # CORS - IMPORTANTE: Adicione a URL do seu frontend
-CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app
+
+# Chrome Extension - OBRIGATÓRIO se usar a extensão
+CHROME_EXTENSION_ID=sua-extension-id-aqui
 
 # Supabase (Opcional, mas recomendado)
 SUPABASE_URL=https://seu-projeto.supabase.co
@@ -77,18 +80,25 @@ REDIS_URL=
 
 ### ⚠️ Notas Importantes sobre Variáveis
 
-1. **CORS_ORIGINS**: 
+1. **CORS_ORIGINS**:
    - Deve incluir a URL exata do frontend
    - Inclua wildcards do Vercel: `https://*.vercel.app`
-   - Mantenha `chrome-extension://*` para a extensão funcionar
+   - NÃO inclua `chrome-extension://*` - use `CHROME_EXTENSION_ID` para validação
    - Separe múltiplas URLs por vírgula
 
-2. **JWT_SECRET**: 
+2. **CHROME_EXTENSION_ID**:
+   - ⚠️ **OBRIGATÓRIO** se você usa a extensão Chrome
+   - Encontre o ID em `chrome://extensions` (modo desenvolvedor)
+   - O ID tem 32 caracteres alfanuméricos (ex: `abcdefghijklmnopqrstuvxyz123456`)
+   - A API valida que requests da extensão têm este Origin header exato
+   - **Segurança**: Isso previne que outras extensões falsifiquem requests para sua API
+
+3. **JWT_SECRET**:
    - Mínimo de 32 caracteres
    - Use uma chave aleatória e segura
    - NÃO reutilize outras chaves (como SUPABASE_SERVICE_KEY)
 
-3. **DATABASE_URL vs DIRECT_URL**:
+4. **DATABASE_URL vs DIRECT_URL**:
    - `DATABASE_URL`: Use com pgbouncer (porta 6543) para conexões normais
    - `DIRECT_URL`: Use porta 5432 para migrations e operações diretas
 
@@ -166,7 +176,8 @@ Preencha os seguintes campos:
 | `JWT_SECRET` | `sua-chave-32-chars` | ✅ Sim |
 | `JWT_EXPIRES_IN` | `15m` | ✅ Sim |
 | `REFRESH_TOKEN_EXPIRES_IN` | `30d` | ✅ Sim |
-| `CORS_ORIGINS` | `https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*` | ✅ Sim |
+| `CORS_ORIGINS` | `https://seu-app.vercel.app,https://*.vercel.app` | ✅ Sim |
+| `CHROME_EXTENSION_ID` | `abcdefghijklmnopqrstuvxyz123456` | ⚠️ Obrigatório (extensão) |
 | `SUPABASE_URL` | `https://...supabase.co` | ⚠️ Opcional |
 | `SUPABASE_SERVICE_KEY` | `sb_secret_...` | ⚠️ Opcional |
 | `REDIS_URL` | `rediss://...` ou deixe vazio | ⚠️ Opcional |
@@ -242,14 +253,31 @@ API_URL=https://lia360-api.onrender.com
 
 4. Faça um **redeploy** do frontend
 
-### 5.3 Atualizar CORS_ORIGINS (se necessário)
+### 5.3 Atualizar Variáveis de CORS e Extensão
 
-Se você adicionou uma nova URL do frontend, atualize `CORS_ORIGINS` no Render:
+Se você adicionou uma nova URL do frontend ou precisa configurar a extensão:
+
+#### CORS_ORIGINS
 
 1. Vá em **Environment** no Render
 2. Edite `CORS_ORIGINS`
-3. Adicione a nova URL: `https://sua-url.vercel.app,https://*.vercel.app,chrome-extension://*`
+3. Adicione a nova URL: `https://sua-url.vercel.app,https://*.vercel.app`
 4. O Render fará redeploy automaticamente
+
+#### CHROME_EXTENSION_ID
+
+⚠️ **Importante**: A API agora valida o ID da extensão por segurança.
+
+1. Abra a extensão no Chrome: `chrome://extensions`
+2. Ative o **Modo do desenvolvedor**
+3. Copie o **ID** da extensão Lia360 (32 caracteres)
+4. No Render, vá em **Environment** > **Add Environment Variable**
+5. Adicione:
+   - Chave: `CHROME_EXTENSION_ID`
+   - Valor: `seu-extension-id-aqui`
+6. Salve e aguarde o redeploy
+
+**Nota**: Com essa configuração, apenas sua extensão com o ID exato pode fazer requests para a API.
 
 ---
 
@@ -377,8 +405,26 @@ Access to fetch at 'https://lia360-api.onrender.com/...' from origin 'https://se
 
 1. Verifique se `CORS_ORIGINS` inclui a URL exata do frontend
 2. Inclua wildcards do Vercel: `https://*.vercel.app`
-3. Formato correto: `https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*`
+3. Formato correto: `https://seu-app.vercel.app,https://*.vercel.app`
 4. Após atualizar, aguarde o redeploy automático
+
+### Problema 4.1: Extensão Chrome com Erro de CORS
+
+**Erro:**
+```
+Extension request blocked: Invalid extension ID
+```
+
+**Solução:**
+
+1. Verifique se `CHROME_EXTENSION_ID` está configurado no Render
+2. Confirme o ID está correto (32 caracteres, sem espaços)
+3. Para encontrar o ID:
+   - Abra `chrome://extensions` no Chrome
+   - Ative "Modo do desenvolvedor"
+   - Copie o ID da extensão Lia360
+4. Adicione ou atualize a variável `CHROME_EXTENSION_ID` no Render
+5. Após atualizar, aguarde o redeploy automático
 
 ### Problema 5: Serviço "dorme" no Free Tier
 
@@ -444,7 +490,8 @@ Error connecting to database
 - [ ] `JWT_SECRET` tem pelo menos 32 caracteres e é aleatório
 - [ ] `DATABASE_URL` não está commitado no Git
 - [ ] `SUPABASE_SERVICE_KEY` não está commitado
-- [ ] `CORS_ORIGINS` não inclui `*` (exceto para `chrome-extension://*`)
+- [ ] `CORS_ORIGINS` não inclui `*` (use domínios específicos)
+- [ ] `CHROME_EXTENSION_ID` está configurado e é válido (se usar extensão)
 - [ ] HTTPS está ativado (automático no Render)
 - [ ] Variáveis sensíveis estão apenas no Render (não no código)
 
@@ -454,6 +501,34 @@ Error connecting to database
 2. **Use diferentes secrets por ambiente**: Dev, Staging, Production
 3. **Monitore logs**: Configure alertas para erros críticos
 4. **Backup do banco**: Configure backups automáticos no Supabase
+
+### 🔐 Segurança da Extensão Chrome
+
+**Por que usamos `CHROME_EXTENSION_ID` em vez de `chrome-extension://*`?**
+
+Anteriormente, usávamos `chrome-extension://*` no `CORS_ORIGINS`, o que permitia que **qualquer** extensão Chrome fizesse requests para sua API. Isso representa um risco de segurança significativo.
+
+**Abordagem Atual (Mais Segura)**:
+
+- ✅ A API valida o `Origin` header dos requests da extensão
+- ✅ Apenas requests com o ID exato configurado em `CHROME_EXTENSION_ID` são aceitos
+- ✅ Previne que extensões maliciosas ou de terceiros acessem sua API
+- ✅ Cada ambiente (dev, staging, prod) pode ter seu próprio extension ID
+
+**Como Encontrar o Extension ID**:
+
+1. Abra o Chrome e vá para `chrome://extensions`
+2. Ative o **"Modo do desenvolvedor"** (canto superior direito)
+3. Encontre sua extensão Lia360
+4. Copie o **ID** (formato: 32 caracteres alfanuméricos)
+5. Configure no Render como `CHROME_EXTENSION_ID`
+
+**Nota**: O ID da extensão muda entre:
+- Versão carregada (unpacked) vs empacotada
+- Versão publicada na Chrome Web Store
+- Diferentes builds da extensão
+
+Mantenha o `CHROME_EXTENSION_ID` atualizado conforme necessário.
 
 ---
 
@@ -513,11 +588,13 @@ Antes de considerar o deploy completo:
 - [ ] ✅ Build Command configurado: `npm install && npm run build:api`
 - [ ] ✅ Start Command configurado: `npm run start --workspace=@lia360/api`
 - [ ] ✅ Todas as variáveis de ambiente configuradas
-- [ ] ✅ `CORS_ORIGINS` inclui URL do frontend
+- [ ] ✅ `CORS_ORIGINS` inclui URL do frontend (sem `chrome-extension://*`)
+- [ ] ✅ `CHROME_EXTENSION_ID` configurado (se usar extensão)
 - [ ] ✅ Deploy bem-sucedido (ver logs)
 - [ ] ✅ Health check retorna `{"status":"ok"}`
 - [ ] ✅ Frontend atualizado com URL da API
 - [ ] ✅ CORS funcionando (testado no navegador)
+- [ ] ✅ Extensão Chrome funcionando (testada)
 - [ ] ✅ WebSocket funcionando (se aplicável)
 - [ ] ✅ Autenticação funcionando (teste login)
 
