@@ -7,7 +7,8 @@ console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
   k.startsWith('CORS') ||
   k.startsWith('NODE') ||
   k.startsWith('PORT') ||
-  k.startsWith('REDIS')
+  k.startsWith('REDIS') ||
+  k.startsWith('CHROME')
 ).join(', '));
 
 const envSchema = z.object({
@@ -33,6 +34,7 @@ const envSchema = z.object({
     .string()
     .default('http://localhost:3000')
     .transform((val) => val.split(',').map((origin) => origin.trim()).filter(Boolean)),
+  CHROME_EXTENSION_ID: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
 });
 
@@ -52,6 +54,7 @@ if (!parsed.success) {
   console.error('  - PORT:', process.env.PORT || 'NOT SET (will use default 3001)');
   console.error('  - NODE_ENV:', process.env.NODE_ENV || 'NOT SET (will use default development)');
   console.error('  - CORS_ORIGINS:', process.env.CORS_ORIGINS || 'NOT SET (will use default)');
+  console.error('  - CHROME_EXTENSION_ID:', process.env.CHROME_EXTENSION_ID ? `set (${process.env.CHROME_EXTENSION_ID.length} chars)` : 'NOT SET (optional)');
   process.exit(1);
 }
 
