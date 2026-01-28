@@ -43,7 +43,9 @@ if (existsSync(envPath)) {
       console.warn('  Continuing with environment variables from process.env...');
     }
   } else {
-    console.log(`✓ Loaded .env from: ${envPath}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✓ Loaded .env from: ${envPath}`);
+    }
   }
 } else {
   // File doesn't exist - this is normal in production
