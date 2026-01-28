@@ -1,25 +1,25 @@
 {
   "active": true,
   "spec": "012-reduce-jwt-access-token-lifetime-from-30-days-to-1",
-  "state": "error",
+  "state": "building",
   "subtasks": {
-    "completed": 3,
+    "completed": 4,
     "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Frontend Token Refresh Logic",
+    "current": "Verification and Testing",
     "id": null,
-    "total": 2
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 5,
+    "number": 6,
     "started_at": "2026-01-27T21:58:42.157531"
   },
-  "last_update": "2026-01-27T22:07:02.345601"
+  "last_update": "2026-01-27T22:08:27.428684"
 }
