@@ -71,11 +71,47 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-3-4": {
+      "attempts": [
+        {
+          "session": 8,
+          "timestamp": "2026-01-28T13:58:33.737595",
+          "approach": "Implemented: Check and update any other deployment documentation files (docs/PRODUCTION_DEPLOYMENT_NEON.md, etc.)",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-4-1": {
+      "attempts": [
+        {
+          "session": 9,
+          "timestamp": "2026-01-28T14:42:39.833186",
+          "approach": "Implemented: Start API server in development mode and verify CORS allows localhost without CHROME_EXTENSION_ID",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-4-2": {
+      "attempts": [
+        {
+          "session": 10,
+          "timestamp": "2026-01-28T14:47:12.545909",
+          "approach": "Implemented: Test that production mode with CHROME_EXTENSION_ID set correctly validates the extension origin",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-28T12:01:18.808867",
-    "last_updated": "2026-01-28T13:54:18.214825"
+    "last_updated": "2026-01-28T14:47:12.546377"
   }
 }
