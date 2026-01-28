@@ -303,6 +303,7 @@ export const conversationFiltersSchema = paginationSchema.extend({
   assignedTo: z.string().optional(),
 });
 
+export * from './agents';
 export * from './automations';
 export * from './enrichment';
 export * from './posts';
