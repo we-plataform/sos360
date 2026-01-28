@@ -287,3 +287,114 @@ Commit:
 
 Status: COMPLETED
 === END SESSION 5 ===
+
+=== SESSION 6 - Subtask 5-1 Implementation ===
+
+Date: 2026-01-28
+Subtask: subtask-5-1 - Verify that the vulnerable code has been removed or replaced with secure validation
+
+Verification Objective:
+Confirm that the vulnerable pattern `if (origin.startsWith('chrome-extension://'))` is no longer
+unconditionally allowing all Chrome extensions, and has been replaced with CHROME_EXTENSION_ID validation.
+
+Verification Method:
+1. Search for occurrences of `origin.startsWith('chrome-extension://')` in apps/api/src/index.ts
+2. Check if these occurrences have vulnerable unconditional acceptance (callback(null, true))
+3. Verify that CHROME_EXTENSION_ID validation is in place
+
+Verification Results:
+
+1. **Located Two Occurrences**:
+   - Line 61: Socket.io origin validation function
+   - Line 162: Express CORS configuration function
+
+2. **Checked for Vulnerable Pattern**:
+   - Searched for: `origin.startsWith('chrome-extension://')` followed by unconditional `callback(null, true)`
+   - Result: NO VULNERABLE PATTERN FOUND
+
+3. **Verified Secure Implementation**:
+   Both occurrences properly implement CHROME_EXTENSION_ID validation:
+   ```typescript
+   if (origin.startsWith('chrome-extension://')) {
+     const extensionId = origin.replace('chrome-extension://', '');
+
+     // If CHROME_EXTENSION_ID is configured, only allow that specific extension
+     if (env.CHROME_EXTENSION_ID) {
+       if (extensionId === env.CHROME_EXTENSION_ID) {
+         return callback(null, true);
+       }
+       // Extension ID mismatch - reject
+       return callback(new Error('Not allowed by CORS'));
+     }
+
+     // If CHROME_EXTENSION_ID is not set, allow in development mode only
+     if (env.NODE_ENV === 'development') {
+       logger.warn({ ... }, 'Chrome extension allowed (development mode)');
+       return callback(null, true);
+     }
+
+     // In production, reject if CHROME_EXTENSION_ID is not configured
+     logger.warn({ ... }, 'Chrome extension rejected - missing CHROME_EXTENSION_ID');
+     return callback(new Error('Not allowed by CORS'));
+   }
+   ```
+
+Security Verification Summary:
+| Check | Result | Details |
+|-------|--------|---------|
+| Vulnerable pattern exists | ❌ NO | No unconditional chrome-extension:// acceptance |
+| CHROME_EXTENSION_ID validation | ✅ YES | Both Socket.io and Express CORS validate extension ID |
+| Exact ID matching | ✅ YES | Uses `extensionId === env.CHROME_EXTENSION_ID` |
+| Development mode fallback | ✅ YES | Allows extensions in development if CHROME_EXTENSION_ID not set |
+| Production security | ✅ YES | Rejects all extensions in production if CHROME_EXTENSION_ID not set |
+| Error logging | ✅ YES | Comprehensive logging for all rejection scenarios |
+
+Conclusion:
+✅ **SECURITY VULNERABILITY FIXED**
+
+The old vulnerable code that allowed ANY chrome-extension:// origin has been completely replaced
+with secure CHROME_EXTENSION_ID validation. Both Express CORS and Socket.io CORS now properly
+validate extension IDs in production mode while maintaining development mode functionality.
+
+Original Vulnerable Pattern (REMOVED):
+```typescript
+if (origin.startsWith('chrome-extension://')) {
+  return callback(null, true); // ← VULNERABLE: Allowed ALL extensions
+}
+```
+
+Current Secure Implementation (VERIFIED):
+```typescript
+if (origin.startsWith('chrome-extension://')) {
+  const extensionId = origin.replace('chrome-extension://', '');
+  if (env.CHROME_EXTENSION_ID) {
+    if (extensionId === env.CHROME_EXTENSION_ID) {
+      return callback(null, true); // ← SECURE: Only allows specific ID
+    }
+    return callback(new Error('Not allowed by CORS')); // ← Rejects mismatched IDs
+  }
+  // Development mode fallback and production rejection logic...
+}
+```
+
+Impact:
+- Before: ANY Chrome extension could access the API in production
+- After: ONLY the extension with the specific CHROME_EXTENSION_ID can access the API in production
+- Security: Prevents unauthorized extensions from exfiltrating data or making API calls
+
+Pattern Compliance:
+✓ No console.log/print debugging statements
+✓ Proper error handling (callback with Error object)
+✓ Comprehensive logging for security events
+✓ Environment-aware logic (development vs production)
+
+Commit:
+- No code changes required (verification only)
+- Will update implementation_plan.json to mark subtask-5-1 as completed
+
+Status: COMPLETED
+Note: Security vulnerability confirmed FIXED. The code now properly validates Chrome extension
+IDs against the CHROME_EXTENSION_ID environment variable, preventing unauthorized extensions
+from accessing the API in production mode.
+
+=== END SESSION 6 ===

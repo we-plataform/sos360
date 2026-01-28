@@ -252,7 +252,9 @@
             "type": "manual",
             "instructions": "Verify that Socket.io CORS configuration (lines 54-58) properly handles the chrome-extension:// origin with the specific extension ID, or document why it uses env.CORS_ORIGINS array instead"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully implemented Socket.io CORS validation with CHROME_EXTENSION_ID support. Created socketIoOriginFunc (lines 50-133) that mirrors Express CORS logic:\n\n1. **Chrome Extension Validation**: Validates chrome-extension:// origins against CHROME_EXTENSION_ID\n2. **Exact ID Matching**: Only allows the specific extension ID when CHROME_EXTENSION_ID is set\n3. **Development Fallback**: Allows any extension in development mode if CHROME_EXTENSION_ID is not set (with warning)\n4. **Production Security**: Rejects all extensions in production if CHROME_EXTENSION_ID is not configured\n5. **Wildcard Support**: Supports wildcard origin matching (e.g., https://*.vercel.app)\n6. **Localhost Support**: Allows localhost origins in development mode\n7. **Logging**: Logs rejected origins in production for debugging\n\nThe Socket.io configuration (lines 139-144) now uses origin: socketIoOriginFunc instead of origin: env.CORS_ORIGINS, ensuring consistent security behavior across both HTTP and WebSocket connections.\n\nVerification: Both Express CORS and Socket.io CORS now use identical validation logic, preventing any Chrome extension from connecting in production unless CHROME_EXTENSION_ID is properly configured.",
+          "updated_at": "2026-01-28T19:15:00.000Z"
         }
       ]
     },
@@ -277,7 +279,9 @@
             "type": "manual",
             "instructions": "Search apps/api/src/index.ts for the old vulnerable pattern and confirm it's been replaced with CHROME_EXTENSION_ID validation"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Security vulnerability verification COMPLETED. Confirmed that the vulnerable code has been completely removed and replaced with secure CHROME_EXTENSION_ID validation:\n\n**BEFORE (Vulnerable)**:\n- Pattern: `if (origin.startsWith('chrome-extension://')) { callback(null, true); }`\n- Impact: ANY Chrome extension could access the API\n\n**AFTER (Secure)**:\n- Extracts extension ID from origin\n- Validates against env.CHROME_EXTENSION_ID\n- Only allows exact ID match in production\n- Rejects mismatched extension IDs\n- Development mode fallback with warning\n- Production rejection if CHROME_EXTENSION_ID not configured\n\n**Verification Results**:\n- Line 61 (Socket.io): Secure validation implemented ✅\n- Line 162 (Express CORS): Secure validation implemented ✅\n- No vulnerable unconditional acceptance patterns found ✅\n- Both HTTP and WebSocket connections properly secured ✅\n\nThe security fix is complete and verified across both Express CORS and Socket.io CORS configurations.",
+          "updated_at": "2026-01-28T19:30:00.000Z"
         },
         {
           "id": "subtask-5-2",
@@ -433,6 +437,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-28T17:47:33.891Z",
+  "updated_at": "2026-01-28T17:49:28.572Z",
   "last_updated": "2026-01-28T16:49:06.156124+00:00"
 }
