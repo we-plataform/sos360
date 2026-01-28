@@ -107,6 +107,7 @@ model Workspace {
   socialProfiles SocialProfile[]
   tags        Tag[]
   templates   Template[]
+  agents      Agent[]
   automations Automation[]
   webhooks    Webhook[]
   importJobs  ImportJob[]
@@ -503,6 +504,36 @@ model Template {
 
   @@index([workspaceId])
   @@map("templates")
+}
+
+// ============================================
+// AGENTS
+// ============================================
+
+enum AgentType {
+  SOCIAL_SELLER
+  SDR
+  CLOSER
+}
+
+model Agent {
+  id           String     @id @default(cuid())
+  name         String
+  type         AgentType
+  systemPrompt String
+  temperature  Float      @default(0.7)
+  maxTokens    Int        @default(500)
+  model        String     @default("gpt-4o-mini")
+  enabled      Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, enabled])
+  @@index([workspaceId, type])
+  @@map("agents")
 }
 
 // ============================================
