@@ -132,6 +132,7 @@
     "clang",
     "clang++",
     "cmake",
+    "composer",
     "createdb",
     "createuser",
     "dive",
@@ -163,6 +164,7 @@
     "pg_dumpall",
     "pg_isready",
     "pg_restore",
+    "php",
     "pip",
     "pip3",
     "pipx",
@@ -194,6 +196,7 @@
       "python",
       "javascript",
       "typescript",
+      "php",
       "c",
       "cpp"
     ],
@@ -205,8 +208,8 @@
       "prettier"
     ],
     "databases": [
-      "redis",
-      "postgresql"
+      "postgresql",
+      "redis"
     ],
     "infrastructure": [
       "docker"
@@ -243,7 +246,7 @@
     "shell_scripts": []
   },
   "project_dir": "/Users/farinelli/Documents/Projects/lia360-web",
-  "created_at": "2026-01-26T15:32:46.348445",
-  "project_hash": "baafaaa5fe3071ad4d9425554b6a1c38",
+  "created_at": "2026-01-27T18:16:27.909044",
+  "project_hash": "7fc013675ef74a278236a9fcde5c32a5",
   "inherited_from": "/Users/farinelli/Documents/Projects/lia360-web"
 }
