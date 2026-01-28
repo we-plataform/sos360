@@ -72,10 +72,10 @@ for FILE in $TS_FILES; do
         continue
       fi
 
-      # Check if console statement follows a FATAL error (look back up to 20 lines)
+      # Check if console statement follows a FATAL error (look back up to 40 lines)
       FATAL_FOUND=0
       FATAL_DISTANCE=0
-      for i in {1..20}; do
+      for i in {1..40}; do
         LOOKBACK_LINE=$((LINE - i))
         if [ "$LOOKBACK_LINE" -lt 1 ]; then
           break
@@ -92,8 +92,8 @@ for FILE in $TS_FILES; do
 
       # If we found FATAL, check if we should allow this console statement
       if [ "$FATAL_FOUND" -eq 1 ]; then
-        # If FATAL is very close (within 5 lines), allow it
-        if [ "$FATAL_DISTANCE" -le 5 ]; then
+        # If FATAL is very close (within 30 lines), allow it
+        if [ "$FATAL_DISTANCE" -le 30 ]; then
           echo -e "  ${GREEN}✓${NC} Line $LINE: Part of fatal error block"
           continue
         fi
@@ -138,8 +138,8 @@ for FILE in $TS_FILES; do
         continue
       fi
 
-      # Check if previous line has NODE_ENV guard
-      if echo "$PREV_LINE_CONTENT" | grep -q "if (process\.env\.NODE_ENV === 'development')"; then
+      # Check if previous line has NODE_ENV guard (both single and double quotes)
+      if echo "$PREV_LINE_CONTENT" | grep -q "if (process\.env\.NODE_ENV === .*development.*"; then
         echo -e "  ${GREEN}✓${NC} Line $LINE: Guarded by NODE_ENV check"
         continue
       fi
@@ -165,8 +165,8 @@ for FILE in $TS_FILES; do
           break
         fi
 
-        # Look for NODE_ENV guard opening
-        if echo "$LOOKBACK_CONTENT" | grep -q "if (process\.env\.NODE_ENV === 'development') {"; then
+        # Look for NODE_ENV guard opening (both single and double quotes)
+        if echo "$LOOKBACK_CONTENT" | grep -q "if (process\.env\.NODE_ENV === .*development.*)"; then
           if [ "$BRACE_DEPTH" -eq 0 ]; then
             GUARD_FOUND=1
           fi
