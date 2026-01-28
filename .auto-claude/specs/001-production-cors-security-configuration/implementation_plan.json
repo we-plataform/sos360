@@ -128,7 +128,9 @@
             "type": "manual",
             "instructions": "Verify DEPLOY_API.md: 1) Has CHROME_EXTENSION_ID in environment variables section, 2) CORS_ORIGINS examples no longer include chrome-extension://*, 3) Includes instructions on how to get extension ID from chrome://extensions/"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully updated DEPLOY_API.md with:\n1. Added CHROME_EXTENSION_ID environment variable to the required variables section (line 37)\n2. Removed chrome-extension://* from all CORS_ORIGINS examples (3 locations updated)\n3. Added detailed instructions on how to obtain the extension ID from chrome://extensions/ with 5-step guide\n4. Updated Fly.io deployment example to include CHROME_EXTENSION_ID\n5. Updated troubleshooting section to reference CHROME_EXTENSION_ID instead of wildcard pattern\nAll verification requirements met.",
+          "updated_at": "2026-01-28T16:49:06.156110+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -145,7 +147,9 @@
             "type": "manual",
             "instructions": "Verify DEPLOY_RENDER.md: 1) Has CHROME_EXTENSION_ID in environment variables table, 2) CORS_ORIGINS examples no longer include chrome-extension://*, 3) Includes security warning about extension ID validation"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully updated DEPLOY_RENDER.md with:\n1. Added CHROME_EXTENSION_ID to environment variables section (line 71) and environment variables table (line 180)\n2. Removed chrome-extension://* from all CORS_ORIGINS examples (5 locations updated)\n3. Added comprehensive security section (lines 507-531) explaining why CHROME_EXTENSION_ID is used instead of chrome-extension://*\n4. Added detailed instructions for finding extension ID in chrome://extensions/\n5. Updated notes section with CHROME_EXTENSION_ID requirements and security warnings\n6. Added troubleshooting section for extension-specific CORS errors\n7. Updated security and final checklists to include CHROME_EXTENSION_ID verification\n8. All verification requirements met - documentation now reflects secure extension ID validation approach.",
+          "updated_at": "2026-01-28T13:51:27.097290"
         },
         {
           "id": "subtask-3-3",
@@ -416,5 +420,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-28T16:48:09.762Z"
+  "updated_at": "2026-01-28T16:52:41.395Z",
+  "last_updated": "2026-01-28T16:49:06.156124+00:00"
 }

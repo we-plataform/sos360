@@ -46,6 +46,9 @@ REFRESH_TOKEN_EXPIRES_IN=30d
 # CORS - 🔴 FALTA ESTA VARIÁVEL!
 CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
 
+# Chrome Extension - 🔴 FALTA ESTA VARIÁVEL!
+CHROME_EXTENSION_ID=your-extension-id-here
+
 # Supabase - ✅ Estão corretas
 SUPABASE_URL=https://doewttvwknkhjzhzceub.supabase.co
 SUPABASE_SERVICE_KEY=sb_secret_Sbc7112MXDLBIL4vctr1SA_HGsoW3vx
@@ -101,6 +104,9 @@ No Railway, adicione/corrija:
 # Adicionar (FALTA!)
 CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
 
+# Adicionar (FALTA!)
+CHROME_EXTENSION_ID=your-extension-id-here
+
 # Remover (desnecessária)
 API_PORT ❌
 
@@ -123,6 +129,15 @@ SUPABASE_SERVICE_KEY=[mantenha]
 - URL do frontend na Vercel
 - Padrões wildcard do Vercel (`https://*.vercel.app`)
 - `chrome-extension://*` para a extensão funcionar
+
+**Nota sobre CHROME_EXTENSION_ID:**
+- Necessário para que a extensão Chrome possa se comunicar com a API
+- Para obter o ID da extensão:
+  1. Abra o Chrome e vá para `chrome://extensions/`
+  2. Ative o "Modo do desenvolvedor" (Developer mode)
+  3. Encontre sua extensão Lia360 na lista
+  4. Copie o ID mostrado (algo como `abcdefghijklmnop`)
+  5. Use este ID na variável `CHROME_EXTENSION_ID`
 
 ### 5. Configurar Variáveis na Vercel (Frontend)
 
@@ -177,6 +192,7 @@ Após configurar, verifique:
 | Variável | Status Atual | Ação Necessária |
 |----------|-------------|-----------------|
 | `CORS_ORIGINS` | ❌ Não existe | ✅ **Adicionar** com URL do Vercel |
+| `CHROME_EXTENSION_ID` | ❌ Não existe | ✅ **Adicionar** com ID da extensão |
 | `NEXT_PUBLIC_API_URL` | ❌ localhost | ✅ **Corrigir** para URL do Railway |
 | `NEXT_PUBLIC_WS_URL` | ❌ localhost | ✅ **Corrigir** para wss://URL do Railway |
 | `API_URL` | ❌ localhost | ✅ **Corrigir** para URL do Railway |
@@ -191,6 +207,7 @@ Após configurar, verifique:
 
 - [ ] Obter URL pública do Railway
 - [ ] Adicionar `CORS_ORIGINS` no Railway com URL do Vercel
+- [ ] Adicionar `CHROME_EXTENSION_ID` no Railway com ID da extensão
 - [ ] Corrigir `NEXT_PUBLIC_API_URL` na Vercel
 - [ ] Corrigir `NEXT_PUBLIC_WS_URL` na Vercel
 - [ ] Corrigir `API_URL` na Vercel (se necessário)
