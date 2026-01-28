@@ -47,18 +47,18 @@ postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:6543/post
 
 **Formato:**
 ```
-https://url-frontend.vercel.app,https://*.vercel.app,chrome-extension://*
+https://url-frontend.vercel.app,https://*.vercel.app
 ```
 
 **Exemplo:**
 ```
-https://lia360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
+https://lia360-web-black.vercel.app,https://*.vercel.app
 ```
 
 **⚠️ IMPORTANTE:**
 - ✅ Inclua URL exata do frontend
 - ✅ Inclua wildcard do Vercel para previews
-- ✅ Mantenha `chrome-extension://*` para extensão
+- ❌ NÃO inclua `chrome-extension://*` - configure `CHROME_EXTENSION_ID` separadamente
 - ✅ Separe múltiplas URLs por vírgula
 
 ### 4. NODE_ENV (Recomendado)

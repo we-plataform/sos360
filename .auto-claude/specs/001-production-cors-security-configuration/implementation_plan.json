@@ -166,7 +166,9 @@
             "type": "manual",
             "instructions": "Verify VARIAVEIS_RAILWAY.md has CHROME_EXTENSION_ID documented if the file exists and contains CORS configuration"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully updated VARIAVEIS_RAILWAY.md with CHROME_EXTENSION_ID documentation following the pattern from DEPLOY_API.md:\n1. Added CHROME_EXTENSION_ID to environment variables section (line 50)\n2. Added detailed note explaining what CHROME_EXTENSION_ID is and how to obtain it from chrome://extensions/ (lines 133-140)\n3. Added CHROME_EXTENSION_ID to Railway configuration section (line 108)\n4. Added CHROME_EXTENSION_ID to summary table (line 195)\n5. Added CHROME_EXTENSION_ID to final checklist (line 210)\nThe file previously mentioned chrome-extension://* in CORS_ORIGINS but was missing the dedicated CHROME_EXTENSION_ID variable documentation. All verification requirements met.",
+          "updated_at": "2026-01-28T17:00:00.000Z"
         },
         {
           "id": "subtask-3-4",
@@ -420,6 +422,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-28T16:52:41.395Z",
+  "updated_at": "2026-01-28T16:54:55.128Z",
   "last_updated": "2026-01-28T16:49:06.156124+00:00"
 }

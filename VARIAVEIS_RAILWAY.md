@@ -44,7 +44,7 @@ JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=30d
 
 # CORS - 🔴 FALTA ESTA VARIÁVEL!
-CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app
 
 # Chrome Extension - 🔴 FALTA ESTA VARIÁVEL!
 CHROME_EXTENSION_ID=your-extension-id-here
@@ -102,7 +102,7 @@ No Railway, adicione/corrija:
 
 ```env
 # Adicionar (FALTA!)
-CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://seu-app.vercel.app,https://*.vercel.app
 
 # Adicionar (FALTA!)
 CHROME_EXTENSION_ID=your-extension-id-here
@@ -128,7 +128,7 @@ SUPABASE_SERVICE_KEY=[mantenha]
 **Nota**: `CORS_ORIGINS` deve incluir:
 - URL do frontend na Vercel
 - Padrões wildcard do Vercel (`https://*.vercel.app`)
-- `chrome-extension://*` para a extensão funcionar
+- ❌ NÃO inclua `chrome-extension://*` - use `CHROME_EXTENSION_ID` para validação da extensão
 
 **Nota sobre CHROME_EXTENSION_ID:**
 - Necessário para que a extensão Chrome possa se comunicar com a API

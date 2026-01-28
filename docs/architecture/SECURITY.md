@@ -401,14 +401,26 @@ import cors from 'cors';
 
 const allowedOrigins = [
   process.env.WEB_URL,           // https://app.snapleads.com
-  process.env.EXTENSION_ID,      // chrome-extension://xxxxx
 ];
 
 export const corsConfig = cors({
   origin: (origin, callback) => {
     // Permite requests sem origin (mobile apps, Postman)
     if (!origin) return callback(null, true);
-    
+
+    // Permite requests da extensão Chrome (validado por ID, não por origin)
+    if (origin?.startsWith('chrome-extension://')) {
+      const extensionId = process.env.CHROME_EXTENSION_ID;
+      if (extensionId) {
+        // Valida que o origin bate com o ID da extensão configurado
+        const expectedOrigin = `chrome-extension://${extensionId}`;
+        if (origin === expectedOrigin) {
+          return callback(null, true);
+        }
+      }
+      return callback(new Error('Invalid extension ID'));
+    }
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -422,6 +434,11 @@ export const corsConfig = cors({
   maxAge: 86400, // 24 horas
 });
 ```
+
+**Nota de Segurança:**
+- ❌ **NÃO** use `chrome-extension://*` no CORS - isso permitiria que qualquer extensão acesse sua API
+- ✅ Use `CHROME_EXTENSION_ID` para validar que apenas sua extensão específica pode fazer requests
+- ✅ A API valida o `Origin` header dos requests da extensão contra o ID configurado
 
 ### 4.3 Rate Limiting Global
 
@@ -843,7 +860,7 @@ ENCRYPTION_KEY="64-char-hex-string-for-aes-256"
 
 # CORS
 WEB_URL="https://app.snapleads.com"
-EXTENSION_ID="chrome-extension://your-extension-id"
+CHROME_EXTENSION_ID="your-extension-id-here"
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS="60000"

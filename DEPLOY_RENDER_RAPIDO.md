@@ -29,7 +29,8 @@ DIRECT_URL=postgresql://...
 JWT_SECRET=sua-chave-32-caracteres-minimo
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=7d
-CORS_ORIGINS=https://lia360-web-sigma.vercel.app,https://*.vercel.app,chrome-extension://*
+CORS_ORIGINS=https://lia360-web-sigma.vercel.app,https://*.vercel.app
+CHROME_EXTENSION_ID=your-extension-id-here
 ```
 
 ### 4. Variáveis Opcionais
