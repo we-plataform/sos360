@@ -55,7 +55,7 @@ class ApiClient {
   }
 
   private startProactiveRefresh() {
-    // Check every 30 minutes
+    // Check every 2 minutes
     this.refreshInterval = setInterval(async () => {
       const token = this.getToken();
       const refreshToken = localStorage.getItem('refreshToken');
@@ -69,7 +69,7 @@ class ApiClient {
 
         await this.refreshToken();
       }
-    }, 30 * 60 * 1000); // Every 30 minutes
+    }, 2 * 60 * 1000); // Every 2 minutes
 
     // Also check immediately on init
     setTimeout(async () => {
