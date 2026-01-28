@@ -76,7 +76,9 @@ scoringRouter.post(
                 const leadIds = allLeads.map(l => l.id);
                 // Batch rescore all leads (fire and forget - don't wait for completion)
                 batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
-                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error('[SCORING] Error rescoring leads after config update:', error);
+                    }
                 });
             }
 
@@ -113,7 +115,9 @@ scoringRouter.patch(
                 const leadIds = allLeads.map(l => l.id);
                 // Batch rescore all leads (fire and forget - don't wait for completion)
                 batchCalculateLeadScores(leadIds, workspaceId).catch(error => {
-                    console.error('[SCORING] Error rescoring leads after config update:', error);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error('[SCORING] Error rescoring leads after config update:', error);
+                    }
                 });
             }
 

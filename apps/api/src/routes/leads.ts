@@ -597,12 +597,16 @@ leadsRouter.post(
           imported++;
           leadResults.push({ id: savedLead.id, profileUrl: savedLead.profileUrl });
         } catch (err: unknown) {
-          console.error('Error importing lead:', err);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error importing lead:', err);
+          }
           if ((err as { code?: string }).code === 'P2002') {
             duplicates++;
           } else {
             errors++;
-            console.error('Import error details:', err);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Import error details:', err);
+            }
           }
         }
       }
@@ -934,7 +938,9 @@ leadsRouter.patch('/:id', authorize('owner', 'admin', 'manager', 'agent'), valid
       }
     } catch (error) {
       // Log error but don't fail the update
-      console.error('Failed to calculate lead score:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to calculate lead score:', error);
+      }
     }
 
     // Emit socket event
@@ -1343,7 +1349,9 @@ leadsRouter.patch('/:id/enrich', authorize('owner', 'admin', 'manager', 'agent')
       }
     } catch (error) {
       // Log error but don't fail the enrichment
-      console.error('Failed to calculate lead score after enrichment:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to calculate lead score after enrichment:', error);
+      }
     }
 
     // Process address - either from explicit address object or parsed from location
