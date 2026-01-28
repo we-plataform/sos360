@@ -94,12 +94,12 @@ export function errorHandler(
     }, 'Prisma initialization error - DATABASE CONNECTION FAILED');
     
     // Log additional diagnostic info
-    console.error('[ErrorHandler] DATABASE CONNECTION ERROR');
-    console.error('[ErrorHandler] This usually means:');
-    console.error('[ErrorHandler]   1. DATABASE_URL is not configured correctly');
-    console.error('[ErrorHandler]   2. The database server is not reachable');
-    console.error('[ErrorHandler]   3. Network/firewall is blocking the connection');
-    console.error('[ErrorHandler] DATABASE_URL set:', !!process.env.DATABASE_URL);
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler] DATABASE CONNECTION ERROR');
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler] This usually means:');
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler]   1. DATABASE_URL is not configured correctly');
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler]   2. The database server is not reachable');
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler]   3. Network/firewall is blocking the connection');
+    if (process.env.NODE_ENV === 'development') console.error('[ErrorHandler] DATABASE_URL set:', !!process.env.DATABASE_URL);
     
     res.status(503).json({
       success: false,
