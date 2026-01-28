@@ -50,6 +50,17 @@ export type DetailedScoringResult = {
     recommendation: string;
 };
 
+export type MessageGenerationResult = {
+    message: string;
+    confidenceScore: number; // 0-100
+    metadata: {
+        agentType?: string;
+        messageType?: string;
+        model: string;
+        tokensUsed?: number;
+    };
+};
+
 export async function analyzeLead(profile: LeadProfile, criteria: string): Promise<AnalysisResult> {
     if (!openai) {
         return {
@@ -130,6 +141,148 @@ export async function analyzeLead(profile: LeadProfile, criteria: string): Promi
             score: 0,
             reason: 'Análise falhou devido a erro.',
         };
+    }
+}
+
+/**
+ * Generate a personalized message using an AI agent
+ * @param agentConfig - Agent configuration (systemPrompt, temperature, maxTokens, model)
+ * @param leadProfile - Lead profile data
+ * @param messageType - Type of message to generate (connection_request, first_message, follow_up)
+ * @param additionalContext - Optional additional context for message generation
+ * @returns Generated message with confidence score and metadata
+ */
+export async function generateMessage(
+    agentConfig: {
+        systemPrompt: string;
+        temperature?: number;
+        maxTokens?: number;
+        model?: string;
+        type?: string;
+    },
+    leadProfile: LeadProfile,
+    messageType: 'connection_request' | 'first_message' | 'follow_up' = 'first_message',
+    additionalContext?: string
+): Promise<MessageGenerationResult> {
+    if (!openai) {
+        return {
+            message: 'Olá! Gostaria de conectar com você para discutir possíveis oportunidades de colaboração.',
+            confidenceScore: 0,
+            metadata: {
+                agentType: agentConfig.type,
+                messageType,
+                model: 'none',
+            },
+        };
+    }
+
+    try {
+        const isLinkedIn = leadProfile.platform === 'linkedin' || leadProfile.headline || leadProfile.company;
+
+        const profileDescription = isLinkedIn
+            ? `
+      - Nome: ${leadProfile.fullName || 'N/A'}
+      - Cargo/Headline: ${leadProfile.headline || 'N/A'}
+      - Empresa: ${leadProfile.company || 'N/A'}
+      - Setor: ${leadProfile.industry || 'N/A'}
+      - Localização: ${leadProfile.location || 'N/A'}
+      - Bio/About: ${leadProfile.bio || 'N/A'}
+      - Conexões: ${leadProfile.connectionCount || 'N/A'}
+      `
+            : `
+      - Nome: ${leadProfile.fullName || 'N/A'}
+      - Username: @${leadProfile.username}
+      - Bio: ${leadProfile.bio || 'N/A'}
+      - Localização: ${leadProfile.location || 'N/A'}
+      - Seguidores: ${leadProfile.followersCount || 'N/A'}
+      `;
+
+        const messageContext = getMessageTypeContext(messageType);
+        const contextSection = additionalContext
+            ? `\n\nCONTEXTO ADICIONAL:\n${additionalContext}`
+            : '';
+
+        const prompt = `
+      Você é um assistente de vendas B2B especializado em outreach personalizado. Sua tarefa é gerar uma mensagem ${messageContext} para um lead.
+
+      DADOS DO LEAD:
+      ${profileDescription}${contextSection}
+
+      DIRETRIZES PARA A MENSAGEM:
+      - Seja autêntico e profissional, mas conversacional
+      - Personalize a mensagem com base nos dados específicos do lead (cargo, empresa, interesses)
+      - Menções específicas do perfil (cargo, empresa, achievements) geram maior engajamento
+      - Seja conciso: 2-4 frases no máximo
+      - Evite linguagem de vendas agressiva ou genérica
+      - O tom deve ser amigável e focado em construir relacionamento
+      - Para LinkedIn: mais formal e profissional
+      - Para Instagram: mais casual e descontraído
+      - SEMPRE em português brasileiro nativo
+
+      Responda em JSON:
+      {
+        "message": "a mensagem gerada (2-4 frases, em português)",
+        "confidenceScore": number (0-100, baseado em quão personalizada e relevante é a mensagem)
+      }
+    `;
+
+        const model = agentConfig.model || 'gpt-4o-mini';
+        const temperature = agentConfig.temperature !== undefined ? agentConfig.temperature : 0.7;
+        const maxTokens = agentConfig.maxTokens || 500;
+
+        const response = await openai.chat.completions.create({
+            model,
+            messages: [
+                { role: 'system', content: agentConfig.systemPrompt },
+                { role: 'user', content: prompt }
+            ],
+            temperature,
+            max_tokens: maxTokens,
+            response_format: { type: 'json_object' },
+        });
+
+        const content = response.choices[0].message.content;
+        if (!content) throw new Error('Empty response from OpenAI');
+
+        const result = JSON.parse(content) as { message: string; confidenceScore: number };
+
+        return {
+            message: result.message,
+            confidenceScore: result.confidenceScore || 50,
+            metadata: {
+                agentType: agentConfig.type,
+                messageType,
+                model,
+                tokensUsed: response.usage?.total_tokens,
+            },
+        };
+    } catch (error) {
+        logger.error({ err: error }, 'Message generation failed');
+        return {
+            message: 'Olá! Gostaria de conectar com você para discutir possíveis oportunidades de colaboração.',
+            confidenceScore: 0,
+            metadata: {
+                agentType: agentConfig.type,
+                messageType,
+                model: agentConfig.model || 'gpt-4o-mini',
+            },
+        };
+    }
+}
+
+/**
+ * Get message type context for prompt
+ */
+function getMessageTypeContext(messageType: string): string {
+    switch (messageType) {
+        case 'connection_request':
+            return 'de solicitação de conexão (curta, 300 caracteres máx, focada em apresentação e valor)';
+        case 'first_message':
+            return 'de primeiro contato após conexão (focada em iniciar conversa, identificar interesse)';
+        case 'follow_up':
+            return 'de follow-up (focada em avançar conversa, agendar call/meeting)';
+        default:
+            return 'personalizada';
     }
 }
 
