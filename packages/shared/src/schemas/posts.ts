@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { paginationSchema, platformSchema } from './base';
+import { z } from "zod";
+import { paginationSchema, platformSchema } from "./base";
 
 // Post data schema for creating/importing posts
 export const postDataSchema = z.object({
@@ -23,9 +23,12 @@ export const postDataSchema = z.object({
 
 // Schema for importing posts in batch
 export const importPostsSchema = z.object({
-  source: z.enum(['extension', 'manual']),
+  source: z.enum(["extension", "manual"]),
   platform: platformSchema,
-  posts: z.array(postDataSchema.omit({ platform: true })).min(1).max(100),
+  posts: z
+    .array(postDataSchema.omit({ platform: true }))
+    .min(1)
+    .max(100),
   tags: z.array(z.string()).optional(),
 });
 
@@ -46,7 +49,7 @@ export const updatePostSchema = z.object({
 
 // Schema for linking a post to a lead
 export const linkPostToLeadSchema = z.object({
-  leadId: z.string().min(1, 'Lead ID is required'),
+  leadId: z.string().min(1, "Lead ID is required"),
 });
 
 // Post filters for listing
@@ -56,8 +59,10 @@ export const postFiltersSchema = paginationSchema.extend({
   leadId: z.string().optional(),
   hasLead: z.coerce.boolean().optional(),
   search: z.string().max(200).optional(),
-  sort: z.enum(['importedAt', 'postDate', 'likesCount', 'commentsCount']).optional(),
-  order: z.enum(['asc', 'desc']).optional(),
+  sort: z
+    .enum(["importedAt", "postDate", "likesCount", "commentsCount"])
+    .optional(),
+  order: z.enum(["asc", "desc"]).optional(),
 });
 
 // Type exports

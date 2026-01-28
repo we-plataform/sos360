@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -10,51 +10,51 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
-import type { Platform } from '@lia360/shared';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
+import type { Platform } from "@lia360/shared";
 
 const platforms: Platform[] = [
-  'instagram',
-  'facebook',
-  'linkedin',
-  'twitter',
-  'tiktok',
-  'whatsapp',
-  'telegram',
-  'discord',
-  'reddit',
-  'skool',
-  'slack',
-  'pinterest',
-  'youtube',
-  'nextdoor',
-  'gohighlevel',
-  'other',
+  "instagram",
+  "facebook",
+  "linkedin",
+  "twitter",
+  "tiktok",
+  "whatsapp",
+  "telegram",
+  "discord",
+  "reddit",
+  "skool",
+  "slack",
+  "pinterest",
+  "youtube",
+  "nextdoor",
+  "gohighlevel",
+  "other",
 ];
 
 const platformLabels: Record<Platform, string> = {
-  instagram: 'Instagram',
-  facebook: 'Facebook',
-  linkedin: 'LinkedIn',
-  twitter: 'X (Twitter)',
-  tiktok: 'TikTok',
-  whatsapp: 'WhatsApp',
-  telegram: 'Telegram',
-  discord: 'Discord',
-  reddit: 'Reddit',
-  skool: 'Skool',
-  slack: 'Slack',
-  pinterest: 'Pinterest',
-  youtube: 'YouTube',
-  nextdoor: 'Nextdoor',
-  gohighlevel: 'GoHighLevel',
-  other: 'Outro',
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  twitter: "X (Twitter)",
+  tiktok: "TikTok",
+  whatsapp: "WhatsApp",
+  telegram: "Telegram",
+  discord: "Discord",
+  reddit: "Reddit",
+  skool: "Skool",
+  slack: "Slack",
+  pinterest: "Pinterest",
+  youtube: "YouTube",
+  nextdoor: "Nextdoor",
+  gohighlevel: "GoHighLevel",
+  other: "Outro",
 };
 
 interface PipelineStage {
@@ -74,26 +74,25 @@ interface CreateLeadDialogProps {
 
 const createLeadFormSchema = z
   .object({
-    fullName: z.string().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo'),
-    email: z
+    fullName: z
       .string()
-      .email('Email inválido')
+      .min(1, "Nome é obrigatório")
+      .max(200, "Nome muito longo"),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    phone: z
+      .string()
+      .max(50, "Telefone muito longo")
       .optional()
-      .or(z.literal('')),
-    phone: z.string().max(50, 'Telefone muito longo').optional().or(z.literal('')),
-    stageId: z.string().min(1, 'Selecione um estágio'),
+      .or(z.literal("")),
+    stageId: z.string().min(1, "Selecione um estágio"),
     platform: z.enum(platforms as [Platform, ...Platform[]]).optional(),
-    website: z
-      .string()
-      .url('URL inválida')
-      .optional()
-      .or(z.literal('')),
-    location: z.string().max(200, 'Localização muito longa').optional(),
-    notes: z.string().max(5000, 'Notas muito longas').optional(),
+    website: z.string().url("URL inválida").optional().or(z.literal("")),
+    location: z.string().max(200, "Localização muito longa").optional(),
+    notes: z.string().max(5000, "Notas muito longas").optional(),
   })
   .refine((data) => data.email || data.phone, {
-    message: 'Email ou telefone é obrigatório',
-    path: ['email'],
+    message: "Email ou telefone é obrigatório",
+    path: ["email"],
   });
 
 type CreateLeadForm = z.infer<typeof createLeadFormSchema>;
@@ -119,28 +118,28 @@ export function CreateLeadDialog({
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<CreateLeadForm>({
-    fullName: '',
-    email: '',
-    phone: '',
-    stageId: stages[0]?.id || '',
+    fullName: "",
+    email: "",
+    phone: "",
+    stageId: stages[0]?.id || "",
     platform: undefined,
-    website: '',
-    location: '',
-    notes: '',
+    website: "",
+    location: "",
+    notes: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
 
   const resetForm = () => {
     setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      stageId: stages[0]?.id || '',
+      fullName: "",
+      email: "",
+      phone: "",
+      stageId: stages[0]?.id || "",
       platform: undefined,
-      website: '',
-      location: '',
-      notes: '',
+      website: "",
+      location: "",
+      notes: "",
     });
     setErrors({});
   };
@@ -160,16 +159,22 @@ export function CreateLeadDialog({
       return lead;
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['pipeline', pipelineId], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['pipeline-leads'], type: 'active' });
-      toast.success('Lead criado com sucesso!');
+      queryClient.refetchQueries({ queryKey: ["leads"], type: "active" });
+      queryClient.refetchQueries({
+        queryKey: ["pipeline", pipelineId],
+        type: "active",
+      });
+      queryClient.refetchQueries({
+        queryKey: ["pipeline-leads"],
+        type: "active",
+      });
+      toast.success("Lead criado com sucesso!");
       resetForm();
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao criar lead');
+      toast.error(error.message || "Erro ao criar lead");
     },
   });
 
@@ -196,7 +201,7 @@ export function CreateLeadDialog({
 
   const handleChange = (
     field: keyof CreateLeadForm,
-    value: string | Platform | undefined
+    value: string | Platform | undefined,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
@@ -224,7 +229,7 @@ export function CreateLeadDialog({
               <Input
                 id="fullName"
                 value={formData.fullName}
-                onChange={(e) => handleChange('fullName', e.target.value)}
+                onChange={(e) => handleChange("fullName", e.target.value)}
                 placeholder="Ex: João Silva"
               />
               {errors.fullName && (
@@ -239,7 +244,7 @@ export function CreateLeadDialog({
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
+                onChange={(e) => handleChange("email", e.target.value)}
                 placeholder="Ex: joao@email.com"
               />
               {errors.email && (
@@ -253,7 +258,7 @@ export function CreateLeadDialog({
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
+                onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="Ex: (11) 99999-9999"
               />
               {errors.phone && (
@@ -270,7 +275,7 @@ export function CreateLeadDialog({
                 id="stageId"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={formData.stageId}
-                onChange={(e) => handleChange('stageId', e.target.value)}
+                onChange={(e) => handleChange("stageId", e.target.value)}
               >
                 {stages.map((stage) => (
                   <option key={stage.id} value={stage.id}>
@@ -289,11 +294,11 @@ export function CreateLeadDialog({
               <select
                 id="platform"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                value={formData.platform || ''}
+                value={formData.platform || ""}
                 onChange={(e) =>
                   handleChange(
-                    'platform',
-                    e.target.value ? (e.target.value as Platform) : undefined
+                    "platform",
+                    e.target.value ? (e.target.value as Platform) : undefined,
                   )
                 }
               >
@@ -316,7 +321,7 @@ export function CreateLeadDialog({
                 id="website"
                 type="url"
                 value={formData.website}
-                onChange={(e) => handleChange('website', e.target.value)}
+                onChange={(e) => handleChange("website", e.target.value)}
                 placeholder="Ex: https://exemplo.com"
               />
               {errors.website && (
@@ -330,7 +335,7 @@ export function CreateLeadDialog({
               <Input
                 id="location"
                 value={formData.location}
-                onChange={(e) => handleChange('location', e.target.value)}
+                onChange={(e) => handleChange("location", e.target.value)}
                 placeholder="Ex: São Paulo, SP"
               />
               {errors.location && (
@@ -344,7 +349,7 @@ export function CreateLeadDialog({
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => handleChange('notes', e.target.value)}
+                onChange={(e) => handleChange("notes", e.target.value)}
                 placeholder="Adicione observações sobre o lead..."
                 rows={3}
               />
@@ -368,7 +373,7 @@ export function CreateLeadDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={createLeadMutation.isPending}>
-              {createLeadMutation.isPending ? 'Criando...' : 'Criar Lead'}
+              {createLeadMutation.isPending ? "Criando..." : "Criar Lead"}
             </Button>
           </DialogFooter>
         </form>

@@ -2,8 +2,9 @@
  * Generate a random string of specified length
  */
 export function generateRandomString(length: number): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -14,9 +15,9 @@ export function generateRandomString(length: number): string {
  * Mask email for privacy
  */
 export function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
+  const [local, domain] = email.split("@");
   if (!domain) return email;
-  const maskedLocal = local.charAt(0) + '***' + local.charAt(local.length - 1);
+  const maskedLocal = local.charAt(0) + "***" + local.charAt(local.length - 1);
   return `${maskedLocal}@${domain}`;
 }
 
@@ -24,9 +25,9 @@ export function maskEmail(email: string): string {
  * Mask phone for privacy
  */
 export function maskPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const digits = phone.replace(/\D/g, "");
   if (digits.length < 4) return phone;
-  return phone.slice(0, 4) + '*'.repeat(digits.length - 6) + phone.slice(-2);
+  return phone.slice(0, 4) + "*".repeat(digits.length - 6) + phone.slice(-2);
 }
 
 /**
@@ -53,11 +54,14 @@ export function formatDate(date: Date | string): string {
 /**
  * Parse sort string to field and direction
  */
-export function parseSort(sort?: string): { field: string; direction: 'asc' | 'desc' } {
-  if (!sort) return { field: 'createdAt', direction: 'desc' };
+export function parseSort(sort?: string): {
+  field: string;
+  direction: "asc" | "desc";
+} {
+  if (!sort) return { field: "createdAt", direction: "desc" };
 
-  const direction = sort.startsWith('-') ? 'desc' : 'asc';
-  const field = sort.replace(/^-/, '');
+  const direction = sort.startsWith("-") ? "desc" : "asc";
+  const field = sort.replace(/^-/, "");
 
   return { field, direction };
 }
@@ -75,7 +79,7 @@ export function sleep(ms: number): Promise<void> {
 export async function retry<T>(
   fn: () => Promise<T>,
   maxAttempts: number = 3,
-  baseDelay: number = 1000
+  baseDelay: number = 1000,
 ): Promise<T> {
   let lastError: Error | undefined;
 
@@ -116,9 +120,12 @@ export function extractTemplateVariables(template: string): string[] {
  */
 export function replaceTemplateVariables(
   template: string,
-  values: Record<string, string>
+  values: Record<string, string>,
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] || `{{${key}}}`);
+  return template.replace(
+    /\{\{(\w+)\}\}/g,
+    (_, key) => values[key] || `{{${key}}}`,
+  );
 }
 
 /**
@@ -126,11 +133,11 @@ export function replaceTemplateVariables(
  */
 export function sanitize(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 /**
@@ -138,7 +145,7 @@ export function sanitize(str: string): string {
  */
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
-  return str.slice(0, length - 3) + '...';
+  return str.slice(0, length - 3) + "...";
 }
 
 /**
@@ -146,7 +153,7 @@ export function truncate(str: string, length: number): string {
  */
 export function omit<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
-  keys: K[]
+  keys: K[],
 ): Omit<T, K> {
   const result = { ...obj };
   for (const key of keys) {
@@ -160,7 +167,7 @@ export function omit<T extends Record<string, unknown>, K extends keyof T>(
  */
 export function pick<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
-  keys: K[]
+  keys: K[],
 ): Pick<T, K> {
   const result = {} as Pick<T, K>;
   for (const key of keys) {

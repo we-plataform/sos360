@@ -13,6 +13,7 @@ Este erro indica que o Prisma não consegue conectar ao banco de dados PostgreSQ
 ## Causa Raiz
 
 O erro ocorre quando a variável `DATABASE_URL` está:
+
 - ❌ Não configurada no Render
 - ❌ Vazia ou com valor incorreto
 - ❌ Com formato inválido (sem hostname)
@@ -32,6 +33,7 @@ O erro ocorre quando a variável `DATABASE_URL` está:
 5. Copie a **URI** no modo **Transaction (Pooler)** para porta 6543
 
 **Formato esperado:**
+
 ```
 postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
@@ -43,37 +45,39 @@ postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.co
 3. Vá em **Environment** (menu lateral)
 4. Configure as seguintes variáveis:
 
-| Variável | Valor | Obrigatório |
-|----------|-------|-------------|
-| `DATABASE_URL` | `postgresql://postgres.[REF]:[SENHA]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true` | ✅ Sim |
-| `DIRECT_URL` | `postgresql://postgres.[REF]:[SENHA]@aws-0-[REGION].pooler.supabase.com:5432/postgres` | ⚠️ Recomendado |
-| `JWT_SECRET` | (string com 32+ caracteres) | ✅ Sim |
-| `NODE_ENV` | `production` | ✅ Sim |
-| `CORS_ORIGINS` | `https://lia360-web-black.vercel.app,https://*.vercel.app` | ✅ Sim |
+| Variável       | Valor                                                                                                 | Obrigatório    |
+| -------------- | ----------------------------------------------------------------------------------------------------- | -------------- |
+| `DATABASE_URL` | `postgresql://postgres.[REF]:[SENHA]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true` | ✅ Sim         |
+| `DIRECT_URL`   | `postgresql://postgres.[REF]:[SENHA]@aws-0-[REGION].pooler.supabase.com:5432/postgres`                | ⚠️ Recomendado |
+| `JWT_SECRET`   | (string com 32+ caracteres)                                                                           | ✅ Sim         |
+| `NODE_ENV`     | `production`                                                                                          | ✅ Sim         |
+| `CORS_ORIGINS` | `https://lia360-web-black.vercel.app,https://*.vercel.app`                                            | ✅ Sim         |
 
 ### 3. Verificar a Senha
 
 **IMPORTANTE:** Se sua senha contém caracteres especiais, você DEVE encodá-los:
 
-| Caractere | Encoded |
-|-----------|---------|
-| `@` | `%40` |
-| `#` | `%23` |
-| `!` | `%21` |
-| `$` | `%24` |
-| `%` | `%25` |
-| `&` | `%26` |
-| `=` | `%3D` |
-| `+` | `%2B` |
-| ` ` (espaço) | `%20` |
+| Caractere    | Encoded |
+| ------------ | ------- |
+| `@`          | `%40`   |
+| `#`          | `%23`   |
+| `!`          | `%21`   |
+| `$`          | `%24`   |
+| `%`          | `%25`   |
+| `&`          | `%26`   |
+| `=`          | `%3D`   |
+| `+`          | `%2B`   |
+| ` ` (espaço) | `%20`   |
 
 **Exemplo:**
+
 - Senha original: `Senha@123#`
 - Senha encoded: `Senha%40123%23`
 
 ### 4. Fazer Deploy
 
 Após salvar as variáveis:
+
 1. O Render vai automaticamente fazer redeploy
 2. Aguarde 2-3 minutos
 3. Verifique os logs
@@ -81,11 +85,13 @@ Após salvar as variáveis:
 ### 5. Verificar se Funcionou
 
 Acesse no navegador:
+
 ```
 https://sua-api.onrender.com/health/detailed
 ```
 
 **Resposta esperada (sucesso):**
+
 ```json
 {
   "status": "healthy",
@@ -100,6 +106,7 @@ https://sua-api.onrender.com/health/detailed
 ```
 
 **Resposta com erro:**
+
 ```json
 {
   "status": "unhealthy",
@@ -142,7 +149,8 @@ https://sua-api.onrender.com/health/detailed
 ### Erro: "password authentication failed"
 
 **Causa:** Senha incorreta ou mal encoded
-**Solução:** 
+**Solução:**
+
 1. Verifique a senha no Supabase
 2. Encode caracteres especiais
 
@@ -150,6 +158,7 @@ https://sua-api.onrender.com/health/detailed
 
 **Causa:** Usando porta errada ou host inacessível
 **Solução:**
+
 1. Use porta **6543** com `?pgbouncer=true`
 2. Verifique se o projeto Supabase está ativo
 
@@ -157,6 +166,7 @@ https://sua-api.onrender.com/health/detailed
 
 **Causa:** Firewall ou rede bloqueando
 **Solução:**
+
 1. Verifique se o projeto Supabase está pausado
 2. Verifique se há restrições de IP no Supabase
 
@@ -165,16 +175,19 @@ https://sua-api.onrender.com/health/detailed
 ## Exemplo Completo de Configuração
 
 ### Supabase (seu banco)
+
 - Project ref: `doewttvwknkhjzhzceub`
 - Region: `sa-east-1`
 - Senha: `MinhaSenh@Forte123`
 
 ### DATABASE_URL (porta 6543 + pgbouncer)
+
 ```
 postgresql://postgres.doewttvwknkhjzhzceub:MinhaSenh%40Forte123@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 ### DIRECT_URL (porta 5432, para migrations)
+
 ```
 postgresql://postgres.doewttvwknkhjzhzceub:MinhaSenh%40Forte123@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 ```
@@ -183,11 +196,11 @@ postgresql://postgres.doewttvwknkhjzhzceub:MinhaSenh%40Forte123@aws-0-sa-east-1.
 
 ## Endpoints de Diagnóstico
 
-| Endpoint | Descrição |
-|----------|-----------|
-| `GET /health` | Health check básico |
+| Endpoint               | Descrição                                |
+| ---------------------- | ---------------------------------------- |
+| `GET /health`          | Health check básico                      |
 | `GET /health/detailed` | Health check detalhado com info do banco |
-| `POST /health/test-db` | Testa conexão do banco com retry |
+| `POST /health/test-db` | Testa conexão do banco com retry         |
 
 ---
 
@@ -201,6 +214,7 @@ Se o problema persistir após seguir todos os passos:
 4. Verifique se há mensagens de erro específicas nos logs
 
 **Logs importantes a procurar:**
+
 ```
 [Database] DATABASE_URL validated:
 [Database]   - Hostname: aws-0-sa-east-1.pooler.supabase.com
@@ -209,6 +223,7 @@ Se o problema persistir após seguir todos os passos:
 ```
 
 Se vir:
+
 ```
 [Database] ✗ Database connection failed after retries
 ```

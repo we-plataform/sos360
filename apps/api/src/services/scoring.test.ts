@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { scoringService } from './scoring.js';
-import { prisma } from '@lia360/database';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { scoringService } from "./scoring.js";
+import { prisma } from "@lia360/database";
 
 // Mock Prisma
-vi.mock('@lia360/database', () => ({
+vi.mock("@lia360/database", () => ({
   prisma: {
     scoringModel: {
       findUnique: vi.fn(),
@@ -22,31 +22,31 @@ vi.mock('@lia360/database', () => ({
 }));
 
 // Mock OpenAI
-vi.mock('../lib/openai.js', () => ({
+vi.mock("../lib/openai.js", () => ({
   analyzeLead: vi.fn(() => ({
     qualified: true,
     score: 70,
-    reason: 'Mocked AI analysis',
+    reason: "Mocked AI analysis",
   })),
 }));
 
-describe('ScoringService', () => {
+describe("ScoringService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('getScoringModel', () => {
-    it('should return null when no model exists', async () => {
+  describe("getScoringModel", () => {
+    it("should return null when no model exists", async () => {
       vi.mocked(prisma.scoringModel.findUnique).mockResolvedValueOnce(null);
 
-      const model = await scoringService.getScoringModel('pipeline-123');
+      const model = await scoringService.getScoringModel("pipeline-123");
       expect(model).toBeNull();
     });
 
-    it('should return null when model is disabled', async () => {
+    it("should return null when model is disabled", async () => {
       vi.mocked(prisma.scoringModel.findUnique).mockResolvedValueOnce({
-        id: 'model-123',
-        name: 'Test Model',
+        id: "model-123",
+        name: "Test Model",
         description: null,
         enabled: false,
         criteria: {},
@@ -54,48 +54,55 @@ describe('ScoringService', () => {
         thresholdHigh: 80,
         thresholdMedium: 50,
         systemPrompt: null,
-        pipelineId: 'pipeline-123',
+        pipelineId: "pipeline-123",
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const model = await scoringService.getScoringModel('pipeline-123');
+      const model = await scoringService.getScoringModel("pipeline-123");
       expect(model).toBeNull();
     });
 
-    it('should return model when enabled', async () => {
+    it("should return model when enabled", async () => {
       const mockModel = {
-        id: 'model-123',
-        name: 'Test Model',
+        id: "model-123",
+        name: "Test Model",
         description: null,
         enabled: true,
         criteria: {
-          jobTitles: { target: ['CEO'], exclude: [], seniority: [] },
+          jobTitles: { target: ["CEO"], exclude: [], seniority: [] },
           companies: { industries: [], sizes: [], excludeIndustries: [] },
           engagement: {},
           completeness: { required: [], bonus: [] },
         },
-        weights: { jobTitle: 1.0, company: 1.0, engagement: 0.8, completeness: 0.6 },
+        weights: {
+          jobTitle: 1.0,
+          company: 1.0,
+          engagement: 0.8,
+          completeness: 0.6,
+        },
         thresholdHigh: 80,
         thresholdMedium: 50,
         systemPrompt: null,
-        pipelineId: 'pipeline-123',
+        pipelineId: "pipeline-123",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      vi.mocked(prisma.scoringModel.findUnique).mockResolvedValueOnce(mockModel);
+      vi.mocked(prisma.scoringModel.findUnique).mockResolvedValueOnce(
+        mockModel,
+      );
 
-      const model = await scoringService.getScoringModel('pipeline-123');
+      const model = await scoringService.getScoringModel("pipeline-123");
       expect(model).toBeDefined();
-      expect(model?.name).toBe('Test Model');
+      expect(model?.name).toBe("Test Model");
       expect(model?.enabled).toBe(true);
     });
   });
 
-  describe('calculateWeightedScore', () => {
+  describe("calculateWeightedScore", () => {
     // Helper to access private method through testing
-    it('should calculate weighted average correctly', () => {
+    it("should calculate weighted average correctly", () => {
       const jobTitleScore = 80;
       const companyScore = 90;
       const engagementScore = 70;
@@ -111,15 +118,18 @@ describe('ScoringService', () => {
           companyScore * companyWeight +
           engagementScore * engagementWeight +
           completenessScore * completenessWeight) /
-        (jobTitleWeight + companyWeight + engagementWeight + completenessWeight);
+        (jobTitleWeight +
+          companyWeight +
+          engagementWeight +
+          completenessWeight);
 
       // The service calculates this internally, we're just validating the math
       expect(expectedScore).toBeCloseTo(76.92, 1);
     });
   });
 
-  describe('getClassification', () => {
-    it('should classify hot leads correctly', () => {
+  describe("getClassification", () => {
+    it("should classify hot leads correctly", () => {
       // Score >= 80 should be hot
       const score = 85;
       const thresholdHigh = 80;
@@ -134,7 +144,7 @@ describe('ScoringService', () => {
       expect(isCold).toBe(false);
     });
 
-    it('should classify warm leads correctly', () => {
+    it("should classify warm leads correctly", () => {
       const score = 65;
       const thresholdHigh = 80;
       const thresholdMedium = 50;
@@ -148,7 +158,7 @@ describe('ScoringService', () => {
       expect(isCold).toBe(false);
     });
 
-    it('should classify cold leads correctly', () => {
+    it("should classify cold leads correctly", () => {
       const score = 30;
       const thresholdHigh = 80;
       const thresholdMedium = 50;

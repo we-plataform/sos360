@@ -16,16 +16,19 @@
 No dashboard do Supabase:
 
 1. **Project URL**: Settings > API > Project URL
+
    ```
    https://seu-projeto.supabase.co
    ```
 
 2. **Service Key (secret)**: Settings > API > service_role (secret)
+
    ```
    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
 
 3. **Anon Key (public)**: Settings > API > anon (public)
+
    ```
    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
@@ -41,8 +44,9 @@ No dashboard do Supabase:
      ```
      postgresql://postgres.[ref]:[SENHA_DO_BANCO]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
      ```
-   
+
    **Formato alternativo** (se o formato acima não funcionar):
+
    ```
    postgresql://postgres:[SENHA_DO_BANCO]@db.[ref].supabase.co:5432/postgres
    ```

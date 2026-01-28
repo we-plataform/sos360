@@ -1,18 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Plus, Settings, RefreshCw, Filter, ArrowUpDown, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { KanbanBoard, KanbanPipeline, StageManager } from '@/components/kanban';
-import { LeadDetailModal, CreatePipelineDialog, CreateLeadDialog } from '@/components/leads';
-import { api } from '@/lib/api';
-import { socket } from '@/lib/socket';
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import {
+  Plus,
+  Settings,
+  RefreshCw,
+  Filter,
+  ArrowUpDown,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { KanbanBoard, KanbanPipeline, StageManager } from "@/components/kanban";
+import {
+  LeadDetailModal,
+  CreatePipelineDialog,
+  CreateLeadDialog,
+} from "@/components/leads";
+import { api } from "@/lib/api";
+import { socket } from "@/lib/socket";
 
 export default function LeadsPage() {
   const queryClient = useQueryClient();
-  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(
+    null,
+  );
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
   const [isCreatePipelineOpen, setIsCreatePipelineOpen] = useState(false);
@@ -21,11 +34,11 @@ export default function LeadsPage() {
   // Score filter and sort state
   const [scoreMin, setScoreMin] = useState<number | undefined>(undefined);
   const [scoreMax, setScoreMax] = useState<number | undefined>(undefined);
-  const [sortBy, setSortBy] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>("");
 
   // Fetch pipelines
   const { data: pipelinesData } = useQuery({
-    queryKey: ['pipelines'],
+    queryKey: ["pipelines"],
     queryFn: () => api.getPipelines() as any,
   });
 
@@ -34,47 +47,65 @@ export default function LeadsPage() {
   // Set default pipeline
   useEffect(() => {
     if (pipelines.length > 0 && !selectedPipelineId) {
-      const defaultPipeline = pipelines.find((p: any) => p.isDefault) || pipelines[0];
+      const defaultPipeline =
+        pipelines.find((p: any) => p.isDefault) || pipelines[0];
       setSelectedPipelineId(defaultPipeline.id);
     }
   }, [pipelines, selectedPipelineId]);
 
   // Fetch pipeline with leads
   const { data: pipelineData, isLoading: isPipelineLoading } = useQuery({
-    queryKey: ['pipeline', selectedPipelineId, scoreMin, scoreMax, sortBy],
-    queryFn: () => api.getPipeline(selectedPipelineId!, {
-      scoreMin,
-      scoreMax,
-      sortBy,
-    }) as any,
+    queryKey: ["pipeline", selectedPipelineId, scoreMin, scoreMax, sortBy],
+    queryFn: () =>
+      api.getPipeline(selectedPipelineId!, {
+        scoreMin,
+        scoreMax,
+        sortBy,
+      }) as any,
     enabled: !!selectedPipelineId,
   });
 
   // Move lead mutation
   const moveLeadMutation = useMutation({
-    mutationFn: ({ leadId, stageId, position }: { leadId: string; stageId: string; position: number }) =>
-      api.moveLead(selectedPipelineId!, leadId, stageId, position),
+    mutationFn: ({
+      leadId,
+      stageId,
+      position,
+    }: {
+      leadId: string;
+      stageId: string;
+      position: number;
+    }) => api.moveLead(selectedPipelineId!, leadId, stageId, position),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipeline', selectedPipelineId] });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline", selectedPipelineId],
+      });
     },
   });
 
   // Update lead mutation
   const updateLeadMutation = useMutation({
-    mutationFn: ({ leadId, data }: { leadId: string; data: Record<string, any> }) =>
-      api.updateLead(leadId, data),
+    mutationFn: ({
+      leadId,
+      data,
+    }: {
+      leadId: string;
+      data: Record<string, any>;
+    }) => api.updateLead(leadId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipeline', selectedPipelineId] });
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'overview'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'funnel'] });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline", selectedPipelineId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["analytics", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics", "funnel"] });
     },
   });
 
   // Create default pipeline if none exists
   const createPipelineMutation = useMutation({
-    mutationFn: () => api.createPipeline({ name: 'Pipeline Principal' }),
+    mutationFn: () => api.createPipeline({ name: "Pipeline Principal" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      queryClient.invalidateQueries({ queryKey: ["pipelines"] });
     },
   });
 
@@ -82,8 +113,10 @@ export default function LeadsPage() {
   const migrateMutation = useMutation({
     mutationFn: () => api.migratePipeline(selectedPipelineId!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipeline', selectedPipelineId] });
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline", selectedPipelineId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
   });
 
@@ -96,29 +129,34 @@ export default function LeadsPage() {
   // Socket listeners
   useEffect(() => {
     function onLeadChange(data: any) {
-      queryClient.refetchQueries({ queryKey: ['leads'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['pipeline', selectedPipelineId], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ["leads"], type: "active" });
+      queryClient.refetchQueries({
+        queryKey: ["pipeline", selectedPipelineId],
+        type: "active",
+      });
     }
 
     if (!socket.connected) {
       socket.connect();
     }
 
-    socket.on('lead:created', onLeadChange);
-    socket.on('lead:updated', onLeadChange);
-    socket.on('lead:deleted', onLeadChange);
-    socket.on('lead:moved', onLeadChange);
+    socket.on("lead:created", onLeadChange);
+    socket.on("lead:updated", onLeadChange);
+    socket.on("lead:deleted", onLeadChange);
+    socket.on("lead:moved", onLeadChange);
 
     return () => {
-      socket.off('lead:created', onLeadChange);
-      socket.off('lead:updated', onLeadChange);
-      socket.off('lead:deleted', onLeadChange);
-      socket.off('lead:moved', onLeadChange);
+      socket.off("lead:created", onLeadChange);
+      socket.off("lead:updated", onLeadChange);
+      socket.off("lead:deleted", onLeadChange);
+      socket.off("lead:moved", onLeadChange);
     };
   }, [queryClient, selectedPipelineId]);
 
   const isLoading = isPipelineLoading;
-  const currentPipeline = pipelines.find((p: any) => p.id === selectedPipelineId);
+  const currentPipeline = pipelines.find(
+    (p: any) => p.id === selectedPipelineId,
+  );
 
   // Check if there are leads not in pipeline - requires a separate check now since we removed leadsData
   // We can fetch a small count or similar if needed, but the original logic relied on leadsData.
@@ -126,14 +164,18 @@ export default function LeadsPage() {
   // const hasUnmigratedLeads = pipelineData?.stages?.every((s: any) => s.leads.length === 0) &&
   //   (leadsData?.length > 0 || leadsData?.pagination?.total > 0);
 
-  // Since we removed leadsData (which fetched all leads), we might lose this "unmigrated leads" check capability 
+  // Since we removed leadsData (which fetched all leads), we might lose this "unmigrated leads" check capability
   // without a specific query. However, purely removing the list view shouldn't necessarily break this if it's critical.
   // But given standard Kanban usage, if leads aren't in a stage, they aren't in the pipeline.
   // I will comment out the hasUnmigratedLeads logic for now as it depended on the list-view query.
   // If the user wants to keep this feature, we'd need a lightweight 'getUnmigratedLeadsCount' query.
   const hasUnmigratedLeads = false;
 
-  const handleMoveLead = (leadId: string, stageId: string, position: number) => {
+  const handleMoveLead = (
+    leadId: string,
+    stageId: string,
+    position: number,
+  ) => {
     moveLeadMutation.mutate({ leadId, stageId, position });
   };
 
@@ -147,7 +189,7 @@ export default function LeadsPage() {
 
   const handlePipelineChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    if (value === 'create_new') {
+    if (value === "create_new") {
       setIsCreatePipelineOpen(true);
     } else {
       setSelectedPipelineId(value);
@@ -158,7 +200,9 @@ export default function LeadsPage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pipeline de Leads</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Pipeline de Leads
+          </h1>
           <p className="text-gray-600">
             Gerencie seus leads através do funil de vendas
           </p>
@@ -169,7 +213,7 @@ export default function LeadsPage() {
             <>
               <select
                 className="rounded-md border px-3 py-2 text-sm max-w-[200px]"
-                value={selectedPipelineId || ''}
+                value={selectedPipelineId || ""}
                 onChange={handlePipelineChange}
               >
                 {pipelines.map((p: any) => (
@@ -218,8 +262,12 @@ export default function LeadsPage() {
                   max="100"
                   placeholder="Mín"
                   className="w-20 rounded border px-2 py-1 text-sm"
-                  value={scoreMin ?? ''}
-                  onChange={(e) => setScoreMin(e.target.value ? Number(e.target.value) : undefined)}
+                  value={scoreMin ?? ""}
+                  onChange={(e) =>
+                    setScoreMin(
+                      e.target.value ? Number(e.target.value) : undefined,
+                    )
+                  }
                 />
                 <span className="text-gray-500">-</span>
                 <input
@@ -228,8 +276,12 @@ export default function LeadsPage() {
                   max="100"
                   placeholder="Máx"
                   className="w-20 rounded border px-2 py-1 text-sm"
-                  value={scoreMax ?? ''}
-                  onChange={(e) => setScoreMax(e.target.value ? Number(e.target.value) : undefined)}
+                  value={scoreMax ?? ""}
+                  onChange={(e) =>
+                    setScoreMax(
+                      e.target.value ? Number(e.target.value) : undefined,
+                    )
+                  }
                 />
               </div>
 
@@ -254,7 +306,7 @@ export default function LeadsPage() {
               onClick={() => {
                 setScoreMin(undefined);
                 setScoreMax(undefined);
-                setSortBy('');
+                setSortBy("");
               }}
             >
               <X className="h-4 w-4 mr-1" />
@@ -270,7 +322,7 @@ export default function LeadsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSortBy('')}
+            onClick={() => setSortBy("")}
             className="text-gray-600"
           >
             <Filter className="h-4 w-4 mr-2" />
@@ -330,12 +382,11 @@ export default function LeadsPage() {
             Criar Pipeline
           </Button>
         </Card>
-      )
-      }
+      )}
 
       {/* Lead Detail Modal */}
       <LeadDetailModal
-        leadId={selectedLeadId || ''}
+        leadId={selectedLeadId || ""}
         isOpen={!!selectedLeadId}
         onClose={() => setSelectedLeadId(null)}
       />
@@ -368,4 +419,3 @@ export default function LeadsPage() {
     </div>
   );
 }
-

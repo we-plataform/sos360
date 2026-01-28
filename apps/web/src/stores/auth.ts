@@ -1,8 +1,13 @@
-import * as React from 'react';
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import type { AuthUser, CompanyContext, WorkspaceContext, CompanyWithWorkspaces } from '@lia360/shared';
-import { api } from '../lib/api';
+import * as React from "react";
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import type {
+  AuthUser,
+  CompanyContext,
+  WorkspaceContext,
+  CompanyWithWorkspaces,
+} from "@lia360/shared";
+import { api } from "../lib/api";
 
 interface AuthState {
   user: AuthUser | null;
@@ -50,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
           });
           window.location.reload();
         } catch (error) {
-          console.error('Failed to switch workspace:', error);
+          console.error("Failed to switch workspace:", error);
           throw error;
         }
       },
@@ -63,15 +68,18 @@ export const useAuthStore = create<AuthState>()(
           const newWorkspace = await api.createWorkspace(name);
 
           // Update available companies list
-          const updatedCompanies = availableCompanies.map(company => {
+          const updatedCompanies = availableCompanies.map((company) => {
             if (company.id === currentCompany.id) {
               return {
                 ...company,
-                workspaces: [...company.workspaces, {
-                  id: newWorkspace.id,
-                  name: newWorkspace.name,
-                  myRole: newWorkspace.myRole as any
-                }]
+                workspaces: [
+                  ...company.workspaces,
+                  {
+                    id: newWorkspace.id,
+                    name: newWorkspace.name,
+                    myRole: newWorkspace.myRole as any,
+                  },
+                ],
               };
             }
             return company;
@@ -82,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
           // Switch to the new workspace
           await switchWorkspace(newWorkspace.id);
         } catch (error) {
-          console.error('Failed to create workspace:', error);
+          console.error("Failed to create workspace:", error);
           throw error;
         }
       },
@@ -96,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
           });
           window.location.reload();
         } catch (error) {
-          console.error('Failed to switch company:', error);
+          console.error("Failed to switch company:", error);
           throw error;
         }
       },
@@ -108,22 +116,22 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           currentCompany: null,
           currentWorkspace: null,
-          availableCompanies: []
+          availableCompanies: [],
         });
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         currentCompany: state.currentCompany,
         currentWorkspace: state.currentWorkspace,
-        availableCompanies: state.availableCompanies
+        availableCompanies: state.availableCompanies,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // Hook for waiting for hydration in components

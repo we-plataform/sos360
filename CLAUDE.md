@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Lia360 is a lead management and outbound prospecting SaaS platform. It captures leads from social media platforms via a Chrome extension, manages them through a Kanban-style pipeline, and enables automated outreach.
 
 **Core Features**:
+
 - Lead capture from social platforms (LinkedIn, Instagram, Facebook, X)
 - Kanban-style pipeline management
 - Automated outreach and workflows
@@ -43,6 +44,7 @@ npm run build:api        # Build only API and its dependencies
 ## Architecture
 
 ### Monorepo Structure (Turborepo)
+
 - **apps/api**: Express.js REST API + Socket.io (Node.js ESM, TypeScript)
 - **apps/web**: Next.js 14 frontend with Tailwind CSS
 - **apps/extension**: Chrome Manifest V3 extension (vanilla JS)
@@ -50,7 +52,9 @@ npm run build:api        # Build only API and its dependencies
 - **packages/shared**: Zod schemas, types, and constants
 
 ### Multi-Tenancy Model
+
 Three-level hierarchy: **Company → Workspace → User**
+
 - Users can belong to multiple companies
 - Each company has multiple workspaces
 - Leads, pipelines, and conversations are workspace-scoped
@@ -60,11 +64,13 @@ Three-level hierarchy: **Company → Workspace → User**
 ### Key Patterns
 
 **API Authentication**:
+
 - JWT with access + refresh tokens
 - `authenticate` middleware attaches `req.user` with company/workspace context
 - Authorization via `authorize()` and `authorizeCompany()` middleware
 
 **Data Flow**:
+
 1. Chrome extension scrapes social profiles (LinkedIn, Instagram, Facebook, X)
 2. Background script sends to `/api/v1/leads/import`
 3. API validates with Zod schemas, stores via Prisma
@@ -72,10 +78,12 @@ Three-level hierarchy: **Company → Workspace → User**
 5. Real-time updates via Socket.io
 
 **Validation**:
+
 - All API inputs validated with Zod (schemas in `packages/shared/src/schemas/`)
 - Shared schemas between API and frontend
 
 ### Database
+
 - PostgreSQL hosted on Neon (serverless PostgreSQL)
 - `DATABASE_URL`: primary connection with SSL
 - `DIRECT_URL`: direct connection for migrations (same as DATABASE_URL for Neon)
@@ -92,6 +100,7 @@ Three-level hierarchy: **Company → Workspace → User**
 ## Environment Variables
 
 Required for development:
+
 ```env
 DATABASE_URL=postgresql://...      # Neon connection string
 DIRECT_URL=postgresql://...        # Same as DATABASE_URL for Neon
@@ -102,15 +111,18 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 ## Chrome Extension
 
 Load in developer mode:
+
 1. `chrome://extensions` → Enable Developer Mode
 2. "Load unpacked" → Select `apps/extension` folder
 3. Extension connects to API via `VITE_API_URL` or defaults to localhost:3001
 
 **Content Scripts**:
+
 - `content-scripts/linkedin.js` - LinkedIn profile scraping
 - `content-scripts/dashboard-sync.js` - Dashboard synchronization
 
 **Extension Flow**:
+
 1. User visits social profile (LinkedIn, Instagram, etc.)
 2. Content script extracts profile data
 3. Background script sends to `/api/v1/leads/import`
@@ -119,6 +131,7 @@ Load in developer mode:
 ## API Routes Structure
 
 **Core Routes** (`apps/api/src/routes/`):
+
 - `index.ts` - Main route aggregator
 - `auth.ts` - Authentication endpoints (login, register, token refresh)
 - `leads.ts` - Lead CRUD, import, and management
@@ -127,16 +140,18 @@ Load in developer mode:
 - `audiences.ts` - Audience segmentation and targeting
 
 **Authentication Pattern**:
-```typescript
-import { authenticate } from '../middleware/auth.js';
-import { authorize } from '../middleware/auth.js';
 
-router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
+```typescript
+import { authenticate } from "../middleware/auth.js";
+import { authorize } from "../middleware/auth.js";
+
+router.post("/", authenticate, authorize("workspace", "admin"), createHandler);
 ```
 
 ## Frontend Structure
 
 **Pages** (`apps/web/src/app/`):
+
 - `(auth)/` - Authentication flow (login, register, context selection)
 - `(dashboard)/dashboard/` - Main application
   - `leads/` - Lead management with Kanban board
@@ -144,12 +159,14 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
   - `automations/` - (Removed - see KanbanBoard for automation features)
 
 **Key Components**:
+
 - `components/kanban/KanbanBoard.tsx` - Main Kanban interface
 - `components/kanban/KanbanColumn.tsx` - Column rendering
 - `components/leads/LeadDetailModal.tsx` - Lead detail view
 - `components/providers.tsx` - Global providers (Socket.io, React Query)
 
 **UI Library**:
+
 - Built with shadcn/ui components
 - Available components: dialog, label, select, textarea, toaster, button, card, etc.
 - Located in `components/ui/`
@@ -186,8 +203,8 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
    - Always wrap console.log with NODE_ENV check: `if (process.env.NODE_ENV === 'development') { console.log(...); }`
    - Example pattern for development-only logging:
      ```typescript
-     if (process.env.NODE_ENV === 'development') {
-       console.log('Debug info:', data);
+     if (process.env.NODE_ENV === "development") {
+       console.log("Debug info:", data);
      }
      ```
    - **Error logging**: Use console.error for errors (allowed in production)
@@ -197,12 +214,16 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
      - No request bodies with PII
    - **Use structured logging** for API routes:
      ```typescript
-     console.error(`[${new Date().toISOString()}] Error in ${req.path}:`, error.message);
+     console.error(
+       `[${new Date().toISOString()}] Error in ${req.path}:`,
+       error.message,
+     );
      ```
 
 ## Database Schema Highlights
 
 **Key Models**:
+
 - `Lead` - Core lead entity with social profile data
 - `Pipeline` - Customizable workflow stages
 - `Stage` - Individual stages within pipelines
@@ -211,6 +232,7 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
 - `Enrichment` - AI-powered lead qualification data
 
 **LinkedIn-Specific Fields** (Lead model):
+
 - `linkedinProfileUrl` - Profile URL
 - `linkedinHeadline` - Professional headline
 - `linkedinAbout` - About section

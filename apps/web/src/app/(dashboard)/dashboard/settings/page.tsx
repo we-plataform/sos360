@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar } from '@/components/ui/avatar';
-import { ScoringConfigDialog } from '@/components/leads';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth';
-import { Sliders } from 'lucide-react';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
+import { ScoringConfigDialog } from "@/components/leads";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
+import { Sliders } from "lucide-react";
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const currentWorkspace = useAuthStore((state) => state.currentWorkspace);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmail, setInviteEmail] = useState("");
   const [scoringConfigOpen, setScoringConfigOpen] = useState(false);
 
   const { data: users } = useQuery({
-    queryKey: ['users'],
+    queryKey: ["users"],
     queryFn: () => api.getUsers() as any,
   });
 
@@ -26,10 +26,10 @@ export default function SettingsPage() {
     if (!inviteEmail) return;
     try {
       await api.inviteUser(inviteEmail);
-      setInviteEmail('');
+      setInviteEmail("");
       // Refresh users list
     } catch (error) {
-      console.error('Failed to invite user:', error);
+      console.error("Failed to invite user:", error);
     }
   };
 
@@ -52,7 +52,9 @@ export default function SettingsPage() {
               <div>
                 <p className="font-medium">{user?.fullName}</p>
                 <p className="text-sm text-gray-500">{user?.email}</p>
-                <p className="text-xs text-gray-400 capitalize">{currentWorkspace?.role}</p>
+                <p className="text-xs text-gray-400 capitalize">
+                  {currentWorkspace?.role}
+                </p>
               </div>
             </div>
             <Button variant="outline">Editar Perfil</Button>
@@ -76,7 +78,10 @@ export default function SettingsPage() {
 
             <div className="divide-y">
               {users?.map((member: any) => (
-                <div key={member.id} className="flex items-center justify-between py-3">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between py-3"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar fallback={member.fullName} size="sm" />
                     <div>
@@ -119,15 +124,21 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <span className="font-medium">Zapier</span>
-                <Button variant="outline" size="sm">Conectar</Button>
+                <Button variant="outline" size="sm">
+                  Conectar
+                </Button>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <span className="font-medium">Google Calendar</span>
-                <Button variant="outline" size="sm">Conectar</Button>
+                <Button variant="outline" size="sm">
+                  Conectar
+                </Button>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <span className="font-medium">HubSpot CRM</span>
-                <Button variant="outline" size="sm">Conectar</Button>
+                <Button variant="outline" size="sm">
+                  Conectar
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -143,15 +154,20 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-sm text-gray-500">
-              Configure os critérios e pesos para calcular automaticamente a qualidade dos leads com base no seu perfil ideal de cliente (ICP).
+              Configure os critérios e pesos para calcular automaticamente a
+              qualidade dos leads com base no seu perfil ideal de cliente (ICP).
             </p>
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">Configurar Pontuação</p>
-                  <p className="text-xs text-gray-500">Personalizar pesos, ICP e regras</p>
+                  <p className="text-xs text-gray-500">
+                    Personalizar pesos, ICP e regras
+                  </p>
                 </div>
-                <Button onClick={() => setScoringConfigOpen(true)}>Configurar</Button>
+                <Button onClick={() => setScoringConfigOpen(true)}>
+                  Configurar
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -162,7 +178,7 @@ export default function SettingsPage() {
       <ScoringConfigDialog
         open={scoringConfigOpen}
         onOpenChange={setScoringConfigOpen}
-        workspaceId={currentWorkspace?.id || ''}
+        workspaceId={currentWorkspace?.id || ""}
       />
     </div>
   );

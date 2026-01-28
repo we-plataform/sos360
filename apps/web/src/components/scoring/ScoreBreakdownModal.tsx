@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface ScoreFactor {
   score: number;
@@ -68,7 +68,7 @@ export function ScoreBreakdownModal({
         setHistory(response.data.data.history || []);
       }
     } catch (error) {
-      console.error('Failed to fetch score breakdown:', error);
+      console.error("Failed to fetch score breakdown:", error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export function ScoreBreakdownModal({
         await fetchScoreData();
       }
     } catch (error) {
-      console.error('Failed to rescore lead:', error);
+      console.error("Failed to rescore lead:", error);
     } finally {
       setRescoreLoading(false);
     }
@@ -111,7 +111,8 @@ export function ScoreBreakdownModal({
           <DialogHeader>
             <DialogTitle>Score Breakdown</DialogTitle>
             <DialogDescription>
-              No scoring data available. Make sure a scoring model is configured for this pipeline.
+              No scoring data available. Make sure a scoring model is configured
+              for this pipeline.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -120,10 +121,10 @@ export function ScoreBreakdownModal({
   }
 
   const factorLabels: Record<keyof ScoreBreakdown, string> = {
-    jobTitle: 'Job Title Match',
-    company: 'Company Relevance',
-    engagement: 'Engagement & Activity',
-    completeness: 'Profile Completeness',
+    jobTitle: "Job Title Match",
+    company: "Company Relevance",
+    engagement: "Engagement & Activity",
+    completeness: "Profile Completeness",
   };
 
   return (
@@ -133,7 +134,13 @@ export function ScoreBreakdownModal({
           <DialogTitle className="flex items-center justify-between">
             <span>Score Breakdown</span>
             <Badge
-              variant={breakdown.score >= 80 ? 'default' : breakdown.score >= 50 ? 'secondary' : 'destructive'}
+              variant={
+                breakdown.score >= 80
+                  ? "default"
+                  : breakdown.score >= 50
+                    ? "secondary"
+                    : "destructive"
+              }
               className="text-lg px-4 py-1"
             >
               {breakdown.score}/100
@@ -154,7 +161,7 @@ export function ScoreBreakdownModal({
                   Rescoring...
                 </>
               ) : (
-                'Rescore'
+                "Rescore"
               )}
             </Button>
           </DialogDescription>
@@ -163,8 +170,12 @@ export function ScoreBreakdownModal({
         <div className="space-y-6 py-4">
           {/* Factor Scores */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">Factor Scores</h3>
-            {(Object.keys(breakdown.factors) as Array<keyof ScoreBreakdown>).map((factor) => {
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Factor Scores
+            </h3>
+            {(
+              Object.keys(breakdown.factors) as Array<keyof ScoreBreakdown>
+            ).map((factor) => {
               const factorData = breakdown.factors[factor];
               return (
                 <div key={factor} className="space-y-2">
@@ -173,7 +184,9 @@ export function ScoreBreakdownModal({
                     <span className="font-bold">{factorData.score}/100</span>
                   </div>
                   <Progress value={factorData.score} className="h-2" />
-                  <p className="text-xs text-muted-foreground">{factorData.reason}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {factorData.reason}
+                  </p>
                 </div>
               );
             })}
@@ -182,7 +195,9 @@ export function ScoreBreakdownModal({
           {/* Score History */}
           {history.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">Score History</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Score History
+              </h3>
               <div className="space-y-2">
                 {history.slice(0, 5).map((entry) => {
                   const scoreChange = entry.oldScore
@@ -201,16 +216,20 @@ export function ScoreBreakdownModal({
                         {scoreChange !== null && (
                           <div
                             className={cn(
-                              'flex items-center text-xs font-semibold',
-                              scoreChange > 0 && 'text-green-600',
-                              scoreChange < 0 && 'text-red-600',
-                              scoreChange === 0 && 'text-muted-foreground'
+                              "flex items-center text-xs font-semibold",
+                              scoreChange > 0 && "text-green-600",
+                              scoreChange < 0 && "text-red-600",
+                              scoreChange === 0 && "text-muted-foreground",
                             )}
                           >
-                            {scoreChange > 0 && <TrendingUp className="h-3 w-3" />}
-                            {scoreChange < 0 && <TrendingDown className="h-3 w-3" />}
+                            {scoreChange > 0 && (
+                              <TrendingUp className="h-3 w-3" />
+                            )}
+                            {scoreChange < 0 && (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
                             {scoreChange === 0 && <Minus className="h-3 w-3" />}
-                            {scoreChange > 0 && '+'}
+                            {scoreChange > 0 && "+"}
                             {scoreChange}
                           </div>
                         )}

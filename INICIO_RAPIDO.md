@@ -5,6 +5,7 @@
 ### 🐳 Opção 1: Docker (Recomendado)
 
 **Vantagens:**
+
 - ✅ Funciona offline
 - ✅ Ambiente isolado
 - ✅ Sem dependência de serviços externos
@@ -33,6 +34,7 @@ npm run api:dev
 ### ☁️ Opção 2: Supabase
 
 **Vantagens:**
+
 - ✅ Managed service (sem instalação)
 - ✅ Disponível na nuvem
 - ✅ Boa para produção

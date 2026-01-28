@@ -22,6 +22,7 @@ A API deve estar rodando em `http://localhost:3001`
 ### 3. Crie uma conta (se ainda não tem)
 
 **Opção A: Via API**
+
 ```bash
 curl -X POST http://localhost:3001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -34,6 +35,7 @@ curl -X POST http://localhost:3001/api/v1/auth/register \
 ```
 
 **Opção B: Via Dashboard**
+
 1. Acesse `http://localhost:3000/register`
 2. Crie sua conta
 
@@ -47,6 +49,7 @@ curl -X POST http://localhost:3001/api/v1/auth/register \
 ### 5. Teste a importação
 
 **Instagram:**
+
 1. Abra `instagram.com` em nova aba
 2. Faça login (se necessário)
 3. Vá para qualquer perfil (ex: `/username/`)
@@ -55,6 +58,7 @@ curl -X POST http://localhost:3001/api/v1/auth/register \
 6. ✅ Mensagem de sucesso aparece
 
 **Verificar resultado:**
+
 - Clique **"Abrir Dashboard"** na extensão
 - Ou acesse: `http://localhost:3000/dashboard/leads`
 - ✅ Leads importados aparecem na lista
@@ -79,12 +83,15 @@ npm run web:dev
 ## ❗ Problemas Comuns
 
 ### "Plataforma não suportada"
+
 → Você não está em instagram.com, facebook.com ou linkedin.com
 
 ### "Erro ao fazer login"
+
 → API não está rodando ou credenciais incorretas
 
 ### "Nenhum lead encontrado"
+
 → Tente em uma página diferente (perfil, lista de seguidores, etc.)
 
 ## 📚 Documentação Completa

@@ -11,7 +11,9 @@
 ## What Was Done
 
 ### 1. Implementation Verification ✅
+
 Created automated verification script that confirms:
+
 - ✅ `analyzeDeepRateLimit` middleware defined in `rate-limit.ts`
 - ✅ Middleware uses correct `RATE_LIMITS.analyzeDeep` constants
 - ✅ Middleware imported in `leads.ts`
@@ -22,6 +24,7 @@ Created automated verification script that confirms:
 **Result:** All 6 checks passed ✅
 
 ### 2. Test Scripts Created
+
 - **`.test-rate-limit-analyze-deep.js`**: Basic IP-based rate limit test
   - Tests rate limiting without authentication
   - Sends 11 requests (10 + 1 to trigger limit)
@@ -34,6 +37,7 @@ Created automated verification script that confirms:
   - Validates user-based rate limiting
 
 ### 3. Documentation Created
+
 - **`.test-verification-report-deep.md`**: Comprehensive testing guide
   - Implementation verification details
   - Manual testing instructions (4 options)
@@ -51,6 +55,7 @@ Created automated verification script that confirms:
 ## Key Findings
 
 ### Rate Limit: 10 Requests Per Minute
+
 The `/leads/analyze-deep` endpoint has a stricter rate limit (10/min vs 20/min for regular analyze) because:
 
 1. **Uses gpt-4o with vision capabilities**
@@ -71,17 +76,18 @@ The `/leads/analyze-deep` endpoint has a stricter rate limit (10/min vs 20/min f
    - Users should prioritize high-value leads for deep analysis
 
 ### Middleware Implementation
+
 ```typescript
 export const analyzeDeepRateLimit = rateLimit({
-  windowMs: RATE_LIMITS.analyzeDeep.windowMs,  // 60000ms (1 minute)
-  max: RATE_LIMITS.analyzeDeep.max,            // 10 requests
+  windowMs: RATE_LIMITS.analyzeDeep.windowMs, // 60000ms (1 minute)
+  max: RATE_LIMITS.analyzeDeep.max, // 10 requests
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas análises profundas. Tente novamente em alguns minutos.',
+      detail: "Muitas análises profundas. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -98,7 +104,7 @@ export const analyzeDeepRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 ```
@@ -107,18 +113,19 @@ export const analyzeDeepRateLimit = rateLimit({
 
 ## Comparison with Other Endpoints
 
-| Endpoint | Model | Rate Limit | Cost | Rationale |
-|----------|-------|------------|------|-----------|
-| `/analyze` | gpt-4o-mini | 20/min | Low | Cheap, single profile |
-| `/analyze-batch` | gpt-4o-mini | 5/min | Medium | Up to 50 profiles per request |
-| `/analyze-deep` | gpt-4o vision | **10/min** | **High** | Vision processing, multiple posts |
-| `/enrich` | None (DB ops) | 30/min | None | Database writes only |
+| Endpoint         | Model         | Rate Limit | Cost     | Rationale                         |
+| ---------------- | ------------- | ---------- | -------- | --------------------------------- |
+| `/analyze`       | gpt-4o-mini   | 20/min     | Low      | Cheap, single profile             |
+| `/analyze-batch` | gpt-4o-mini   | 5/min      | Medium   | Up to 50 profiles per request     |
+| `/analyze-deep`  | gpt-4o vision | **10/min** | **High** | Vision processing, multiple posts |
+| `/enrich`        | None (DB ops) | 30/min     | None     | Database writes only              |
 
 ---
 
 ## Test Results
 
 ### Automated Verification
+
 ```bash
 $ bash .verify-implementation-deep.sh
 ================================
@@ -149,7 +156,9 @@ Verifying analyzeDeepRateLimit Implementation
 ```
 
 ### Expected Behavior
+
 **Within limit (requests 1-10):**
+
 ```json
 {
   "success": true,
@@ -161,6 +170,7 @@ Verifying analyzeDeepRateLimit Implementation
 ```
 
 **After limit exceeded (11th request):**
+
 ```json
 {
   "success": false,
@@ -212,6 +222,7 @@ Verifying analyzeDeepRateLimit Implementation
 ## Status Update
 
 **Phase 4: Test Rate Limiting**
+
 - subtask-4-1: ✅ Complete (test /leads/analyze)
 - subtask-4-2: ✅ Complete (test /leads/analyze-batch)
 - subtask-4-3: ✅ Complete (test /leads/analyze-deep) **← YOU ARE HERE**

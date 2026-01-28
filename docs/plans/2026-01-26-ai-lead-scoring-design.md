@@ -53,6 +53,7 @@ model ScoringModel {
 ```
 
 **Criteria Schema:**
+
 ```json
 {
   "jobTitles": {
@@ -78,6 +79,7 @@ model ScoringModel {
 ```
 
 **Weights Schema:**
+
 ```json
 {
   "jobTitle": 1.0,
@@ -113,11 +115,18 @@ model ScoreHistory {
 ```
 
 **Factors Schema:**
+
 ```json
 {
   "jobTitle": { "score": 85, "reason": "C-level at target industry company" },
-  "company": { "score": 90, "reason": "Matches target company size and industry" },
-  "engagement": { "score": 70, "reason": "Good follower count, recent activity" },
+  "company": {
+    "score": 90,
+    "reason": "Matches target company size and industry"
+  },
+  "engagement": {
+    "score": 70,
+    "reason": "Good follower count, recent activity"
+  },
   "completeness": { "score": 60, "reason": "Missing phone number" }
 }
 ```
@@ -138,8 +147,10 @@ model Lead {
 ### Factors (each scored 0-100)
 
 #### 1. Job Title Match
+
 **Inputs:** `headline`, `jobTitle`, `experiences`
 **Scoring:**
+
 - Exact match to target titles: 90-100
 - Partial match or related title: 70-89
 - Same seniority, different function: 50-69
@@ -147,8 +158,10 @@ model Lead {
 - No data: 0
 
 #### 2. Company Relevance
+
 **Inputs:** `company`, `companySize`, `industry`, `experiences`
 **Scoring:**
+
 - Target industry + target size: 90-100
 - Target industry, size unknown: 70-89
 - Related industry: 50-69
@@ -156,16 +169,20 @@ model Lead {
 - No data: 0
 
 #### 3. Engagement/Activity
+
 **Inputs:** `followersCount`, `connectionCount`, `postsCount`, `verified`, recent posts
 **Scoring:**
+
 - High engagement (top 25%): 80-100
 - Medium engagement: 50-79
 - Low engagement: 20-49
 - No data: 0
 
 #### 4. Profile Completeness
+
 **Inputs:** Count of populated fields (email, phone, bio, location, website, enrichment data)
 **Scoring:**
+
 - All required + bonus fields: 90-100
 - All required fields: 70-89
 - Most required fields: 50-69
@@ -175,12 +192,11 @@ model Lead {
 ### Final Score Calculation
 
 ```javascript
-const weightedSum = (
+const weightedSum =
   jobTitleScore * weights.jobTitle +
   companyScore * weights.company +
   engagementScore * weights.engagement +
-  completenessScore * weights.completeness
-);
+  completenessScore * weights.completeness;
 
 const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
 const finalScore = Math.round(weightedSum / totalWeight);
@@ -295,6 +311,7 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 ### New Components
 
 #### ScoringModelEditor
+
 - Form to create/edit scoring model
 - Job title builder (add/remove titles, set seniority)
 - Company criteria builder (industries, sizes)
@@ -303,11 +320,13 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 - Preview with sample lead
 
 #### ScoreBadge
+
 - Visual indicator (color-coded: red/yellow/green)
 - Shows score prominently
 - Click to view breakdown
 
 #### ScoreBreakdownModal
+
 - Detailed factor scores
 - Visual progress bars for each factor
 - AI reasoning for each factor
@@ -315,6 +334,7 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 - Rescore button
 
 #### ScoreHistoryChart
+
 - Line chart showing score over time
 - Annotated with enrichment events
 - Highlight significant changes
@@ -322,16 +342,19 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 ### Enhanced Components
 
 #### KanbanCard
+
 - Add `ScoreBadge` component
 - Optional: sort by score within stage
 
 #### LeadDetailModal
+
 - Add "Scoring" tab/section
 - Show score breakdown
 - Show score history
 - Rescore button
 
 #### Pipeline Settings
+
 - Add "Scoring Model" tab
 - Configure model for pipeline
 - Enable/disable auto-scoring
@@ -340,24 +363,28 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 ## Implementation Phases
 
 ### Phase 1: Core Scoring Engine
+
 1. Database schema (ScoringModel, ScoreHistory)
 2. Scoring service with OpenAI integration
 3. API endpoints for model management
 4. Manual rescore endpoint
 
 ### Phase 2: Automation
+
 1. Auto-score on lead import
 2. Auto-score on enrichment
 3. Scheduled batch jobs
 4. Webhook notifications on score changes
 
 ### Phase 3: Frontend
+
 1. ScoringModelEditor component
 2. ScoreBadge component
 3. ScoreBreakdownModal component
 4. Enhance KanbanCard and LeadDetailModal
 
 ### Phase 4: Analytics
+
 1. Score distribution charts
 2. Score history trends
 3. Scoring model effectiveness metrics
@@ -366,24 +393,28 @@ For efficiency, use the existing `analyzeLeadBatch` pattern to score multiple le
 ## Testing Strategy
 
 ### Unit Tests
+
 - Scoring algorithm edge cases
 - Weight calculations
 - Score history tracking
 - Criteria validation
 
 ### Integration Tests
+
 - OpenAI API calls
 - Database operations
 - API endpoints
 - Batch processing
 
 ### E2E Tests
+
 - Lead import with auto-scoring
 - Enrichment trigger re-scoring
 - Model configuration UI
 - Score breakdown display
 
 ### Performance Tests
+
 - Batch rescore 1000 leads
 - Concurrent scoring requests
 - Database query optimization

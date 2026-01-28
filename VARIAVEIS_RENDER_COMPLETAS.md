@@ -5,21 +5,25 @@
 ### 1. DATABASE_URL (CRÍTICO)
 
 **Formato:**
+
 ```
 postgresql://[usuario]:[senha]@[host]:[porta]/[database]?[opcoes]
 ```
 
 **Exemplo Render PostgreSQL:**
+
 ```
 postgresql://postgres:senha123@dpg-abc123-a.oregon-postgres.render.com:5432/lia360_db
 ```
 
 **Exemplo Supabase:**
+
 ```
 postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 **⚠️ IMPORTANTE:**
+
 - ✅ Deve incluir hostname completo
 - ✅ Deve incluir porta
 - ✅ Deve incluir nome do banco
@@ -29,16 +33,19 @@ postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:6543/post
 ### 2. JWT_SECRET (CRÍTICO)
 
 **Formato:**
+
 ```
 [chave-aleatoria-com-pelo-menos-32-caracteres]
 ```
 
 **Exemplo:**
+
 ```
 35ac4034f290bd81be283dba946b45a74b7fd00d2f25109a013f3b931a29ac6c
 ```
 
 **⚠️ IMPORTANTE:**
+
 - ✅ Mínimo 32 caracteres
 - ✅ Use chave aleatória e segura
 - ❌ NÃO reutilize outras chaves
@@ -46,16 +53,19 @@ postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:6543/post
 ### 3. CORS_ORIGINS (CRÍTICO)
 
 **Formato:**
+
 ```
 https://url-frontend.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **Exemplo:**
+
 ```
 https://lia360-web-black.vercel.app,https://*.vercel.app,chrome-extension://*
 ```
 
 **⚠️ IMPORTANTE:**
+
 - ✅ Inclua URL exata do frontend
 - ✅ Inclua wildcard do Vercel para previews
 - ✅ Mantenha `chrome-extension://*` para extensão
@@ -82,11 +92,13 @@ production
 **Quando usar:** Se você usa Supabase ou pgbouncer
 
 **Formato:**
+
 ```
 postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Diferença de DATABASE_URL:**
+
 - `DATABASE_URL`: Porta `6543` com `?pgbouncer=true`
 - `DIRECT_URL`: Porta `5432` sem pgbouncer
 
@@ -95,6 +107,7 @@ postgresql://postgres.abc123:senha@aws-0-sa-east-1.pooler.supabase.com:5432/post
 **Quando usar:** Se você usa Redis (opcional)
 
 **Formato:**
+
 ```
 redis://localhost:6379
 ```

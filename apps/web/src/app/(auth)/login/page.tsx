@@ -1,22 +1,30 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const setContext = useAuthStore((state) => state.setContext);
-  const setAvailableCompanies = useAuthStore((state) => state.setAvailableCompanies);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const setAvailableCompanies = useAuthStore(
+    (state) => state.setAvailableCompanies,
+  );
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,14 +40,17 @@ export default function LoginPage() {
         router.push(`/select-context?token=${data.selectionToken}`);
       } else {
         setContext(data.context.company, data.context.workspace);
-        toast.success('Login realizado com sucesso!', {
+        toast.success("Login realizado com sucesso!", {
           description: `Bem-vindo, ${data.user.fullName}!`,
         });
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     } catch (err) {
-      toast.error('Erro ao fazer login', {
-        description: err instanceof Error ? err.message : 'Verifique suas credenciais e tente novamente.',
+      toast.error("Erro ao fazer login", {
+        description:
+          err instanceof Error
+            ? err.message
+            : "Verifique suas credenciais e tente novamente.",
       });
     } finally {
       setLoading(false);
@@ -58,7 +69,6 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
@@ -87,12 +97,15 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
 
             <p className="text-center text-sm text-gray-600">
-              Não tem uma conta?{' '}
-              <Link href="/register" className="text-indigo-600 hover:underline">
+              Não tem uma conta?{" "}
+              <Link
+                href="/register"
+                className="text-indigo-600 hover:underline"
+              >
                 Criar conta
               </Link>
             </p>

@@ -5,11 +5,13 @@
 ### 1. Obter Credenciais
 
 **Supabase:**
+
 - Dashboard → Settings → API
 - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
 - **anon public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 **API (Render):**
+
 - Dashboard → Settings → Networking
 - **Public URL** → `NEXT_PUBLIC_API_URL`
 

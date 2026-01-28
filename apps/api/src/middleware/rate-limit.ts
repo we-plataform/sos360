@@ -1,27 +1,29 @@
-import rateLimit from 'express-rate-limit';
-import { RATE_LIMITS } from '@lia360/shared';
+import rateLimit from "express-rate-limit";
+import { RATE_LIMITS } from "@lia360/shared";
 
 // Helper to get client IP (works with proxies)
 const getClientIp = (req: any): string => {
   // Try X-Forwarded-For first (most reliable with proxies)
-  const forwarded = req.headers['x-forwarded-for'];
+  const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
     // X-Forwarded-For can contain multiple IPs, take the first one
-    const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0].trim();
+    const ips = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded.split(",")[0].trim();
     if (ips) return ips;
   }
-  
+
   // Fallback to other headers
-  if (req.headers['cf-connecting-ip']) {
-    return req.headers['cf-connecting-ip'] as string;
+  if (req.headers["cf-connecting-ip"]) {
+    return req.headers["cf-connecting-ip"] as string;
   }
-  
-  if (req.headers['x-real-ip']) {
-    return req.headers['x-real-ip'] as string;
+
+  if (req.headers["x-real-ip"]) {
+    return req.headers["x-real-ip"] as string;
   }
-  
+
   // Last resort: use req.ip (requires trust proxy)
-  return req.ip || 'unknown';
+  return req.ip || "unknown";
 };
 
 export const authRateLimit = rateLimit({
@@ -30,10 +32,10 @@ export const authRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas tentativas. Tente novamente em alguns minutos.',
+      detail: "Muitas tentativas. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -46,7 +48,7 @@ export const authRateLimit = rateLimit({
   // Skip rate limiting if we can't determine IP (prevents errors)
   skip: (req) => {
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -56,10 +58,11 @@ export const importRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Limite de importações atingido. Tente novamente em alguns minutos.',
+      detail:
+        "Limite de importações atingido. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -70,7 +73,7 @@ export const importRateLimit = rateLimit({
   },
   skip: (req) => {
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -80,10 +83,10 @@ export const defaultRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas requisições. Tente novamente mais tarde.',
+      detail: "Muitas requisições. Tente novamente mais tarde.",
     },
   },
   standardHeaders: true,
@@ -100,7 +103,7 @@ export const defaultRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -110,10 +113,10 @@ export const analyzeRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas análises. Tente novamente em alguns minutos.',
+      detail: "Muitas análises. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -130,7 +133,7 @@ export const analyzeRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -140,10 +143,10 @@ export const analyzeBatchRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas análises em lote. Tente novamente em alguns minutos.',
+      detail: "Muitas análises em lote. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -160,7 +163,7 @@ export const analyzeBatchRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -170,10 +173,10 @@ export const analyzeDeepRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas análises profundas. Tente novamente em alguns minutos.',
+      detail: "Muitas análises profundas. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -190,7 +193,7 @@ export const analyzeDeepRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });
 
@@ -200,10 +203,11 @@ export const enrichRateLimit = rateLimit({
   message: {
     success: false,
     error: {
-      type: 'rate_limited',
-      title: 'Too Many Requests',
+      type: "rate_limited",
+      title: "Too Many Requests",
       status: 429,
-      detail: 'Muitas requisições de enriquecimento. Tente novamente em alguns minutos.',
+      detail:
+        "Muitas requisições de enriquecimento. Tente novamente em alguns minutos.",
     },
   },
   standardHeaders: true,
@@ -220,6 +224,6 @@ export const enrichRateLimit = rateLimit({
     // Skip if we can't determine identity
     if (req.user?.id) return false;
     const ip = getClientIp(req);
-    return ip === 'unknown';
+    return ip === "unknown";
   },
 });

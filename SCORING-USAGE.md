@@ -5,7 +5,7 @@
 No frontend, você pode configurar o scoring para cada pipeline:
 
 ```tsx
-import { ScoringModelEditor } from '@/components/scoring';
+import { ScoringModelEditor } from "@/components/scoring";
 
 export function PipelineSettings({ pipelineId }: { pipelineId: string }) {
   const [open, setOpen] = useState(false);
@@ -31,8 +31,8 @@ export function PipelineSettings({ pipelineId }: { pipelineId: string }) {
 ## 2. Mostrar Score nos Cards dos Leads
 
 ```tsx
-import { ScoreBadge } from '@/components/scoring';
-import { ScoreBreakdownModal } from '@/components/scoring';
+import { ScoreBadge } from "@/components/scoring";
+import { ScoreBreakdownModal } from "@/components/scoring";
 
 export function LeadCard({ lead }: { lead: Lead }) {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
@@ -45,10 +45,7 @@ export function LeadCard({ lead }: { lead: Lead }) {
           <p>{lead.jobTitle}</p>
         </div>
 
-        <ScoreBadge
-          score={lead.score}
-          onClick={() => setBreakdownOpen(true)}
-        />
+        <ScoreBadge score={lead.score} onClick={() => setBreakdownOpen(true)} />
       </div>
 
       <ScoreBreakdownModal
@@ -74,7 +71,7 @@ const { score, factors, classification, history } = response.data;
 
 ```typescript
 const response = await api.post(`/api/v1/leads/${leadId}/rescore`, {
-  force: true
+  force: true,
 });
 const { score, classification } = response.data;
 ```
@@ -82,8 +79,8 @@ const { score, classification } = response.data;
 ### Batch Rescore
 
 ```typescript
-const response = await api.post('/api/v1/leads/batch-rescore', {
-  pipelineId: 'pipeline-123'
+const response = await api.post("/api/v1/leads/batch-rescore", {
+  pipelineId: "pipeline-123",
   // ou leadIds: ['lead-1', 'lead-2', ...]
 });
 ```

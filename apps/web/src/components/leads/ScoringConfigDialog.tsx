@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
+import { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -10,36 +10,36 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
-import { X, Plus, Trash2 } from 'lucide-react';
-import type { CompanySize } from '@lia360/shared';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
+import { X, Plus, Trash2 } from "lucide-react";
+import type { CompanySize } from "@lia360/shared";
 
 const companySizes: CompanySize[] = [
-  'SIZE_1_10',
-  'SIZE_11_50',
-  'SIZE_51_200',
-  'SIZE_201_500',
-  'SIZE_501_1000',
-  'SIZE_1001_5000',
-  'SIZE_5001_10000',
-  'SIZE_10001_PLUS',
+  "SIZE_1_10",
+  "SIZE_11_50",
+  "SIZE_51_200",
+  "SIZE_201_500",
+  "SIZE_501_1000",
+  "SIZE_1001_5000",
+  "SIZE_5001_10000",
+  "SIZE_10001_PLUS",
 ];
 
 const companySizeLabels: Record<CompanySize, string> = {
-  SIZE_1_10: '1-10',
-  SIZE_11_50: '11-50',
-  SIZE_51_200: '51-200',
-  SIZE_201_500: '201-500',
-  SIZE_501_1000: '501-1,000',
-  SIZE_1001_5000: '1,001-5,000',
-  SIZE_5001_10000: '5,001-10,000',
-  SIZE_10001_PLUS: '10,001+',
+  SIZE_1_10: "1-10",
+  SIZE_11_50: "11-50",
+  SIZE_51_200: "51-200",
+  SIZE_201_500: "201-500",
+  SIZE_501_1000: "501-1,000",
+  SIZE_1001_5000: "1,001-5,000",
+  SIZE_5001_10000: "5,001-10,000",
+  SIZE_10001_PLUS: "10,001+",
 };
 
 interface ScoringConfigDialogProps {
@@ -63,18 +63,21 @@ const scoringConfigSchema = z
     autoScoreOnImport: z.boolean(),
     autoScoreOnUpdate: z.boolean(),
   })
-  .refine((data) => {
-    const total =
-      data.jobTitleWeight +
-      data.companyWeight +
-      data.profileCompletenessWeight +
-      data.activityWeight +
-      data.enrichmentWeight;
-    return total === 100;
-  }, {
-    message: 'Os pesos devem somar 100%',
-    path: ['jobTitleWeight'],
-  });
+  .refine(
+    (data) => {
+      const total =
+        data.jobTitleWeight +
+        data.companyWeight +
+        data.profileCompletenessWeight +
+        data.activityWeight +
+        data.enrichmentWeight;
+      return total === 100;
+    },
+    {
+      message: "Os pesos devem somar 100%",
+      path: ["jobTitleWeight"],
+    },
+  );
 
 type ScoringConfigForm = z.infer<typeof scoringConfigSchema>;
 
@@ -114,7 +117,7 @@ export function ScoringConfigDialog({
 
   // Fetch existing config
   const { data: existingConfig } = useQuery({
-    queryKey: ['scoring-config'],
+    queryKey: ["scoring-config"],
     queryFn: () => api.getScoringConfig(),
     enabled: open,
     retry: false,
@@ -154,14 +157,17 @@ export function ScoringConfigDialog({
       }
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['scoring-config'], type: 'active' });
-      toast.success('Configuração de pontuação salva com sucesso!');
+      queryClient.refetchQueries({
+        queryKey: ["scoring-config"],
+        type: "active",
+      });
+      toast.success("Configuração de pontuação salva com sucesso!");
       resetForm();
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao salvar configuração');
+      toast.error(error.message || "Erro ao salvar configuração");
     },
   });
 
@@ -188,7 +194,7 @@ export function ScoringConfigDialog({
 
   const handleChange = (
     field: keyof ScoringConfigForm,
-    value: string | number | boolean | string[]
+    value: string | number | boolean | string[],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field
@@ -198,14 +204,14 @@ export function ScoringConfigDialog({
   };
 
   const addTargetJobTitle = () => {
-    const input = document.getElementById('new-job-title') as HTMLInputElement;
+    const input = document.getElementById("new-job-title") as HTMLInputElement;
     const value = input?.value?.trim();
     if (value && !formData.targetJobTitles.includes(value)) {
       setFormData((prev) => ({
         ...prev,
         targetJobTitles: [...prev.targetJobTitles, value],
       }));
-      if (input) input.value = '';
+      if (input) input.value = "";
     }
   };
 
@@ -217,14 +223,14 @@ export function ScoringConfigDialog({
   };
 
   const addTargetIndustry = () => {
-    const input = document.getElementById('new-industry') as HTMLInputElement;
+    const input = document.getElementById("new-industry") as HTMLInputElement;
     const value = input?.value?.trim();
     if (value && !formData.targetIndustries.includes(value)) {
       setFormData((prev) => ({
         ...prev,
         targetIndustries: [...prev.targetIndustries, value],
       }));
-      if (input) input.value = '';
+      if (input) input.value = "";
     }
   };
 
@@ -259,7 +265,8 @@ export function ScoringConfigDialog({
         <DialogHeader>
           <DialogTitle>Configuração de Pontuação de Leads</DialogTitle>
           <DialogDescription>
-            Personalize os critérios e pesos para calcular automaticamente a qualidade dos leads.
+            Personalize os critérios e pesos para calcular automaticamente a
+            qualidade dos leads.
           </DialogDescription>
         </DialogHeader>
 
@@ -282,7 +289,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="jobTitleWeight" className="text-sm">
                   Título do Cargo
                 </Label>
-                <span className="text-sm font-medium">{formData.jobTitleWeight}%</span>
+                <span className="text-sm font-medium">
+                  {formData.jobTitleWeight}%
+                </span>
               </div>
               <Input
                 id="jobTitleWeight"
@@ -290,7 +299,9 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.jobTitleWeight}
-                onChange={(e) => handleChange('jobTitleWeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange("jobTitleWeight", parseInt(e.target.value))
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -304,7 +315,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="companyWeight" className="text-sm">
                   Empresa
                 </Label>
-                <span className="text-sm font-medium">{formData.companyWeight}%</span>
+                <span className="text-sm font-medium">
+                  {formData.companyWeight}%
+                </span>
               </div>
               <Input
                 id="companyWeight"
@@ -312,7 +325,9 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.companyWeight}
-                onChange={(e) => handleChange('companyWeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange("companyWeight", parseInt(e.target.value))
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -326,7 +341,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="profileCompletenessWeight" className="text-sm">
                   Completude do Perfil
                 </Label>
-                <span className="text-sm font-medium">{formData.profileCompletenessWeight}%</span>
+                <span className="text-sm font-medium">
+                  {formData.profileCompletenessWeight}%
+                </span>
               </div>
               <Input
                 id="profileCompletenessWeight"
@@ -334,7 +351,12 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.profileCompletenessWeight}
-                onChange={(e) => handleChange('profileCompletenessWeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange(
+                    "profileCompletenessWeight",
+                    parseInt(e.target.value),
+                  )
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -348,7 +370,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="activityWeight" className="text-sm">
                   Atividade
                 </Label>
-                <span className="text-sm font-medium">{formData.activityWeight}%</span>
+                <span className="text-sm font-medium">
+                  {formData.activityWeight}%
+                </span>
               </div>
               <Input
                 id="activityWeight"
@@ -356,7 +380,9 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.activityWeight}
-                onChange={(e) => handleChange('activityWeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange("activityWeight", parseInt(e.target.value))
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -370,7 +396,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="enrichmentWeight" className="text-sm">
                   Enriquecimento
                 </Label>
-                <span className="text-sm font-medium">{formData.enrichmentWeight}%</span>
+                <span className="text-sm font-medium">
+                  {formData.enrichmentWeight}%
+                </span>
               </div>
               <Input
                 id="enrichmentWeight"
@@ -378,7 +406,9 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.enrichmentWeight}
-                onChange={(e) => handleChange('enrichmentWeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange("enrichmentWeight", parseInt(e.target.value))
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -389,7 +419,9 @@ export function ScoringConfigDialog({
 
           {/* Target Criteria - ICP */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Perfil Ideal de Cliente (ICP)</h3>
+            <h3 className="text-sm font-semibold">
+              Perfil Ideal de Cliente (ICP)
+            </h3>
 
             {/* Target Job Titles */}
             <div className="space-y-2">
@@ -399,7 +431,7 @@ export function ScoringConfigDialog({
                   id="new-job-title"
                   placeholder="Ex: CEO, CTO, VP of Engineering"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       addTargetJobTitle();
                     }
@@ -446,8 +478,8 @@ export function ScoringConfigDialog({
                     onClick={() => toggleCompanySize(size)}
                     className={`px-3 py-2 text-sm rounded-md border transition-colors ${
                       formData.targetCompanySizes.includes(size)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background hover:bg-secondary'
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-secondary"
                     }`}
                   >
                     {companySizeLabels[size]}
@@ -464,7 +496,7 @@ export function ScoringConfigDialog({
                   id="new-industry"
                   placeholder="Ex: Tecnologia, Software, Saúde"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       addTargetIndustry();
                     }
@@ -506,7 +538,9 @@ export function ScoringConfigDialog({
                 <Label htmlFor="minProfileCompleteness" className="text-sm">
                   Completude Mínima do Perfil
                 </Label>
-                <span className="text-sm font-medium">{formData.minProfileCompleteness}%</span>
+                <span className="text-sm font-medium">
+                  {formData.minProfileCompleteness}%
+                </span>
               </div>
               <Input
                 id="minProfileCompleteness"
@@ -514,7 +548,12 @@ export function ScoringConfigDialog({
                 min="0"
                 max="100"
                 value={formData.minProfileCompleteness}
-                onChange={(e) => handleChange('minProfileCompleteness', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange(
+                    "minProfileCompleteness",
+                    parseInt(e.target.value),
+                  )
+                }
                 className="w-full cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
@@ -529,7 +568,10 @@ export function ScoringConfigDialog({
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="autoScoreOnImport" className="text-sm cursor-pointer">
+                <Label
+                  htmlFor="autoScoreOnImport"
+                  className="text-sm cursor-pointer"
+                >
                   Pontuar ao Importar
                 </Label>
                 <p className="text-xs text-muted-foreground">
@@ -540,14 +582,19 @@ export function ScoringConfigDialog({
                 id="autoScoreOnImport"
                 type="checkbox"
                 checked={formData.autoScoreOnImport}
-                onChange={(e) => handleChange('autoScoreOnImport', e.target.checked)}
+                onChange={(e) =>
+                  handleChange("autoScoreOnImport", e.target.checked)
+                }
                 className="w-4 h-4 cursor-pointer"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="autoScoreOnUpdate" className="text-sm cursor-pointer">
+                <Label
+                  htmlFor="autoScoreOnUpdate"
+                  className="text-sm cursor-pointer"
+                >
                   Pontuar ao Atualizar
                 </Label>
                 <p className="text-xs text-muted-foreground">
@@ -558,7 +605,9 @@ export function ScoringConfigDialog({
                 id="autoScoreOnUpdate"
                 type="checkbox"
                 checked={formData.autoScoreOnUpdate}
-                onChange={(e) => handleChange('autoScoreOnUpdate', e.target.checked)}
+                onChange={(e) =>
+                  handleChange("autoScoreOnUpdate", e.target.checked)
+                }
                 className="w-4 h-4 cursor-pointer"
               />
             </div>
@@ -573,8 +622,13 @@ export function ScoringConfigDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={saveConfigMutation.isPending || weightError}>
-              {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
+            <Button
+              type="submit"
+              disabled={saveConfigMutation.isPending || weightError}
+            >
+              {saveConfigMutation.isPending
+                ? "Salvando..."
+                : "Salvar Configuração"}
             </Button>
           </DialogFooter>
         </form>

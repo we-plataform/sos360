@@ -13,6 +13,7 @@
 ## Why Production Needs Update
 
 The production deployment is currently failing with 502 errors. This is likely because:
+
 1. It's still configured to use Supabase database credentials
 2. The Supabase database may have been deprecated or connection failed
 3. Neon migration was completed in development but not yet applied to production
@@ -44,6 +45,7 @@ DIRECT_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-po
 ### Step 3: Remove Supabase Variables
 
 Delete these variables if they exist:
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `SUPABASE_ANON_KEY`
@@ -52,6 +54,7 @@ Delete these variables if they exist:
 ### Step 4: Verify Other Variables
 
 Make sure these are still set:
+
 - `NODE_ENV=production`
 - `JWT_SECRET` (your existing secret)
 - `PORT` (Railway auto-sets this, typically 8080 or 3001)
@@ -60,6 +63,7 @@ Make sure these are still set:
 ### Step 5: Trigger Deployment
 
 Railway will automatically redeploy when you save variables. You can also:
+
 1. Go to the **Deployments** tab
 2. Click **Redeploy** on the latest deployment
 
@@ -72,6 +76,7 @@ Railway will automatically redeploy when you save variables. You can also:
 Go to Railway → Your Service → Deployments → Click on latest deployment
 
 **Look for successful connection logs:**
+
 ```
 [Database] ✓ Database connected successfully
 [Database] Hostname: ep-floral-surf-ac2o21mi-pooler.sa-east-1.aws.neon.tech
@@ -79,6 +84,7 @@ Server is ready to accept connections
 ```
 
 **Error logs to avoid:**
+
 ```
 Error: Can't reach database server
 PrismaClientInitializationError: Connection refused
@@ -91,8 +97,9 @@ curl https://lia360api-production.up.railway.app/health
 ```
 
 **Expected response:**
+
 ```json
-{"status":"ok","timestamp":"2025-01-21T..."}
+{ "status": "ok", "timestamp": "2025-01-21T..." }
 ```
 
 ### 3. Test Authentication
@@ -107,6 +114,7 @@ curl -X POST https://lia360api-production.up.railway.app/api/v1/auth/login \
 ```
 
 **Expected response:**
+
 ```json
 {
   "data": {
@@ -127,6 +135,7 @@ curl https://lia360api-production.up.railway.app/api/v1/pipelines \
 ```
 
 **Expected response:**
+
 ```json
 {
   "data": [...],
@@ -159,6 +168,7 @@ If production has issues after migration:
 ### Option 2: Check Development Environment
 
 1. Verify development still works with Neon:
+
    ```bash
    npm run dev
    curl http://localhost:3001/health
@@ -232,6 +242,7 @@ After updating production:
 **Cause**: Database connection not established yet
 
 **Solution**:
+
 1. Wait 2-3 minutes for Neon to accept connection
 2. Check Railway deployment logs
 3. Verify `DATABASE_URL` is correct (no typos)
@@ -242,6 +253,7 @@ After updating production:
 **Cause**: Neon requires SSL or firewall blocking
 
 **Solution**:
+
 - Ensure `?sslmode=require` is in connection string
 - Check Railway's network settings
 - Verify Neon allows connections from Railway's IPs
@@ -251,6 +263,7 @@ After updating production:
 **Cause**: Schema not synchronized
 
 **Solution**:
+
 ```bash
 # From local machine with production DATABASE_URL
 DATABASE_URL="..." npx prisma db push --skip-generate

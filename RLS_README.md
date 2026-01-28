@@ -21,6 +21,7 @@
 6. Aguarde confirmação (deve levar ~2 minutos)
 
 **Verificar se funcionou:**
+
 - Execute o script `rls_verification.sql` no mesmo SQL Editor
 - Deve mostrar: ✅ 6 funções auth, ✅ 40 tabelas com RLS, ✅ 150+ políticas
 
@@ -53,6 +54,7 @@ npm run api:dev
 ```
 
 **Teste básico:**
+
 1. Faça login com Usuário A (Workspace W1)
 2. Crie um lead
 3. Faça login com Usuário B (Workspace W2)
@@ -80,12 +82,15 @@ npm run api:dev
 ## 🆘 Problemas?
 
 ### Erro: "unrecognized configuration parameter"
+
 **Solução:** O Neon usa PostgreSQL 15+, isso não deve acontecer. Verifique se executou o SQL completo.
 
 ### Queries retornam zero resultados
+
 **Solução:** Variáveis de sessão não foram definidas. Verifique se o middleware foi atualizado corretamente.
 
 ### RLS não está filtrando
+
 **Solução:** Execute `rls_verification.sql` para verificar se todas as políticas foram criadas.
 
 ---

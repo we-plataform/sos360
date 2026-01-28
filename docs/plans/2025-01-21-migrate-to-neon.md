@@ -13,6 +13,7 @@
 ## Prerequisites
 
 **Before starting:**
+
 - You must have created a Neon project
 - Get your Neon connection strings from: https://console.neon.tech/
 - Neon connection string format: `postgresql://[user]:[password]@[neon-host]/[database]?sslmode=require`
@@ -26,6 +27,7 @@
 **Why:** Preserve existing data before switching databases.
 
 **Files:**
+
 - Read: `.env` (Supabase credentials)
 - Create: `scripts/export-supabase-data.sql`
 
@@ -72,15 +74,18 @@ Expected: File exists with size > 0
 ## Task 2: Update Environment Variables
 
 **Files:**
+
 - Modify: `.env`
 
 **Step 1: Get Neon connection strings**
 
 From Neon console, copy:
+
 - **Connection string** (with pooling) → will be `DATABASE_URL`
 - **Connection string** (without pooling) → will be `DIRECT_URL`
 
 Format should look like:
+
 ```
 postgresql://[user]:[password]@[region].neon.tech/[database]?sslmode=require
 ```
@@ -100,6 +105,7 @@ DIRECT_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=requ
 ```
 
 **Important:** Get the actual connection strings from your Neon console:
+
 - Go to https://console.neon.tech/
 - Select your project
 - Copy the connection strings from the dashboard
@@ -107,6 +113,7 @@ DIRECT_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=requ
 **Step 3: Remove Supabase-specific variables**
 
 Edit `.env`, remove or comment lines 27-31:
+
 ```bash
 # SUPABASE_URL=
 # SUPABASE_SERVICE_KEY=
@@ -128,6 +135,7 @@ Expected: Output shows new Neon URLs
 ## Task 3: Update Database Configuration
 
 **Files:**
+
 - Modify: `packages/database/src/index.ts`
 - Modify: `apps/api/src/config/env.ts`
 
@@ -141,8 +149,16 @@ Edit `packages/database/src/index.ts`, remove lines 267-293:
 // SUPABASE CLIENT (OPTIONAL)
 // ============================================
 
-const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+const supabaseUrl = (
+  process.env.SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  ""
+).trim();
+const supabaseKey = (
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  ""
+).trim();
 
 let supabase: ReturnType<typeof createClient> | null = null;
 
@@ -154,21 +170,22 @@ if (supabaseUrl && supabaseKey) {
         persistSession: false,
       },
     });
-    console.log('[Database] Supabase Client initialized');
+    console.log("[Database] Supabase Client initialized");
   } catch (error) {
-    console.warn('[Database] Supabase initialization failed:', error);
+    console.warn("[Database] Supabase initialization failed:", error);
     supabase = null;
   }
 } else {
-  console.log('[Database] Supabase not configured (optional)');
+  console.log("[Database] Supabase not configured (optional)");
 }
 
 export { supabase };
 ```
 
 Also remove the import at line 2:
+
 ```typescript
-import { createClient } from '@supabase/supabase-js';  // DELETE THIS LINE
+import { createClient } from "@supabase/supabase-js"; // DELETE THIS LINE
 ```
 
 **Step 2: Remove Supabase from validation in API config**
@@ -176,13 +193,15 @@ import { createClient } from '@supabase/supabase-js';  // DELETE THIS LINE
 Edit `apps/api/src/config/env.ts`, remove line 11 from the filter:
 
 Before:
+
 ```typescript
-k.startsWith('SUPABASE')
+k.startsWith("SUPABASE");
 ```
 
 After: Remove that line entirely.
 
 Also remove from schema (lines 37-38):
+
 ```typescript
 // DELETE these lines:
 SUPABASE_URL: z.string().optional(),
@@ -194,24 +213,32 @@ SUPABASE_SERVICE_KEY: z.string().optional(),
 Edit `packages/database/src/index.ts`, update the error message at lines 75-76:
 
 Before:
+
 ```typescript
-console.error('[Database] For Supabase with pgbouncer:');
-console.error('[Database]   postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true');
+console.error("[Database] For Supabase with pgbouncer:");
+console.error(
+  "[Database]   postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true",
+);
 ```
 
 After:
+
 ```typescript
-console.error('[Database] For Neon:');
-console.error('[Database]   postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require');
+console.error("[Database] For Neon:");
+console.error(
+  "[Database]   postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require",
+);
 ```
 
 Also update line 19 similarly:
+
 ```typescript
 // Before: "For Supabase with pgbouncer, ensure:"
 // After: "For Neon with connection pooling, ensure:"
 ```
 
 And lines 20-21:
+
 ```typescript
 // Before: DATABASE_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
 // After: DATABASE_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
@@ -224,6 +251,7 @@ And lines 20-21:
 **Why:** Create all tables in the new Neon database.
 
 **Files:**
+
 - Run: `packages/database/prisma/schema.prisma`
 
 **Step 1: Regenerate Prisma client**
@@ -241,6 +269,7 @@ npm run db:push
 ```
 
 Expected:
+
 ```
 ✔ Enter Prisma schema to push...
 The following migration(s) have been created and applied from new schema changes:
@@ -255,6 +284,7 @@ Your database is now in sync with your schema.
 **Step 3: Verify tables created**
 
 You can verify in Neon console:
+
 1. Go to https://console.neon.tech/
 2. Select your project
 3. Click "SQL Editor"
@@ -269,6 +299,7 @@ Expected: List of tables (Company, Workspace, User, Lead, Pipeline, Stage, etc.)
 **Why:** Restore exported data from Supabase.
 
 **Files:**
+
 - Use: `scripts/backup/supabase-data-*.sql` (from Task 1)
 
 **Step 1: Import data using psql**
@@ -284,6 +315,7 @@ Expected: No errors, or "INSERT 0 X" messages
 **Step 2: Verify data in Neon**
 
 In Neon SQL Editor, run:
+
 ```sql
 SELECT COUNT(*) FROM "Company";
 SELECT COUNT(*) FROM "Workspace";
@@ -302,6 +334,7 @@ Expected: Counts match your data
 **Why:** Verify everything works with the new Neon database.
 
 **Files:**
+
 - Test: `apps/api/src/config/env.ts`
 - Test: `packages/database/src/index.ts`
 
@@ -312,6 +345,7 @@ npm run api:dev
 ```
 
 Expected output:
+
 ```
 [Config] Environment validated successfully
 [Database] =======================================
@@ -331,6 +365,7 @@ Expected output:
 **Step 2: Test database query**
 
 In another terminal, run:
+
 ```bash
 node -e "
   const { PrismaClient } = require('@packages/database');
@@ -357,6 +392,7 @@ curl http://localhost:3001/api/v1/health
 ```
 
 Or if health endpoint doesn't exist:
+
 ```bash
 curl http://localhost:3001/api/v1/pipelines -H "Authorization: Bearer test-token"
 ```
@@ -389,6 +425,7 @@ Expected: All functionality works as before
 **Why:** Keep documentation accurate for future developers.
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 - Modify: `README.md`
 - Modify: `packages/database/prisma/schema.prisma`
@@ -398,30 +435,37 @@ Expected: All functionality works as before
 Edit `CLAUDE.md`, section "Database", replace lines about Supabase:
 
 Before:
+
 ```markdown
 ### Database
+
 - PostgreSQL hosted on Supabase (connection pooling via pgBouncer)
 - `DATABASE_URL`: pooled connection (port 6543)
 - `DIRECT_URL`: direct connection for migrations (port 5432)
 ```
 
 After:
+
 ```markdown
 ### Database
+
 - PostgreSQL hosted on Neon (serverless PostgreSQL)
 - `DATABASE_URL`: primary connection with SSL
 - `DIRECT_URL`: direct connection for migrations (same as DATABASE_URL for Neon)
 ```
 
 Also update in "Environment Variables" section:
-```markdown
+
+````markdown
 Required for development:
+
 ```env
 DATABASE_URL=postgresql://...      # Neon connection string
 DIRECT_URL=postgresql://...        # Same as DATABASE_URL for Neon
 JWT_SECRET=<min 32 chars>
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
+````
 
 **Step 2: Update README.md**
 
@@ -432,6 +476,7 @@ Find and replace any mention of Supabase with Neon in the README.
 Edit `packages/database/prisma/schema.prisma`, line 15-20:
 
 Before:
+
 ```prisma
 // NOTE: For Supabase with pgbouncer, ensure:
 // DATABASE_URL=postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
@@ -439,6 +484,7 @@ Before:
 ```
 
 After:
+
 ```prisma
 // NOTE: For Neon, ensure:
 // DATABASE_URL=postgresql://[user]:[password]@[region].neon.tech/neondb?sslmode=require
@@ -462,6 +508,7 @@ Expected: Package removed from package.json and node_modules
 **Step 1: Backup old connection strings**
 
 Create a reference file (optional):
+
 ```bash
 echo "SUPABASE_OLD_URL=$DIRECT_URL" >> scripts/backup/.supabase-backup
 ```
@@ -469,6 +516,7 @@ echo "SUPABASE_OLD_URL=$DIRECT_URL" >> scripts/backup/.supabase-backup
 **Step 2: Delete Supabase project (optional)**
 
 If you're sure everything works:
+
 1. Go to https://supabase.com/dashboard
 2. Select your project
 3. Project Settings → General
@@ -483,6 +531,7 @@ If you're sure everything works:
 **Why:** Ensure production environment also uses Neon.
 
 **Files:**
+
 - Update: Render/Railway/your-host environment variables
 
 **Step 1: Update production environment variables**
@@ -570,21 +619,25 @@ After completing all tasks, verify:
 ## Troubleshooting
 
 **Connection fails:**
+
 - Verify DATABASE_URL is correct (copy from Neon console)
 - Check SSL mode is enabled (`?sslmode=require`)
 - Ensure Neon project is active (not suspended)
 
 **Data import errors:**
+
 - Check if export file exists and is valid SQL
 - Verify tables were created with `npm run db:push`
 - Check Neon logs in console
 
 **API errors:**
+
 - Check API logs for database connection errors
 - Verify Prisma client was regenerated: `npm run db:generate`
 - Test database connection manually with psql
 
 **Performance issues:**
+
 - Neon uses connection pooling by default
 - Check Neon metrics dashboard for connection limits
 - Consider upgrading Neon plan if hitting limits
@@ -608,17 +661,20 @@ After successful migration, consider:
 If migration fails:
 
 1. **Restore .env from backup:**
+
    ```bash
    git checkout HEAD -- .env
    # Then manually restore Supabase URLs from your backup
    ```
 
 2. **Restore Supabase client code:**
+
    ```bash
    git checkout HEAD -- packages/database/src/index.ts apps/api/src/config/env.ts
    ```
 
 3. **Reinstall Supabase package:**
+
    ```bash
    npm install @supabase/supabase-js
    ```

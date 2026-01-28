@@ -66,12 +66,14 @@
 ### If Something Goes Wrong
 
 **Rollback** (5 minutes):
+
 - [ ] Go to Railway → Variables tab
 - [ ] Restore Supabase `DATABASE_URL` from: `scripts/backup/.env.temp.supabase-backup`
 - [ ] Click **Save Changes**
 - [ ] Verify deployment recovers
 
 **Get Help**:
+
 - [ ] Read: `docs/PRODUCTION_DEPLOYMENT_NEON.md`
 - [ ] Check: Railway deployment logs
 - [ ] Check: Neon dashboard metrics

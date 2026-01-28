@@ -6,11 +6,11 @@ Este documento descreve a arquitetura técnica do sistema de prospecção outbou
 
 ### 1.1 Objetivos do MVP
 
-| Mês | Entregáveis |
-|-----|-------------|
-| 1 | Fundação: infraestrutura, auth, CRUD leads, importação CSV |
-| 2 | Extensão Chrome (Instagram/Facebook/LinkedIn), sistema de tags |
-| 3 | Inbox unificado, templates de mensagens, automação simples, analytics básico |
+| Mês | Entregáveis                                                                  |
+| --- | ---------------------------------------------------------------------------- |
+| 1   | Fundação: infraestrutura, auth, CRUD leads, importação CSV                   |
+| 2   | Extensão Chrome (Instagram/Facebook/LinkedIn), sistema de tags               |
+| 3   | Inbox unificado, templates de mensagens, automação simples, analytics básico |
 
 ### 1.2 Princípios Arquiteturais
 
@@ -26,19 +26,19 @@ Este documento descreve a arquitetura técnica do sistema de prospecção outbou
 
 ### 2.1 Decisões Técnicas
 
-| Camada | Tecnologia | Justificativa |
-|--------|------------|---------------|
-| **Monorepo** | Turborepo | Builds incrementais, cache compartilhado, gestão simplificada |
-| **Backend** | Node.js 20 + Express | Ecossistema maduro, performance adequada, equipe familiarizada |
-| **ORM** | Prisma | Type-safety, migrations, DX excelente |
-| **Banco Relacional** | Neon (PostgreSQL) | ACID, JSONB, serverless, extensões |
-| **Cache/Queue** | Redis 7 (opcional) | In-memory rápido, fallback para memória |
-| **Frontend** | Next.js 14 (App Router) | SSR/SSG, RSC, ecossistema React |
-| **UI** | Tailwind CSS + shadcn/ui | Customizável, componentes acessíveis |
-| **State** | Zustand + TanStack Query | Leve, cache de servidor integrado |
-| **Realtime** | Socket.io | Fallback automático, rooms, reconexão |
-| **Extensão** | Chrome Manifest V3 | Padrão atual, service workers |
-| **Infra** | Docker + Docker Compose | Desenvolvimento local consistente |
+| Camada               | Tecnologia               | Justificativa                                                  |
+| -------------------- | ------------------------ | -------------------------------------------------------------- |
+| **Monorepo**         | Turborepo                | Builds incrementais, cache compartilhado, gestão simplificada  |
+| **Backend**          | Node.js 20 + Express     | Ecossistema maduro, performance adequada, equipe familiarizada |
+| **ORM**              | Prisma                   | Type-safety, migrations, DX excelente                          |
+| **Banco Relacional** | Neon (PostgreSQL)        | ACID, JSONB, serverless, extensões                             |
+| **Cache/Queue**      | Redis 7 (opcional)       | In-memory rápido, fallback para memória                        |
+| **Frontend**         | Next.js 14 (App Router)  | SSR/SSG, RSC, ecossistema React                                |
+| **UI**               | Tailwind CSS + shadcn/ui | Customizável, componentes acessíveis                           |
+| **State**            | Zustand + TanStack Query | Leve, cache de servidor integrado                              |
+| **Realtime**         | Socket.io                | Fallback automático, rooms, reconexão                          |
+| **Extensão**         | Chrome Manifest V3       | Padrão atual, service workers                                  |
+| **Infra**            | Docker + Docker Compose  | Desenvolvimento local consistente                              |
 
 ### 2.2 Estrutura do Monorepo
 
@@ -69,13 +69,13 @@ C4Context
     title Sistema de Prospecção Outbound - Contexto
 
     Person(user, "Usuário", "Gerente de vendas, consultor, agência")
-    
+
     System(snapleads, "SnapLeads", "Plataforma de prospecção outbound")
-    
+
     System_Ext(social, "Redes Sociais", "Instagram, Facebook, LinkedIn")
     System_Ext(email, "Serviço de Email", "SendGrid/AWS SES")
     System_Ext(calendar, "Calendários", "Google Calendar, Outlook")
-    
+
     Rel(user, snapleads, "Usa", "HTTPS")
     Rel(snapleads, social, "Importa leads, envia mensagens")
     Rel(snapleads, email, "Envia notificações")
@@ -89,30 +89,30 @@ C4Container
     title SnapLeads - Containers
 
     Person(user, "Usuário")
-    
+
     Container_Boundary(client, "Cliente") {
         Container(webapp, "Web App", "Next.js", "Dashboard, inbox, analytics")
         Container(extension, "Extensão", "Chrome MV3", "Scraping de leads")
     }
-    
+
     Container_Boundary(backend, "Backend") {
         Container(api, "API Server", "Express", "REST API, autenticação")
         Container(socket, "Socket Server", "Socket.io", "Eventos realtime")
         Container(worker, "Workers", "Bull", "Jobs assíncronos")
     }
-    
+
     Container_Boundary(data, "Dados") {
         ContainerDb(postgres, "PostgreSQL", "Dados relacionais")
         ContainerDb(redis, "Redis", "Cache, filas, sessões")
     }
-    
+
     Rel(user, webapp, "Acessa", "HTTPS")
     Rel(user, extension, "Usa no navegador")
-    
+
     Rel(webapp, api, "Requisições", "HTTPS/REST")
     Rel(webapp, socket, "Eventos", "WSS")
     Rel(extension, api, "Importa leads", "HTTPS")
-    
+
     Rel(api, postgres, "Lê/Escreve")
     Rel(api, redis, "Cache/Pub")
     Rel(worker, postgres, "Processa jobs")
@@ -123,6 +123,7 @@ C4Container
 ### 3.3 Responsabilidades por Container
 
 #### API Server (`apps/api`)
+
 - Autenticação JWT (login, refresh, logout)
 - CRUD de workspaces, usuários, leads, conversas
 - Importação de leads (CSV, extensão)
@@ -130,18 +131,21 @@ C4Container
 - Dispatch de jobs para workers
 
 #### Socket Server (integrado ao API)
+
 - Conexões WebSocket autenticadas
 - Rooms por workspace/conversa
 - Broadcast de eventos (nova mensagem, lead atualizado)
 - Presence (online/offline)
 
 #### Workers (`apps/api/workers`)
+
 - Envio de mensagens (stub no MVP)
 - Processamento de importação em lote
 - Cálculo de lead scoring
 - Execução de automações simples
 
 #### Web App (`apps/web`)
+
 - Dashboard com métricas
 - Lista e Kanban de leads
 - Inbox unificado de conversas
@@ -149,6 +153,7 @@ C4Container
 - Gestão de templates
 
 #### Extensão (`apps/extension`)
+
 - Content scripts por plataforma
 - Popup para controle
 - Comunicação com API
@@ -196,7 +201,7 @@ sequenceDiagram
     A->>A: Valida e deduplica
     A->>Q: Enfileira processamento
     A-->>E: {jobId, status: queued}
-    
+
     W->>Q: Consome job
     W->>P: Insere leads em batch
     W->>P: Atualiza contadores
@@ -221,7 +226,7 @@ sequenceDiagram
     A->>SK: Emite evento new_message
     SK->>W: Broadcast para room
     W-->>U: Mensagem aparece no chat
-    
+
     Note over Q: Worker processa envio
 ```
 
@@ -238,11 +243,11 @@ sequenceDiagram
     T->>A: Evento lead.created
     A->>P: Busca automações ativas
     P-->>A: Automações matching
-    
+
     loop Para cada automação
         A->>Q: Enfileira execução
     end
-    
+
     W->>Q: Consome job
     W->>W: Avalia condições
     alt Condições satisfeitas
@@ -259,40 +264,40 @@ sequenceDiagram
 
 ### 5.1 Extensão ↔ Backend
 
-| Aspecto | Decisão |
-|---------|---------|
-| Protocolo | HTTPS REST |
-| Autenticação | Bearer token (mesmo JWT do web) |
-| Rate Limit | 100 req/min por usuário |
-| Payload máximo | 5MB (importação em lote) |
-| Retry | Exponential backoff (3 tentativas) |
+| Aspecto        | Decisão                            |
+| -------------- | ---------------------------------- |
+| Protocolo      | HTTPS REST                         |
+| Autenticação   | Bearer token (mesmo JWT do web)    |
+| Rate Limit     | 100 req/min por usuário            |
+| Payload máximo | 5MB (importação em lote)           |
+| Retry          | Exponential backoff (3 tentativas) |
 
 ### 5.2 Frontend ↔ Backend
 
-| Aspecto | Decisão |
-|---------|---------|
-| REST API | Endpoints convencionais, JSON |
-| WebSocket | Socket.io com autenticação |
-| Estado | TanStack Query para cache/sync |
-| Erros | Padrão RFC 7807 (Problem Details) |
+| Aspecto   | Decisão                           |
+| --------- | --------------------------------- |
+| REST API  | Endpoints convencionais, JSON     |
+| WebSocket | Socket.io com autenticação        |
+| Estado    | TanStack Query para cache/sync    |
+| Erros     | Padrão RFC 7807 (Problem Details) |
 
 ### 5.3 Backend ↔ Banco de Dados
 
-| Aspecto | Decisão |
-|---------|---------|
-| Connection Pool | 20 conexões (ajustável) |
-| Timeout | 30s para queries |
-| Transactions | Prisma `$transaction` para operações compostas |
-| Migrations | Prisma Migrate |
+| Aspecto         | Decisão                                        |
+| --------------- | ---------------------------------------------- |
+| Connection Pool | 20 conexões (ajustável)                        |
+| Timeout         | 30s para queries                               |
+| Transactions    | Prisma `$transaction` para operações compostas |
+| Migrations      | Prisma Migrate                                 |
 
 ### 5.4 Eventos Internos
 
-| Evento | Produtor | Consumidor | Canal |
-|--------|----------|------------|-------|
-| `lead.created` | API | Workers, Socket | Redis Pub/Sub |
-| `lead.updated` | API | Socket | Redis Pub/Sub |
-| `message.created` | API | Workers, Socket | Redis Pub/Sub |
-| `automation.triggered` | API | Workers | Bull Queue |
+| Evento                 | Produtor | Consumidor      | Canal         |
+| ---------------------- | -------- | --------------- | ------------- |
+| `lead.created`         | API      | Workers, Socket | Redis Pub/Sub |
+| `lead.updated`         | API      | Socket          | Redis Pub/Sub |
+| `message.created`      | API      | Workers, Socket | Redis Pub/Sub |
+| `automation.triggered` | API      | Workers         | Bull Queue    |
 
 ---
 
@@ -300,16 +305,16 @@ sequenceDiagram
 
 ### 6.1 Ambientes
 
-| Ambiente | Propósito | Infraestrutura |
-|----------|-----------|----------------|
-| Local | Desenvolvimento | Docker Compose |
-| Staging | Testes e QA | AWS (single instance) |
-| Production | Produção | AWS (auto-scaling) |
+| Ambiente   | Propósito       | Infraestrutura        |
+| ---------- | --------------- | --------------------- |
+| Local      | Desenvolvimento | Docker Compose        |
+| Staging    | Testes e QA     | AWS (single instance) |
+| Production | Produção        | AWS (auto-scaling)    |
 
 ### 6.2 Docker Compose (Local)
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -375,7 +380,7 @@ flowchart TB
             alb[Application Load Balancer]
             cf[CloudFront CDN]
         end
-        
+
         subgraph private [Private Subnet]
             ecs[ECS Fargate]
             subgraph ecs_services [Serviços]
@@ -384,7 +389,7 @@ flowchart TB
                 worker_svc[Worker Service]
             end
         end
-        
+
         subgraph data [Data Layer]
             rds[(RDS PostgreSQL)]
             elasticache[(ElastiCache Redis)]

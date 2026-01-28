@@ -33,6 +33,7 @@ lia360/
 ### Dependências de Build
 
 A API depende de dois pacotes que precisam ser buildados antes:
+
 1. `@lia360/shared` → primeiro
 2. `@lia360/database` → segundo (executa `prisma generate`)
 3. `@lia360/api` → por último
@@ -77,13 +78,13 @@ REDIS_URL=
 
 ### ⚠️ Notas Importantes sobre Variáveis
 
-1. **CORS_ORIGINS**: 
+1. **CORS_ORIGINS**:
    - Deve incluir a URL exata do frontend
    - Inclua wildcards do Vercel: `https://*.vercel.app`
    - Mantenha `chrome-extension://*` para a extensão funcionar
    - Separe múltiplas URLs por vírgula
 
-2. **JWT_SECRET**: 
+2. **JWT_SECRET**:
    - Mínimo de 32 caracteres
    - Use uma chave aleatória e segura
    - NÃO reutilize outras chaves (como SUPABASE_SERVICE_KEY)
@@ -124,23 +125,26 @@ Preencha os seguintes campos:
 #### Configurações de Build e Deploy
 
 - **Environment**: `Node`
-- **Build Command**: 
+- **Build Command**:
+
   ```bash
   npm install && npm run build:api
   ```
+
   Ou alternativamente:
+
   ```bash
   npm install && npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
   ```
 
-- **Start Command**: 
+- **Start Command**:
   ```bash
   npm run start --workspace=@lia360/api
   ```
 
 #### Instância
 
-- **Instance Type**: 
+- **Instance Type**:
   - **Free**: Para testes e desenvolvimento (limitações: dorme após 15min, 512MB RAM)
   - **Starter ($7/mês)**: Para produção pequena (nunca dorme, 512MB RAM)
   - **Standard ($25/mês)**: Para produção (nunca dorme, 2GB RAM)
@@ -157,19 +161,19 @@ Preencha os seguintes campos:
 2. Clique em **"Add Environment Variable"**
 3. Adicione cada variável uma por uma:
 
-| Chave | Valor | Obrigatório |
-|-------|-------|-------------|
-| `NODE_ENV` | `production` | ✅ Sim |
-| `PORT` | `3001` | ✅ Sim |
-| `DATABASE_URL` | `postgresql://...` | ✅ Sim |
-| `DIRECT_URL` | `postgresql://...` | ⚠️ Recomendado |
-| `JWT_SECRET` | `sua-chave-32-chars` | ✅ Sim |
-| `JWT_EXPIRES_IN` | `15m` | ✅ Sim |
-| `REFRESH_TOKEN_EXPIRES_IN` | `30d` | ✅ Sim |
-| `CORS_ORIGINS` | `https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*` | ✅ Sim |
-| `SUPABASE_URL` | `https://...supabase.co` | ⚠️ Opcional |
-| `SUPABASE_SERVICE_KEY` | `sb_secret_...` | ⚠️ Opcional |
-| `REDIS_URL` | `rediss://...` ou deixe vazio | ⚠️ Opcional |
+| Chave                      | Valor                                                                  | Obrigatório    |
+| -------------------------- | ---------------------------------------------------------------------- | -------------- |
+| `NODE_ENV`                 | `production`                                                           | ✅ Sim         |
+| `PORT`                     | `3001`                                                                 | ✅ Sim         |
+| `DATABASE_URL`             | `postgresql://...`                                                     | ✅ Sim         |
+| `DIRECT_URL`               | `postgresql://...`                                                     | ⚠️ Recomendado |
+| `JWT_SECRET`               | `sua-chave-32-chars`                                                   | ✅ Sim         |
+| `JWT_EXPIRES_IN`           | `15m`                                                                  | ✅ Sim         |
+| `REFRESH_TOKEN_EXPIRES_IN` | `30d`                                                                  | ✅ Sim         |
+| `CORS_ORIGINS`             | `https://seu-app.vercel.app,https://*.vercel.app,chrome-extension://*` | ✅ Sim         |
+| `SUPABASE_URL`             | `https://...supabase.co`                                               | ⚠️ Opcional    |
+| `SUPABASE_SERVICE_KEY`     | `sb_secret_...`                                                        | ⚠️ Opcional    |
+| `REDIS_URL`                | `rediss://...` ou deixe vazio                                          | ⚠️ Opcional    |
 
 ### 3.2 Dica: Importar de Arquivo
 
@@ -264,8 +268,9 @@ curl https://lia360-api.onrender.com/health
 ```
 
 Deve retornar:
+
 ```json
-{"status":"ok","timestamp":"2025-01-15T10:30:00.000Z"}
+{ "status": "ok", "timestamp": "2025-01-15T10:30:00.000Z" }
 ```
 
 ### 6.2 Testar Endpoint Root
@@ -275,6 +280,7 @@ curl https://lia360-api.onrender.com/
 ```
 
 Deve retornar:
+
 ```json
 {
   "name": "Lia360 API",
@@ -289,14 +295,14 @@ Deve retornar:
 No console do navegador (no frontend), teste:
 
 ```javascript
-fetch('https://lia360-api.onrender.com/api/v1/auth/me', {
+fetch("https://lia360-api.onrender.com/api/v1/auth/me", {
   headers: {
-    'Authorization': 'Bearer seu-token'
-  }
+    Authorization: "Bearer seu-token",
+  },
 })
-.then(r => r.json())
-.then(console.log)
-.catch(console.error)
+  .then((r) => r.json())
+  .then(console.log)
+  .catch(console.error);
 ```
 
 Não deve ter erros de CORS.
@@ -306,14 +312,14 @@ Não deve ter erros de CORS.
 Se você usa Socket.io, teste a conexão:
 
 ```javascript
-import io from 'socket.io-client';
+import io from "socket.io-client";
 
-const socket = io('https://lia360-api.onrender.com', {
-  auth: { token: 'Bearer seu-token' }
+const socket = io("https://lia360-api.onrender.com", {
+  auth: { token: "Bearer seu-token" },
 });
 
-socket.on('connect', () => {
-  console.log('✅ WebSocket conectado!');
+socket.on("connect", () => {
+  console.log("✅ WebSocket conectado!");
 });
 ```
 
@@ -324,6 +330,7 @@ socket.on('connect', () => {
 ### Problema 1: Build Falha - Prisma Client não inicializado
 
 **Erro:**
+
 ```
 Error: @prisma/client did not initialize yet. Please run "prisma generate"
 ```
@@ -344,6 +351,7 @@ Error: @prisma/client did not initialize yet. Please run "prisma generate"
 ### Problema 2: Build Falha - Workspace não encontrado
 
 **Erro:**
+
 ```
 npm ERR! Could not resolve workspace: @lia360/shared
 ```
@@ -356,6 +364,7 @@ npm ERR! Could not resolve workspace: @lia360/shared
 ### Problema 3: Servidor não inicia - Porta em uso
 
 **Erro:**
+
 ```
 Error: listen EADDRINUSE: address already in use :::3001
 ```
@@ -369,6 +378,7 @@ Error: listen EADDRINUSE: address already in use :::3001
 ### Problema 4: CORS Error no Frontend
 
 **Erro:**
+
 ```
 Access to fetch at 'https://lia360-api.onrender.com/...' from origin 'https://seu-app.vercel.app' has been blocked by CORS policy
 ```
@@ -395,6 +405,7 @@ Access to fetch at 'https://lia360-api.onrender.com/...' from origin 'https://se
 ### Problema 6: Erro de Conexão com Banco
 
 **Erro:**
+
 ```
 Error connecting to database
 ```
@@ -420,16 +431,17 @@ Error connecting to database
 
 ## 📊 Comparação: Render vs Railway vs Fly.io
 
-| Característica | Render Free | Render Starter | Railway | Fly.io |
-|----------------|-------------|----------------|---------|--------|
-| **Custo** | Grátis | $7/mês | $5 crédito/mês | 3 apps grátis |
-| **Sleep** | Sim (15min) | Não | Não | Não |
-| **RAM** | 512MB | 512MB | 512MB | 256MB |
-| **Build Time** | ~5-10min | ~5-10min | ~3-5min | ~2-4min |
-| **Facilidade** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Monorepo** | ✅ Sim | ✅ Sim | ✅ Sim | ⚠️ Com Docker |
+| Característica | Render Free | Render Starter | Railway        | Fly.io        |
+| -------------- | ----------- | -------------- | -------------- | ------------- |
+| **Custo**      | Grátis      | $7/mês         | $5 crédito/mês | 3 apps grátis |
+| **Sleep**      | Sim (15min) | Não            | Não            | Não           |
+| **RAM**        | 512MB       | 512MB          | 512MB          | 256MB         |
+| **Build Time** | ~5-10min    | ~5-10min       | ~3-5min        | ~2-4min       |
+| **Facilidade** | ⭐⭐⭐⭐    | ⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐     | ⭐⭐⭐        |
+| **Monorepo**   | ✅ Sim      | ✅ Sim         | ✅ Sim         | ⚠️ Com Docker |
 
 **Recomendação:**
+
 - **Testes**: Render Free
 - **Produção pequena**: Render Starter ($7/mês)
 - **Produção média**: Railway ($5 crédito + uso)
@@ -476,6 +488,7 @@ Error connecting to database
 ### Configurar Alertas (Opcional)
 
 No Render, você pode configurar:
+
 - Email notifications para deploy failures
 - Webhooks para integrações externas
 

@@ -1,17 +1,17 @@
-import type { ApiResponse } from '@lia360/shared';
+import type { ApiResponse } from "@lia360/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // --- JWT HELPERS ---
 // Helper to decode JWT without verification (for expiration check only)
 function decodeJWT(token: string): { exp?: number } | null {
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
     const payload = JSON.parse(atob(parts[1]));
     return payload;
   } catch (e) {
-    console.error('[API] Failed to decode JWT:', e);
+    console.error("[API] Failed to decode JWT:", e);
     return null;
   }
 }
@@ -47,7 +47,7 @@ class ApiClient {
 
   // Initialize proactive refresh - must be called from client-side component
   initializeRefresh() {
-    if (typeof window === 'undefined' || this.refreshInitialized) {
+    if (typeof window === "undefined" || this.refreshInitialized) {
       return;
     }
     this.refreshInitialized = true;
@@ -56,26 +56,31 @@ class ApiClient {
 
   private startProactiveRefresh() {
     // Check every 30 minutes
-    this.refreshInterval = setInterval(async () => {
-      const token = this.getToken();
-      const refreshToken = localStorage.getItem('refreshToken');
+    this.refreshInterval = setInterval(
+      async () => {
+        const token = this.getToken();
+        const refreshToken = localStorage.getItem("refreshToken");
 
-      if (token && refreshToken && isTokenExpiringSoon(token)) {
-        console.log('[API] Token expiring soon, refreshing proactively...');
-        const expirationTime = getTokenExpirationTime(token);
-        const now = Date.now();
-        const hoursRemaining = Math.round((expirationTime - now) / (1000 * 60 * 60));
-        console.log(`[API] Time until expiry: ${hoursRemaining} hours`);
+        if (token && refreshToken && isTokenExpiringSoon(token)) {
+          console.log("[API] Token expiring soon, refreshing proactively...");
+          const expirationTime = getTokenExpirationTime(token);
+          const now = Date.now();
+          const hoursRemaining = Math.round(
+            (expirationTime - now) / (1000 * 60 * 60),
+          );
+          console.log(`[API] Time until expiry: ${hoursRemaining} hours`);
 
-        await this.refreshToken();
-      }
-    }, 30 * 60 * 1000); // Every 30 minutes
+          await this.refreshToken();
+        }
+      },
+      30 * 60 * 1000,
+    ); // Every 30 minutes
 
     // Also check immediately on init
     setTimeout(async () => {
       const token = this.getToken();
       if (token && isTokenExpiringSoon(token)) {
-        console.log('[API] Token expiring soon on init, refreshing...');
+        console.log("[API] Token expiring soon on init, refreshing...");
         await this.refreshToken();
       }
     }, 1000); // Check after 1 second
@@ -89,18 +94,18 @@ class ApiClient {
   }
 
   private getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('accessToken');
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("accessToken");
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const token = this.getToken();
 
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
@@ -121,20 +126,20 @@ class ApiClient {
         }
       }
 
-      throw new Error(data.error?.detail || 'An error occurred');
+      throw new Error(data.error?.detail || "An error occurred");
     }
 
     return data.data as T;
   }
 
   private async refreshToken(): Promise<boolean> {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) return false;
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
       });
 
@@ -144,7 +149,7 @@ class ApiClient {
       }
 
       const data = await response.json();
-      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem("accessToken", data.data.accessToken);
       return true;
     } catch {
       this.logout();
@@ -153,65 +158,81 @@ class ApiClient {
   }
 
   logout(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/login';
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/login";
   }
 
   // Auth
   async login(email: string, password: string) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.detail || 'Login failed');
+      throw new Error(data.error?.detail || "Login failed");
     }
 
-    localStorage.setItem('accessToken', data.data.accessToken);
-    localStorage.setItem('refreshToken', data.data.refreshToken);
+    localStorage.setItem("accessToken", data.data.accessToken);
+    localStorage.setItem("refreshToken", data.data.refreshToken);
 
     return data.data;
   }
 
-  async register(email: string, password: string, fullName: string, companyName: string, workspaceName?: string) {
+  async register(
+    email: string,
+    password: string,
+    fullName: string,
+    companyName: string,
+    workspaceName?: string,
+  ) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, fullName, companyName, workspaceName }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+        fullName,
+        companyName,
+        workspaceName,
+      }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.detail || 'Registration failed');
+      throw new Error(data.error?.detail || "Registration failed");
     }
 
-    localStorage.setItem('accessToken', data.data.accessToken);
-    localStorage.setItem('refreshToken', data.data.refreshToken);
+    localStorage.setItem("accessToken", data.data.accessToken);
+    localStorage.setItem("refreshToken", data.data.refreshToken);
 
     return data.data;
   }
 
-  async selectContext(selectionToken: string, companyId: string, workspaceId: string) {
+  async selectContext(
+    selectionToken: string,
+    companyId: string,
+    workspaceId: string,
+  ) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/select-context`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ selectionToken, companyId, workspaceId }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.detail || 'Context selection failed');
+      throw new Error(data.error?.detail || "Context selection failed");
     }
 
-    localStorage.setItem('accessToken', data.data.accessToken);
-    localStorage.setItem('refreshToken', data.data.refreshToken);
+    localStorage.setItem("accessToken", data.data.accessToken);
+    localStorage.setItem("refreshToken", data.data.refreshToken);
 
     return data.data;
   }
@@ -221,19 +242,19 @@ class ApiClient {
       accessToken: string;
       context: any;
       expiresIn: number;
-    }>('/api/v1/auth/switch-context', {
-      method: 'POST',
+    }>("/api/v1/auth/switch-context", {
+      method: "POST",
       body: JSON.stringify({ companyId, workspaceId }),
     }).then((data) => {
       if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem("accessToken", data.accessToken);
       }
       return data;
     });
   }
 
   async getMe() {
-    return this.request('/api/v1/auth/me');
+    return this.request("/api/v1/auth/me");
   }
 
   async createWorkspace(name: string) {
@@ -242,8 +263,8 @@ class ApiClient {
       name: string;
       myRole: string;
       createdAt: string;
-    }>('/api/v1/workspaces', {
-      method: 'POST',
+    }>("/api/v1/workspaces", {
+      method: "POST",
       body: JSON.stringify({ name }),
     });
   }
@@ -253,13 +274,13 @@ class ApiClient {
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== "") {
           searchParams.append(key, String(value));
         }
       });
     }
     const query = searchParams.toString();
-    return this.request(`/api/v1/leads${query ? `?${query}` : ''}`);
+    return this.request(`/api/v1/leads${query ? `?${query}` : ""}`);
   }
 
   async getLead(id: string) {
@@ -267,40 +288,40 @@ class ApiClient {
   }
 
   async createLead(data: Record<string, unknown>) {
-    return this.request('/api/v1/leads', {
-      method: 'POST',
+    return this.request("/api/v1/leads", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updateLead(id: string, data: Record<string, unknown>) {
     return this.request(`/api/v1/leads/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deleteLead(id: string) {
     return this.request(`/api/v1/leads/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   async importLeads(data: Record<string, unknown>) {
-    return this.request('/api/v1/leads/import', {
-      method: 'POST',
+    return this.request("/api/v1/leads/import", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   // Tags
   async getTags() {
-    return this.request('/api/v1/tags');
+    return this.request("/api/v1/tags");
   }
 
   async createTag(data: { name: string; color?: string }) {
-    return this.request('/api/v1/tags', {
-      method: 'POST',
+    return this.request("/api/v1/tags", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -310,13 +331,13 @@ class ApiClient {
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== "") {
           searchParams.append(key, String(value));
         }
       });
     }
     const query = searchParams.toString();
-    return this.request(`/api/v1/conversations${query ? `?${query}` : ''}`);
+    return this.request(`/api/v1/conversations${query ? `?${query}` : ""}`);
   }
 
   async getConversation(id: string) {
@@ -325,25 +346,25 @@ class ApiClient {
 
   async sendMessage(conversationId: string, content: string) {
     return this.request(`/api/v1/conversations/${conversationId}/messages`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ content }),
     });
   }
 
   async markAsRead(conversationId: string) {
     return this.request(`/api/v1/conversations/${conversationId}/read`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
   // Templates
   async getTemplates() {
-    return this.request('/api/v1/templates');
+    return this.request("/api/v1/templates");
   }
 
   async createTemplate(data: Record<string, unknown>) {
-    return this.request('/api/v1/templates', {
-      method: 'POST',
+    return this.request("/api/v1/templates", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -352,108 +373,133 @@ class ApiClient {
   async getAnalyticsOverview(params?: Record<string, string>) {
     const searchParams = new URLSearchParams(params);
     const query = searchParams.toString();
-    return this.request(`/api/v1/analytics/overview${query ? `?${query}` : ''}`);
+    return this.request(
+      `/api/v1/analytics/overview${query ? `?${query}` : ""}`,
+    );
   }
 
   async getAnalyticsFunnel() {
-    return this.request('/api/v1/analytics/funnel');
+    return this.request("/api/v1/analytics/funnel");
   }
-
-
 
   // Users
   async getUsers() {
-    return this.request('/api/v1/users');
+    return this.request("/api/v1/users");
   }
 
   async inviteUser(email: string, role?: string) {
-    return this.request('/api/v1/users/invite', {
-      method: 'POST',
+    return this.request("/api/v1/users/invite", {
+      method: "POST",
       body: JSON.stringify({ email, role }),
     });
   }
 
   // Pipelines
   async getPipelines() {
-    return this.request('/api/v1/pipelines');
+    return this.request("/api/v1/pipelines");
   }
 
-  async getPipeline(id: string, params?: { scoreMin?: number; scoreMax?: number; sortBy?: string }) {
+  async getPipeline(
+    id: string,
+    params?: { scoreMin?: number; scoreMax?: number; sortBy?: string },
+  ) {
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== "") {
           searchParams.append(key, String(value));
         }
       });
     }
     const query = searchParams.toString();
-    return this.request(`/api/v1/pipelines/${id}${query ? `?${query}` : ''}`);
+    return this.request(`/api/v1/pipelines/${id}${query ? `?${query}` : ""}`);
   }
 
-  async createPipeline(data: { name: string; description?: string; stages?: { name: string; color?: string }[] }) {
-    return this.request('/api/v1/pipelines', {
-      method: 'POST',
+  async createPipeline(data: {
+    name: string;
+    description?: string;
+    stages?: { name: string; color?: string }[];
+  }) {
+    return this.request("/api/v1/pipelines", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updatePipeline(id: string, data: { name?: string; description?: string }) {
+  async updatePipeline(
+    id: string,
+    data: { name?: string; description?: string },
+  ) {
     return this.request(`/api/v1/pipelines/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deletePipeline(id: string) {
     return this.request(`/api/v1/pipelines/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
-  async addPipelineStage(pipelineId: string, data: { name: string; color?: string }) {
+  async addPipelineStage(
+    pipelineId: string,
+    data: { name: string; color?: string },
+  ) {
     return this.request(`/api/v1/pipelines/${pipelineId}/stages`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async reorderStages(pipelineId: string, stages: { id: string; order: number }[]) {
+  async reorderStages(
+    pipelineId: string,
+    stages: { id: string; order: number }[],
+  ) {
     return this.request(`/api/v1/pipelines/${pipelineId}/stages/reorder`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ stages }),
     });
   }
 
-  async updateStage(pipelineId: string, stageId: string, data: { name?: string; color?: string }) {
+  async updateStage(
+    pipelineId: string,
+    stageId: string,
+    data: { name?: string; color?: string },
+  ) {
     return this.request(`/api/v1/pipelines/${pipelineId}/stages/${stageId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deleteStage(pipelineId: string, stageId: string) {
     return this.request(`/api/v1/pipelines/${pipelineId}/stages/${stageId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
-  async moveLead(pipelineId: string, leadId: string, stageId: string, position: number) {
+  async moveLead(
+    pipelineId: string,
+    leadId: string,
+    stageId: string,
+    position: number,
+  ) {
     return this.request(`/api/v1/pipelines/${pipelineId}/leads/move`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ leadId, stageId, position }),
     });
   }
 
   async migratePipeline(pipelineId: string) {
     return this.request(`/api/v1/pipelines/${pipelineId}/migrate`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
   // Audiences
   async getAudiences() {
-    return this.request('/api/v1/audiences');
+    return this.request("/api/v1/audiences");
   }
 
   async getAudience(id: string) {
@@ -461,36 +507,39 @@ class ApiClient {
   }
 
   async createAudience(data: Record<string, unknown>) {
-    return this.request('/api/v1/audiences', {
-      method: 'POST',
+    return this.request("/api/v1/audiences", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updateAudience(id: string, data: Record<string, unknown>) {
     return this.request(`/api/v1/audiences/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deleteAudience(id: string) {
     return this.request(`/api/v1/audiences/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Automations
   async upsertAutomation(data: Record<string, unknown>) {
-    return this.request('/api/v1/automations', {
-      method: 'POST',
+    return this.request("/api/v1/automations", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async triggerAutomation(id: string, config?: { maxLeads?: number; interval?: string }) {
+  async triggerAutomation(
+    id: string,
+    config?: { maxLeads?: number; interval?: string },
+  ) {
     return this.request(`/api/v1/automations/${id}/trigger`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(config),
     });
   }
@@ -500,13 +549,13 @@ class ApiClient {
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== "") {
           searchParams.append(key, String(value));
         }
       });
     }
     const query = searchParams.toString();
-    return this.request(`/api/v1/posts${query ? `?${query}` : ''}`);
+    return this.request(`/api/v1/posts${query ? `?${query}` : ""}`);
   }
 
   async getPost(id: string) {
@@ -514,48 +563,48 @@ class ApiClient {
   }
 
   async createPost(data: Record<string, unknown>) {
-    return this.request('/api/v1/posts', {
-      method: 'POST',
+    return this.request("/api/v1/posts", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updatePost(id: string, data: Record<string, unknown>) {
     return this.request(`/api/v1/posts/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async deletePost(id: string) {
     return this.request(`/api/v1/posts/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   async importPosts(data: Record<string, unknown>) {
-    return this.request('/api/v1/posts/import', {
-      method: 'POST',
+    return this.request("/api/v1/posts/import", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async linkPostToLead(postId: string, leadId: string) {
     return this.request(`/api/v1/posts/${postId}/link-lead`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ leadId }),
     });
   }
 
   async unlinkPostFromLead(postId: string) {
     return this.request(`/api/v1/posts/${postId}/link-lead`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Scoring Configuration
   async getScoringConfig() {
-    return this.request('/api/v1/scoring/config');
+    return this.request("/api/v1/scoring/config");
   }
 
   async createScoringConfig(data: {
@@ -571,8 +620,8 @@ class ApiClient {
     autoScoreOnImport?: boolean;
     autoScoreOnUpdate?: boolean;
   }) {
-    return this.request('/api/v1/scoring/config', {
-      method: 'POST',
+    return this.request("/api/v1/scoring/config", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -590,22 +639,22 @@ class ApiClient {
     autoScoreOnImport?: boolean;
     autoScoreOnUpdate?: boolean;
   }) {
-    return this.request('/api/v1/scoring/config', {
-      method: 'PATCH',
+    return this.request("/api/v1/scoring/config", {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async calculateLeadScore(leadId: string, forceRecalculate = false) {
     return this.request(`/api/v1/scoring/calculate`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ leadId, forceRecalculate }),
     });
   }
 
   async batchCalculateScores(leadIds: string[], forceRecalculate = false) {
     return this.request(`/api/v1/scoring/calculate/batch`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ leadIds, forceRecalculate }),
     });
   }

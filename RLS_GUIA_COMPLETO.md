@@ -20,11 +20,12 @@ Atualmente, o isolamento de dados multi-tenant da Lia360 depende **apenas** da c
 ```typescript
 // ANTES: Segurança APENAS na aplicação
 const leads = await prisma.lead.findMany({
-  where: { workspaceId: req.user.workspaceId } // Se esquecer isso = vazamento de dados!
+  where: { workspaceId: req.user.workspaceId }, // Se esquecer isso = vazamento de dados!
 });
 ```
 
 **Riscos:**
+
 - ❌ SQL injection pode acessar dados de outros tenants
 - ❌ Bug na aplicação pode vazar dados entre workspaces
 - ❌ Acesso direto ao banco ignora todas as proteções
@@ -37,12 +38,13 @@ Com RLS, o **banco de dados** garante o isolamento:
 ```typescript
 // DEPOIS: Segurança no banco + aplicação (defesa em profundidade)
 const leads = await prisma.lead.findMany({
-  where: { workspaceId: req.user.workspaceId } // Filtro da aplicação
+  where: { workspaceId: req.user.workspaceId }, // Filtro da aplicação
 });
 // + RLS garante que o PostgreSQL NUNCA retorna dados de outro workspace
 ```
 
 **Benefícios:**
+
 - ✅ Defesa em profundidade (banco + aplicação)
 - ✅ Proteção contra SQL injection
 - ✅ Proteção contra bugs da aplicação
@@ -103,25 +105,27 @@ Cada tabela tem 4 tipos de políticas (quando aplicável):
 
 ### Tabelas de Hierarquia de Tenant (7 tabelas)
 
-| Tabela | Escopo | Políticas |
-|--------|--------|-----------|
-| `companies` | Company | Membros veem suas companies |
-| `company_members` | Company | Membros veem membros da company |
-| `company_invitations` | Company | Admins gerenciam convites |
-| `workspaces` | Company | Membros veem workspaces da company |
-| `workspace_members` | Workspace | Membros veem membros do workspace |
-| `users` | User | Usuário vê apenas seu próprio perfil |
-| `refresh_tokens` | User | Usuário vê apenas seus próprios tokens |
+| Tabela                | Escopo    | Políticas                              |
+| --------------------- | --------- | -------------------------------------- |
+| `companies`           | Company   | Membros veem suas companies            |
+| `company_members`     | Company   | Membros veem membros da company        |
+| `company_invitations` | Company   | Admins gerenciam convites              |
+| `workspaces`          | Company   | Membros veem workspaces da company     |
+| `workspace_members`   | Workspace | Membros veem membros do workspace      |
+| `users`               | User      | Usuário vê apenas seu próprio perfil   |
+| `refresh_tokens`      | User      | Usuário vê apenas seus próprios tokens |
 
 ### Tabelas de Workspace-Scoped (33 tabelas)
 
 Todas seguem o padrão: **usuário acessa dados apenas do seu workspace**
 
 **Pipeline:**
+
 - `pipelines`
 - `pipeline_stages`
 
 **Leads e Perfis:**
+
 - `leads`
 - `social_profiles`
 - `tags`
@@ -130,6 +134,7 @@ Todas seguem o padrão: **usuário acessa dados apenas do seu workspace**
 - `lead_addresses`
 
 **Enriquecimento LinkedIn (16 tabelas):**
+
 - `lead_experiences`
 - `lead_educations`
 - `lead_certifications`
@@ -148,15 +153,18 @@ Todas seguem o padrão: **usuário acessa dados apenas do seu workspace**
 - `lead_posts`
 
 **Comunicação:**
+
 - `conversations`
 - `messages`
 
 **Workflow:**
+
 - `templates`
 - `automations`
 - `automation_logs`
 
 **Infraestrutura:**
+
 - `audiences`
 - `webhooks`
 - `import_jobs`
@@ -280,6 +288,7 @@ SELECT COUNT(*) FROM leads WHERE "workspaceId" = 'workspace_B';
 **Overhead esperado:** <5ms por query
 
 **Otimizações:**
+
 - Índices existentes em `workspaceId` aceleram o filtro RLS
 - Funções STABLE são cachadas durante a transação
 - `SET LOCAL` afeta apenas a transação atual (não há overhead global)
@@ -300,11 +309,13 @@ LIMIT 20;
 Se algo der errado, você pode reverter:
 
 **Opção 1: Desabilitar RLS em uma tabela específica**
+
 ```sql
 ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
 ```
 
 **Opção 2: Desabilitar RLS em TODAS as tabelas**
+
 ```sql
 DO $$
 DECLARE
@@ -318,6 +329,7 @@ END $$;
 ```
 
 **Opção 3: Dropar políticas mas manter RLS ativo**
+
 ```sql
 -- Dropar todas as políticas de uma tabela
 DROP POLICY IF EXISTS lead_workspace_select ON leads;
@@ -338,7 +350,7 @@ DROP POLICY IF EXISTS lead_workspace_insert ON leads;
 // app.workspace_id = 'W1'
 
 const lead = await prisma.lead.findUnique({
-  where: { id: 'lead_do_workspace_W2' }
+  where: { id: "lead_do_workspace_W2" },
 });
 
 // Resultado: lead === null
@@ -399,12 +411,15 @@ const maliciousInput = "'; DROP TABLE leads; --";
 **Causa:** Variáveis de sessão não foram definidas
 
 **Solução:**
+
 1. Verifique se o middleware foi atualizado
 2. Confirme que a requisição passa pelo middleware `authenticate`
 3. Execute no Neon:
+
 ```sql
 SELECT current_setting('app.user_id', true);
 ```
+
 Se retornar vazio, o middleware não está definindo as variáveis.
 
 ### Problema: Erro "permission denied for schema auth"
@@ -412,6 +427,7 @@ Se retornar vazio, o middleware não está definindo as variáveis.
 **Causa:** Schema auth não foi criado ou usuário não tem permissões
 
 **Solução:**
+
 ```sql
 CREATE SCHEMA IF NOT EXISTS auth;
 GRANT USAGE ON SCHEMA auth TO public;
@@ -422,14 +438,19 @@ GRANT USAGE ON SCHEMA auth TO public;
 **Causa:** Políticas RLS complexas ou falta de índices
 
 **Solução:**
+
 1. Analise queries lentas:
+
 ```sql
 EXPLAIN ANALYZE SELECT * FROM leads WHERE "workspaceId" = 'xxx';
 ```
+
 2. Verifique índices:
+
 ```sql
 SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'public';
 ```
+
 3. Se necessário, adicione índices em colunas usadas nas políticas
 
 ### Problema: RLS não está sendo aplicado
@@ -437,6 +458,7 @@ SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'public';
 **Causa:** RLS não foi habilitado na tabela
 
 **Solução:**
+
 ```sql
 -- Verificar se RLS está habilitado
 SELECT schemaname, tablename, rowsecurity

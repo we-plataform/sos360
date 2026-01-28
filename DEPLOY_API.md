@@ -5,6 +5,7 @@ Este guia explica como fazer deploy da API em produção para que o frontend na 
 ## ⚠️ Antes de Começar
 
 Você precisa:
+
 - ✅ Frontend já deployado na Vercel
 - ✅ URL do frontend (ex: `https://seu-app.vercel.app`)
 - ✅ Credenciais do Supabase (DATABASE_URL, DIRECT_URL)
@@ -42,6 +43,7 @@ SUPABASE_SERVICE_KEY=sua-service-key
 ```
 
 **Nota sobre CORS_ORIGINS:**
+
 - Adicione a URL do frontend na Vercel
 - Inclua padrões wildcard do Vercel: `https://seu-app-git-*.vercel.app`
 - Mantenha `chrome-extension://*` para a extensão funcionar
@@ -80,6 +82,7 @@ No Railway, vá em "Variables" e adicione todas as variáveis listadas acima.
 ### 5. Deploy
 
 Railway faz deploy automaticamente após cada push no GitHub. A URL será algo como:
+
 ```
 https://lia360-api-production.up.railway.app
 ```
@@ -114,11 +117,11 @@ Render oferece plano gratuito limitado.
    - **Name**: `lia360-api`
    - **Root Directory**: `apps/api`
    - **Environment**: `Node`
-   - **Build Command**: 
+   - **Build Command**:
      ```bash
      npm install && npm run build --workspace=@lia360/api
      ```
-   - **Start Command**: 
+   - **Start Command**:
      ```bash
      npm run start --workspace=@lia360/api
      ```
@@ -131,6 +134,7 @@ No painel do Render, vá em "Environment" e adicione todas as variáveis.
 ### 4. Deploy
 
 Render faz deploy automaticamente. A URL será:
+
 ```
 https://lia360-api.onrender.com
 ```
@@ -140,6 +144,7 @@ https://lia360-api.onrender.com
 ### 5. Atualizar frontend Vercel
 
 Adicione a variável no Vercel:
+
 ```
 NEXT_PUBLIC_API_URL=https://lia360-api.onrender.com
 ```
@@ -174,6 +179,7 @@ flyctl launch
 ```
 
 Responda as perguntas:
+
 - App name: `lia360-api` (ou o que preferir)
 - Region: escolha próximo ao Brasil (ex: `gru`)
 - PostgreSQL: Não (você já usa Supabase)
@@ -240,6 +246,7 @@ flyctl deploy --config apps/api/fly.toml
 ```
 
 A URL será:
+
 ```
 https://lia360-api.fly.dev
 ```
@@ -280,8 +287,9 @@ curl https://sua-api-url.com/health
 ```
 
 Deve retornar:
+
 ```json
-{"status":"ok","timestamp":"2024-01-01T00:00:00.000Z"}
+{ "status": "ok", "timestamp": "2024-01-01T00:00:00.000Z" }
 ```
 
 ### 2. Testar CORS
@@ -289,11 +297,11 @@ Deve retornar:
 No console do navegador (no frontend Vercel), faça uma requisição:
 
 ```javascript
-fetch('https://sua-api-url.com/api/v1/auth/me', {
+fetch("https://sua-api-url.com/api/v1/auth/me", {
   headers: {
-    'Authorization': 'Bearer seu-token'
-  }
-})
+    Authorization: "Bearer seu-token",
+  },
+});
 ```
 
 Não deve ter erros de CORS.
@@ -313,6 +321,7 @@ Não deve ter erros de CORS.
 **Problema:** `Access-Control-Allow-Origin` error
 
 **Solução:**
+
 1. Verifique se `CORS_ORIGINS` inclui a URL exata do frontend
 2. No Vercel, URLs de preview podem ser diferentes - adicione wildcards:
    ```
@@ -324,6 +333,7 @@ Não deve ter erros de CORS.
 **Problema:** `Error connecting to database`
 
 **Solução:**
+
 1. Verifique se `DATABASE_URL` e `DIRECT_URL` estão corretos
 2. No Supabase, certifique-se de que o banco permite conexões externas
 3. Verifique se as credenciais estão no formato correto
@@ -333,6 +343,7 @@ Não deve ter erros de CORS.
 **Problema:** Timeout ou 502
 
 **Solução:**
+
 1. Verifique logs na plataforma de deploy
 2. Confirme que o `PORT` está configurado (algumas plataformas injetam automaticamente)
 3. No Render free tier, aguarde ~30s na primeira requisição após dormir
@@ -342,6 +353,7 @@ Não deve ter erros de CORS.
 **Problema:** Erro no build
 
 **Solução:**
+
 1. Certifique-se de que o build funciona localmente:
    ```bash
    npm run build --workspace=@lia360/api
@@ -353,11 +365,11 @@ Não deve ter erros de CORS.
 
 ## 📊 Comparação das Plataformas
 
-| Plataforma | Free Tier | Performance | Facilidade | Recomendado Para |
-|------------|-----------|-------------|------------|------------------|
-| **Railway** | $5 crédito/mês | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Início rápido, monorepos |
-| **Render** | Limitado | ⭐⭐⭐ | ⭐⭐⭐⭐ | Testes, desenvolvimento |
-| **Fly.io** | 3 apps grátis | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | Produção, escalabilidade |
+| Plataforma  | Free Tier      | Performance | Facilidade | Recomendado Para         |
+| ----------- | -------------- | ----------- | ---------- | ------------------------ |
+| **Railway** | $5 crédito/mês | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐ | Início rápido, monorepos |
+| **Render**  | Limitado       | ⭐⭐⭐      | ⭐⭐⭐⭐   | Testes, desenvolvimento  |
+| **Fly.io**  | 3 apps grátis  | ⭐⭐⭐⭐⭐  | ⭐⭐⭐     | Produção, escalabilidade |
 
 **Recomendação:** Comece com **Railway** pela facilidade, depois considere **Fly.io** para produção com mais tráfego.
 
@@ -366,6 +378,7 @@ Não deve ter erros de CORS.
 ## 🔐 Segurança
 
 ⚠️ **IMPORTANTE:**
+
 - NUNCA commite arquivos `.env` no Git
 - Use variáveis de ambiente da plataforma de deploy
 - `JWT_SECRET` deve ter pelo menos 32 caracteres e ser aleatório

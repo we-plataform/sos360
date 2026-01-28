@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/dashboard/sidebar';
-import { Header } from '@/components/dashboard/header';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { Header } from "@/components/dashboard/header";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 
 export default function DashboardLayout({
   children,
@@ -20,7 +20,9 @@ export default function DashboardLayout({
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const setContext = useAuthStore((state) => state.setContext);
-  const setAvailableCompanies = useAuthStore((state) => state.setAvailableCompanies);
+  const setAvailableCompanies = useAuthStore(
+    (state) => state.setAvailableCompanies,
+  );
 
   // Wait for client-side mount to avoid hydration issues
   useEffect(() => {
@@ -33,14 +35,14 @@ export default function DashboardLayout({
     if (!mounted) return;
 
     const checkAuth = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       if (!token) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       try {
-        const data = await api.getMe() as any;
+        const data = (await api.getMe()) as any;
         setUser(data.user);
 
         if (data.context && data.context.company && data.context.workspace) {
@@ -52,18 +54,16 @@ export default function DashboardLayout({
         }
         setAuthChecked(true);
       } catch (error) {
-        console.error('Auth check failed:', error);
-        toast.error('Sessão expirada', {
-          description: 'Por favor, faça login novamente.',
+        console.error("Auth check failed:", error);
+        toast.error("Sessão expirada", {
+          description: "Por favor, faça login novamente.",
         });
-        router.push('/login');
+        router.push("/login");
       }
     };
 
     checkAuth();
   }, [mounted, router, setUser, setContext, setAvailableCompanies]);
-
-
 
   // Show loading spinner until mounted AND auth is checked
   if (!mounted || !authChecked) {

@@ -1,29 +1,29 @@
 export type Platform =
-  | 'instagram'
-  | 'facebook'
-  | 'linkedin'
-  | 'twitter'
-  | 'tiktok'
-  | 'whatsapp'
-  | 'telegram'
-  | 'discord'
-  | 'reddit'
-  | 'skool'
-  | 'slack'
-  | 'pinterest'
-  | 'youtube'
-  | 'nextdoor'
-  | 'gohighlevel'
-  | 'other';
+  | "instagram"
+  | "facebook"
+  | "linkedin"
+  | "twitter"
+  | "tiktok"
+  | "whatsapp"
+  | "telegram"
+  | "discord"
+  | "reddit"
+  | "skool"
+  | "slack"
+  | "pinterest"
+  | "youtube"
+  | "nextdoor"
+  | "gohighlevel"
+  | "other";
 
 export type LeadStatus =
-  | 'new'
-  | 'contacted'
-  | 'responded'
-  | 'qualified'
-  | 'scheduled'
-  | 'closed'
-  | 'lost';
+  | "new"
+  | "contacted"
+  | "responded"
+  | "qualified"
+  | "scheduled"
+  | "closed"
+  | "lost";
 
 export interface SocialProfile {
   id: string;
@@ -113,7 +113,7 @@ export interface UpdateLeadRequest {
 }
 
 export interface ImportLeadsRequest {
-  source: 'extension' | 'csv' | 'manual';
+  source: "extension" | "csv" | "manual";
   platform: Platform;
   sourceUrl?: string;
   leads: ImportLeadData[];
@@ -139,15 +139,15 @@ export interface ImportLeadData {
   score?: number;
   analysisReason?: string;
   // LinkedIn-specific fields
-  headline?: string;       // Professional title/position
-  company?: string;        // Current company/employer
-  industry?: string;       // Industry/sector
+  headline?: string; // Professional title/position
+  company?: string; // Current company/employer
+  industry?: string; // Industry/sector
   connectionCount?: number; // Number of connections
 }
 
 export interface ImportJobResponse {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   totalLeads: number;
   message: string;
 }

@@ -74,13 +74,18 @@ export interface WorkspaceSummary {
 }
 
 // Enums
-export type Plan = 'trial' | 'starter' | 'professional' | 'business' | 'enterprise';
-export type CompanyRole = 'owner' | 'admin' | 'member';
-export type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'agent' | 'viewer';
+export type Plan =
+  | "trial"
+  | "starter"
+  | "professional"
+  | "business"
+  | "enterprise";
+export type CompanyRole = "owner" | "admin" | "member";
+export type WorkspaceRole = "owner" | "admin" | "manager" | "agent" | "viewer";
 
 // JWT Payload structure
 export interface JwtPayload {
-  sub: string;           // User ID
+  sub: string; // User ID
   companyId: string;
   workspaceId: string;
   companyRole: CompanyRole;
@@ -91,8 +96,8 @@ export interface JwtPayload {
 
 // Selection token (short-lived, for context selection)
 export interface SelectionTokenPayload {
-  sub: string;           // User ID
-  type: 'selection';
+  sub: string; // User ID
+  type: "selection";
   iat: number;
   exp: number;
 }

@@ -3,6 +3,7 @@
 ## 🔴 Problema
 
 O Prisma Client não está sendo gerado durante o build no Railway, causando o erro:
+
 ```
 Error: @prisma/client did not initialize yet. Please run "prisma generate"
 ```
@@ -42,12 +43,14 @@ Se não funcionar, configure manualmente no Railway Dashboard.
 ### 1. Verificar Root Directory
 
 No Railway:
+
 - **Root Directory**: Deve estar vazio ou como `.` (raiz do projeto)
 - **NÃO** deve ser `apps/api` - isso quebra o monorepo
 
 ### 2. Verificar Build Command
 
 O Build Command deve executar na ordem:
+
 1. `@lia360/shared` primeiro
 2. `@lia360/database` segundo (que executa `prisma generate` via `prebuild`)
 3. `@lia360/api` por último
@@ -61,26 +64,32 @@ O `prisma` está em `devDependencies` do `@lia360/database`. Certifique-se de qu
 ## 📋 Configuração Completa no Railway
 
 ### Settings > Service
+
 - **Root Directory**: `.` (vazio ou raiz)
 - **Branch**: `main`
 - **Auto Deploy**: Enabled
 
 ### Settings > Build & Deploy
-- **Build Command**: 
+
+- **Build Command**:
+
   ```bash
   npm run build:api
   ```
+
   Ou:
+
   ```bash
   npm run build --workspace=@lia360/shared && npm run build --workspace=@lia360/database && npm run build --workspace=@lia360/api
   ```
 
-- **Start Command**: 
+- **Start Command**:
   ```bash
   npm run start --workspace=@lia360/api
   ```
 
 ### Settings > Variables
+
 - Todas as variáveis de ambiente necessárias (ver `VARIAVEIS_RAILWAY.md`)
 
 ---

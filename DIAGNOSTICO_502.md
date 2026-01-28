@@ -15,6 +15,7 @@ A API está retornando erro **502 Bad Gateway** com "connection refused" no Rail
 ### 1. Verificar Deploy Logs
 
 No Railway:
+
 1. Vá para o serviço da API
 2. Clique na aba **Deploy Logs**
 3. Procure por:
@@ -27,6 +28,7 @@ No Railway:
 ### 2. Verificar HTTP Logs
 
 Na aba **HTTP Logs**, veja:
+
 - **Status 502** - Indica que o servidor não está respondendo
 - **upstreamErrors** - Mostra erros específicos de conexão
 
@@ -35,6 +37,7 @@ Na aba **HTTP Logs**, veja:
 No Railway, vá em **Settings** > **Variables** e verifique:
 
 **Obrigatórias:**
+
 - ✅ `NODE_ENV=production`
 - ✅ `PORT=3001` (ou deixe Railway definir automaticamente)
 - ✅ `DATABASE_URL` - Deve estar configurada
@@ -42,6 +45,7 @@ No Railway, vá em **Settings** > **Variables** e verifique:
 - ✅ `CORS_ORIGINS` - URLs do frontend separadas por vírgula
 
 **Verificar se estão corretas:**
+
 - `DATABASE_URL` - Formato correto do Supabase
 - `JWT_SECRET` - Não está vazio e tem pelo menos 32 caracteres
 - `CORS_ORIGINS` - Inclui a URL do frontend Vercel
@@ -49,6 +53,7 @@ No Railway, vá em **Settings** > **Variables** e verifique:
 ### 4. Verificar Build Logs
 
 Na aba **Build Logs**, verifique:
+
 - ✅ `prisma generate` foi executado
 - ✅ `Generated Prisma Client` aparece nos logs
 - ✅ Build completou sem erros
@@ -63,6 +68,7 @@ Na aba **Build Logs**, verifique:
 **Sintoma**: Logs mostram erro durante inicialização
 
 **Solução**:
+
 1. Verifique variáveis de ambiente (especialmente `DATABASE_URL` e `JWT_SECRET`)
 2. Verifique se `CORS_ORIGINS` está configurada
 3. Veja os logs de deploy para erros específicos
@@ -72,6 +78,7 @@ Na aba **Build Logs**, verifique:
 **Sintoma**: `Prisma Client did not initialize`
 
 **Solução**:
+
 1. Verifique Build Command no Railway:
    ```bash
    npm run build:api
@@ -86,6 +93,7 @@ Na aba **Build Logs**, verifique:
 **Sintoma**: Servidor não escuta na porta correta
 
 **Solução**:
+
 - Railway injeta `PORT` automaticamente via variável de ambiente
 - O código agora escuta em `0.0.0.0:${PORT}`
 - Verifique se `PORT` está definida ou deixe Railway definir automaticamente
@@ -95,6 +103,7 @@ Na aba **Build Logs**, verifique:
 **Sintoma**: `Invalid environment variables` nos logs
 
 **Solução**:
+
 - Verifique `VARIAVEIS_RAILWAY.md` para lista completa
 - Certifique-se de que todas as variáveis obrigatórias estão configuradas
 - Verifique formato das URLs (especialmente `DATABASE_URL`)
@@ -124,8 +133,9 @@ curl https://sua-api-railway.up.railway.app/health
 ```
 
 Deve retornar:
+
 ```json
-{"status":"ok","timestamp":"2026-01-17T..."}
+{ "status": "ok", "timestamp": "2026-01-17T..." }
 ```
 
 Se retornar 502, verifique os Deploy Logs para ver o erro específico.

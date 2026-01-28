@@ -1,12 +1,14 @@
-import jwt, { type SignOptions } from 'jsonwebtoken';
-import type { StringValue } from 'ms';
-import { env } from '../config/env.js';
-import type { JwtPayload, SelectionTokenPayload } from '@lia360/shared';
+import jwt, { type SignOptions } from "jsonwebtoken";
+import type { StringValue } from "ms";
+import { env } from "../config/env.js";
+import type { JwtPayload, SelectionTokenPayload } from "@lia360/shared";
 
 /**
  * Sign an access token with company and workspace context
  */
-export function signAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
+export function signAccessToken(
+  payload: Omit<JwtPayload, "iat" | "exp">,
+): string {
   const options: SignOptions = {
     expiresIn: env.JWT_EXPIRES_IN as StringValue,
   };
@@ -20,7 +22,11 @@ export function signRefreshToken(userId: string): string {
   const options: SignOptions = {
     expiresIn: env.REFRESH_TOKEN_EXPIRES_IN as StringValue,
   };
-  return jwt.sign({ sub: userId, type: 'refresh' } as object, env.JWT_SECRET as string, options);
+  return jwt.sign(
+    { sub: userId, type: "refresh" } as object,
+    env.JWT_SECRET as string,
+    options,
+  );
 }
 
 /**
@@ -28,9 +34,13 @@ export function signRefreshToken(userId: string): string {
  */
 export function signSelectionToken(userId: string): string {
   const options: SignOptions = {
-    expiresIn: '5m', // 5 minutes to select context
+    expiresIn: "5m", // 5 minutes to select context
   };
-  return jwt.sign({ sub: userId, type: 'selection' } as object, env.JWT_SECRET as string, options);
+  return jwt.sign(
+    { sub: userId, type: "selection" } as object,
+    env.JWT_SECRET as string,
+    options,
+  );
 }
 
 /**
@@ -43,7 +53,10 @@ export function verifyAccessToken(token: string): JwtPayload {
 /**
  * Verify a refresh token and return the payload
  */
-export function verifyRefreshToken(token: string): { sub: string; type: string } {
+export function verifyRefreshToken(token: string): {
+  sub: string;
+  type: string;
+} {
   return jwt.verify(token, env.JWT_SECRET) as { sub: string; type: string };
 }
 
@@ -52,8 +65,8 @@ export function verifyRefreshToken(token: string): { sub: string; type: string }
  */
 export function verifySelectionToken(token: string): SelectionTokenPayload {
   const payload = jwt.verify(token, env.JWT_SECRET) as SelectionTokenPayload;
-  if (payload.type !== 'selection') {
-    throw new Error('Invalid token type');
+  if (payload.type !== "selection") {
+    throw new Error("Invalid token type");
   }
   return payload;
 }
@@ -69,13 +82,13 @@ export function getTokenExpiresIn(): number {
   const unit = match[2];
 
   switch (unit) {
-    case 's':
+    case "s":
       return value;
-    case 'm':
+    case "m":
       return value * 60;
-    case 'h':
+    case "h":
       return value * 3600;
-    case 'd':
+    case "d":
       return value * 86400;
     default:
       return 900;
@@ -93,13 +106,13 @@ export function getRefreshTokenTTL(): number {
   const unit = match[2];
 
   switch (unit) {
-    case 's':
+    case "s":
       return value;
-    case 'm':
+    case "m":
       return value * 60;
-    case 'h':
+    case "h":
       return value * 3600;
-    case 'd':
+    case "d":
       return value * 86400;
     default:
       return 259200;

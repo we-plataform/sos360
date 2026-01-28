@@ -29,7 +29,7 @@ extension/
 Abra `background.js` e verifique:
 
 ```javascript
-const API_URL = 'http://localhost:3001';
+const API_URL = "http://localhost:3001";
 ```
 
 Se sua API estiver em outro endereço, atualize esta linha.

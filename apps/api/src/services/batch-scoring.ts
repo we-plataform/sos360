@@ -1,6 +1,6 @@
-import { prisma } from '@lia360/database';
-import { scoringService } from './scoring.js';
-import { logger } from '../lib/logger.js';
+import { prisma } from "@lia360/database";
+import { scoringService } from "./scoring.js";
+import { logger } from "../lib/logger.js";
 
 /**
  * Batch Scoring Scheduler
@@ -15,7 +15,7 @@ class BatchScoringScheduler {
    */
   start(intervalMs?: number): void {
     if (this.isRunning) {
-      logger.warn('Batch scoring scheduler already running');
+      logger.warn("Batch scoring scheduler already running");
       return;
     }
 
@@ -24,17 +24,19 @@ class BatchScoringScheduler {
     }
 
     this.isRunning = true;
-    logger.info(`Batch scoring scheduler started (interval: ${this.intervalMs}ms)`);
+    logger.info(
+      `Batch scoring scheduler started (interval: ${this.intervalMs}ms)`,
+    );
 
     // Run immediately on start
     this.runBatchJob().catch((err) => {
-      logger.error({ err }, 'Initial batch scoring job failed');
+      logger.error({ err }, "Initial batch scoring job failed");
     });
 
     // Schedule recurring runs
     setInterval(() => {
       this.runBatchJob().catch((err) => {
-        logger.error({ err }, 'Scheduled batch scoring job failed');
+        logger.error({ err }, "Scheduled batch scoring job failed");
       });
     }, this.intervalMs);
   }
@@ -44,7 +46,7 @@ class BatchScoringScheduler {
    */
   stop(): void {
     this.isRunning = false;
-    logger.info('Batch scoring scheduler stopped');
+    logger.info("Batch scoring scheduler stopped");
   }
 
   /**
@@ -53,7 +55,7 @@ class BatchScoringScheduler {
    */
   private async runBatchJob(): Promise<void> {
     try {
-      logger.info('Starting batch scoring job');
+      logger.info("Starting batch scoring job");
 
       // Get all pipelines with enabled scoring models
       const scoringModels = await prisma.scoringModel.findMany({
@@ -80,7 +82,7 @@ class BatchScoringScheduler {
       for (const model of scoringModels) {
         // Collect all lead IDs from this pipeline
         const leadIds = model.pipeline.stages.flatMap((stage) =>
-          stage.leads.map((lead) => lead.id)
+          stage.leads.map((lead) => lead.id),
         );
 
         totalLeads += leadIds.length;
@@ -88,7 +90,7 @@ class BatchScoringScheduler {
         if (leadIds.length === 0) {
           logger.info(
             { pipelineId: model.pipelineId, modelName: model.name },
-            'No leads to score for pipeline'
+            "No leads to score for pipeline",
           );
           continue;
         }
@@ -99,14 +101,17 @@ class BatchScoringScheduler {
             modelName: model.name,
             leadCount: leadIds.length,
           },
-          'Scoring leads for pipeline'
+          "Scoring leads for pipeline",
         );
 
         // Score leads in batches
         const batchSize = 50;
         for (let i = 0; i < leadIds.length; i += batchSize) {
           const batch = leadIds.slice(i, i + batchSize);
-          const result = await scoringService.batchScoreLeads(batch, 'batch_job');
+          const result = await scoringService.batchScoreLeads(
+            batch,
+            "batch_job",
+          );
 
           totalScored += result.succeeded;
           totalFailed += result.failed;
@@ -119,7 +124,7 @@ class BatchScoringScheduler {
               succeeded: result.succeeded,
               failed: result.failed,
             },
-            'Batch completed'
+            "Batch completed",
           );
         }
       }
@@ -131,10 +136,10 @@ class BatchScoringScheduler {
           totalFailed,
           pipelinesProcessed: scoringModels.length,
         },
-        'Batch scoring job completed'
+        "Batch scoring job completed",
       );
     } catch (error) {
-      logger.error({ error }, 'Batch scoring job failed');
+      logger.error({ error }, "Batch scoring job failed");
       throw error;
     }
   }
@@ -163,18 +168,21 @@ class BatchScoringScheduler {
       });
 
       if (!pipeline) {
-        throw new Error('Pipeline not found');
+        throw new Error("Pipeline not found");
       }
 
       const leadIds = pipeline.stages.flatMap((stage) =>
-        stage.leads.map((lead) => lead.id)
+        stage.leads.map((lead) => lead.id),
       );
 
       if (leadIds.length === 0) {
         return { succeeded: 0, failed: 0, errors: [] };
       }
 
-      const result = await scoringService.batchScoreLeads(leadIds, 'manual_batch');
+      const result = await scoringService.batchScoreLeads(
+        leadIds,
+        "manual_batch",
+      );
 
       return {
         succeeded: result.succeeded,
@@ -182,7 +190,10 @@ class BatchScoringScheduler {
         errors: result.errors,
       };
     } catch (error) {
-      logger.error({ error, pipelineId }, 'Manual pipeline batch scoring failed');
+      logger.error(
+        { error, pipelineId },
+        "Manual pipeline batch scoring failed",
+      );
       throw error;
     }
   }

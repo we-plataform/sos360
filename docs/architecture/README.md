@@ -4,29 +4,32 @@ Este diretório contém a documentação técnica completa para o MVP de 3 meses
 
 ## Documentos
 
-| Documento | Descrição |
-|-----------|-----------|
+| Documento                            | Descrição                                                        |
+| ------------------------------------ | ---------------------------------------------------------------- |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Visão geral da arquitetura, stack tecnológico, decisões técnicas |
-| [C4-DIAGRAMS.md](./C4-DIAGRAMS.md) | Diagramas C4 detalhados (contexto, containers, componentes) |
-| [API-SPEC.md](./API-SPEC.md) | Especificação completa da API REST e WebSocket |
-| [DATA-MODEL.md](./DATA-MODEL.md) | Modelo de dados PostgreSQL com Prisma schema |
-| [SECURITY.md](./SECURITY.md) | Requisitos de segurança, autenticação, autorização |
+| [C4-DIAGRAMS.md](./C4-DIAGRAMS.md)   | Diagramas C4 detalhados (contexto, containers, componentes)      |
+| [API-SPEC.md](./API-SPEC.md)         | Especificação completa da API REST e WebSocket                   |
+| [DATA-MODEL.md](./DATA-MODEL.md)     | Modelo de dados PostgreSQL com Prisma schema                     |
+| [SECURITY.md](./SECURITY.md)         | Requisitos de segurança, autenticação, autorização               |
 
 ## Resumo do MVP (3 meses)
 
 ### Mês 1: Fundação
+
 - Setup de infraestrutura (monorepo, Docker, CI/CD)
 - Autenticação JWT completa
 - CRUD de leads com importação CSV
 - Dashboard básico
 
 ### Mês 2: Extensão e Importação
+
 - Extensão Chrome (Manifest V3)
 - Scraping Instagram, Facebook, LinkedIn
 - Sistema de tags e filtros
 - Kanban de leads
 
 ### Mês 3: Comunicação e Automação
+
 - Inbox unificado
 - Templates de mensagens
 - Automações simples (trigger → action)

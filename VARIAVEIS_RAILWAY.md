@@ -3,10 +3,13 @@
 ## ❌ Problemas Identificados
 
 ### 🔴 **CRÍTICO - Falta `CORS_ORIGINS`**
+
 A API precisa desta variável para permitir requisições do frontend. **Sem ela, o frontend não conseguirá se conectar.**
 
 ### 🔴 **CRÍTICO - URLs com `localhost`**
+
 As seguintes variáveis estão incorretas para produção:
+
 - `API_URL=http://localhost:3001` ❌
 - `NEXT_PUBLIC_API_URL=http://localhost:3001` ❌
 - `NEXT_PUBLIC_WS_URL=ws://localhost:3001` ❌
@@ -14,13 +17,16 @@ As seguintes variáveis estão incorretas para produção:
 **Problema**: `localhost` não funciona em produção. Essas variáveis devem apontar para a URL pública do Railway.
 
 ### 🟡 **Placeholders não resolvidos**
+
 - `REDIS_URL=VALUE or ${{REF}}` - Placeholder não resolvido
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY=VALUE or ${{REF}}` - Placeholder não resolvido
 
 ### 🟡 **Variáveis desnecessárias**
+
 - `API_PORT=3001` - A API usa `PORT`, não `API_PORT`
 
 ### ⚠️ **Segurança**
+
 - `JWT_SECRET` está reutilizando `SUPABASE_SERVICE_KEY` - Funciona, mas não é ideal de segurança
 
 ---
@@ -120,6 +126,7 @@ SUPABASE_SERVICE_KEY=[mantenha]
 ```
 
 **Nota**: `CORS_ORIGINS` deve incluir:
+
 - URL do frontend na Vercel
 - Padrões wildcard do Vercel (`https://*.vercel.app`)
 - `chrome-extension://*` para a extensão funcionar
@@ -146,6 +153,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://doewttvwknkhjzhzceub.supabase.co
 ### 6. Redeploy
 
 Após corrigir as variáveis:
+
 1. **Railway**: O deploy é automático, mas você pode forçar um redeploy
 2. **Vercel**: Faça um redeploy manual do frontend
 
@@ -156,9 +164,11 @@ Após corrigir as variáveis:
 Após configurar, verifique:
 
 1. **API no Railway está rodando?**
+
    ```bash
    curl https://sua-api-railway.up.railway.app/health
    ```
+
    Deve retornar: `{"status":"ok",...}`
 
 2. **CORS está funcionando?**
@@ -174,16 +184,16 @@ Após configurar, verifique:
 
 ## 📝 Resumo das Ações Necessárias
 
-| Variável | Status Atual | Ação Necessária |
-|----------|-------------|-----------------|
-| `CORS_ORIGINS` | ❌ Não existe | ✅ **Adicionar** com URL do Vercel |
-| `NEXT_PUBLIC_API_URL` | ❌ localhost | ✅ **Corrigir** para URL do Railway |
-| `NEXT_PUBLIC_WS_URL` | ❌ localhost | ✅ **Corrigir** para wss://URL do Railway |
-| `API_URL` | ❌ localhost | ✅ **Corrigir** para URL do Railway |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ❌ Placeholder | ✅ **Corrigir** com chave real |
-| `REDIS_URL` | ⚠️ Placeholder | ℹ️ Pode ficar vazio se não usar Redis |
-| `API_PORT` | ⚠️ Não usado | ❌ **Remover** (não é necessária) |
-| `JWT_SECRET` | ⚠️ Reusa service key | ℹ️ Funciona, mas ideal seria diferente |
+| Variável                        | Status Atual         | Ação Necessária                           |
+| ------------------------------- | -------------------- | ----------------------------------------- |
+| `CORS_ORIGINS`                  | ❌ Não existe        | ✅ **Adicionar** com URL do Vercel        |
+| `NEXT_PUBLIC_API_URL`           | ❌ localhost         | ✅ **Corrigir** para URL do Railway       |
+| `NEXT_PUBLIC_WS_URL`            | ❌ localhost         | ✅ **Corrigir** para wss://URL do Railway |
+| `API_URL`                       | ❌ localhost         | ✅ **Corrigir** para URL do Railway       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ❌ Placeholder       | ✅ **Corrigir** com chave real            |
+| `REDIS_URL`                     | ⚠️ Placeholder       | ℹ️ Pode ficar vazio se não usar Redis     |
+| `API_PORT`                      | ⚠️ Não usado         | ❌ **Remover** (não é necessária)         |
+| `JWT_SECRET`                    | ⚠️ Reusa service key | ℹ️ Funciona, mas ideal seria diferente    |
 
 ---
 

@@ -1,26 +1,40 @@
-'use client';
+"use client";
 
-import React, { useEffect } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { KanbanCard } from './KanbanCard';
-import type { KanbanStage } from './KanbanBoard';
-import { Play, Settings, Info, DollarSign, Database, Edit2, MoreVertical, AlignLeft, Palette, Trash2 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
-import { AutomationConfigModal } from './AutomationConfigModal';
-import { RunAutomationModal } from './RunAutomationModal';
-import { StageColorDialog } from './StageColorDialog';
-import { EditStageDialog } from './EditStageDialog';
-import { DeleteStageDialog } from './DeleteStageDialog';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { KanbanCard } from "./KanbanCard";
+import type { KanbanStage } from "./KanbanBoard";
+import {
+  Play,
+  Settings,
+  Info,
+  DollarSign,
+  Database,
+  Edit2,
+  MoreVertical,
+  AlignLeft,
+  Palette,
+  Trash2,
+} from "lucide-react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
+import { AutomationConfigModal } from "./AutomationConfigModal";
+import { RunAutomationModal } from "./RunAutomationModal";
+import { StageColorDialog } from "./StageColorDialog";
+import { EditStageDialog } from "./EditStageDialog";
+import { DeleteStageDialog } from "./DeleteStageDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface KanbanColumnProps {
   stage: KanbanStage;
@@ -32,38 +46,72 @@ interface KanbanColumnProps {
 
 // Stage configuration based on index
 const STAGE_CONFIGS = [
-  { bg: 'bg-[#84CC63]', text: 'white', border: 'border-[#70BE51]', icon: Database }, // 01 - Qualified
-  { bg: 'bg-[#F9D41F]', text: 'white', border: 'border-[#E6C21C]', icon: Edit2 }, // 02 - Connection Sent
-  { bg: 'bg-[#A2D879]', text: 'white', border: 'border-[#8EC766]', icon: AlignLeft }, // 03 - Accepted
-  { bg: 'bg-[#43B8D6]', text: 'white', border: 'border-[#3AA6C2]', icon: Edit2 }, // 04 - Message Sent
-  { bg: 'bg-[#5ECBE5]', text: 'white', border: 'border-[#4DBBD4]', icon: Edit2 }  // 05 - Follow Up
+  {
+    bg: "bg-[#84CC63]",
+    text: "white",
+    border: "border-[#70BE51]",
+    icon: Database,
+  }, // 01 - Qualified
+  {
+    bg: "bg-[#F9D41F]",
+    text: "white",
+    border: "border-[#E6C21C]",
+    icon: Edit2,
+  }, // 02 - Connection Sent
+  {
+    bg: "bg-[#A2D879]",
+    text: "white",
+    border: "border-[#8EC766]",
+    icon: AlignLeft,
+  }, // 03 - Accepted
+  {
+    bg: "bg-[#43B8D6]",
+    text: "white",
+    border: "border-[#3AA6C2]",
+    icon: Edit2,
+  }, // 04 - Message Sent
+  {
+    bg: "bg-[#5ECBE5]",
+    text: "white",
+    border: "border-[#4DBBD4]",
+    icon: Edit2,
+  }, // 05 - Follow Up
 ];
 
-export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipelineId }: KanbanColumnProps) {
+export function KanbanColumn({
+  stage,
+  index,
+  onLeadClick,
+  onUpdateLead,
+  pipelineId,
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
 
-  const [isAutomationModalOpen, setIsAutomationModalOpen] = React.useState(false);
+  const [isAutomationModalOpen, setIsAutomationModalOpen] =
+    React.useState(false);
   const [isColorDialogOpen, setIsColorDialogOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
-  const [automation, setAutomation] = React.useState<any>(stage.automations?.[0] || null);
+  const [automation, setAutomation] = React.useState<any>(
+    stage.automations?.[0] || null,
+  );
   const queryClient = useQueryClient();
 
   const deleteStageMutation = useMutation({
     mutationFn: () => api.deleteStage(pipelineId!, stage.id),
     onSuccess: () => {
-      toast.success('Estágio excluído com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
-      queryClient.invalidateQueries({ queryKey: ['pipeline', pipelineId] });
+      toast.success("Estágio excluído com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["pipelines"] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline", pipelineId] });
       setIsDeleteModalOpen(false);
     },
     onError: () => {
-      toast.error('Erro ao excluir estágio. Verifique se existem leads nele.');
+      toast.error("Erro ao excluir estágio. Verifique se existem leads nele.");
       setIsDeleteModalOpen(false);
-    }
+    },
   });
 
   const handleDeleteClick = () => {
@@ -87,30 +135,35 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
     setIsRunModalOpen(true);
   };
 
-  const handleConfirmRun = async (config: { maxLeads: number; interval: string }) => {
+  const handleConfirmRun = async (config: {
+    maxLeads: number;
+    interval: string;
+  }) => {
     try {
       const result = await api.triggerAutomation(automation.id, config);
       toast.success(
-        `Automação criada com ${(result as any)?.data?.message || 'sucesso'}!`,
+        `Automação criada com ${(result as any)?.data?.message || "sucesso"}!`,
         {
           duration: 8000,
-          description: 'A extensão irá processar automaticamente.'
-        }
+          description: "A extensão irá processar automaticamente.",
+        },
       );
 
       try {
         const jobId = (result as any)?.jobId || (result as any)?.data?.jobId;
-        window.postMessage({
-          type: 'SOS360_TRIGGER_AUTOMATION',
-          jobId: jobId
-        }, '*');
+        window.postMessage(
+          {
+            type: "SOS360_TRIGGER_AUTOMATION",
+            jobId: jobId,
+          },
+          "*",
+        );
       } catch (e) {
-        console.error('Error dispatching trigger event:', e);
+        console.error("Error dispatching trigger event:", e);
       }
-
     } catch (error) {
-      console.error('Failed to run automation', error);
-      toast.error('Erro ao iniciar automação via API');
+      console.error("Failed to run automation", error);
+      toast.error("Erro ao iniciar automação via API");
     }
   };
 
@@ -119,22 +172,27 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
   const StageIcon = styleConfig.icon;
 
   // Calculate total value
-  const totalValue = stage.leads.reduce((sum, lead) => sum + (lead.dealValue || 0), 0);
-  const formattedIndex = (index + 1).toString().padStart(2, '0');
+  const totalValue = stage.leads.reduce(
+    (sum, lead) => sum + (lead.dealValue || 0),
+    0,
+  );
+  const formattedIndex = (index + 1).toString().padStart(2, "0");
 
   return (
     <div
       ref={setNodeRef}
-      className={`kanban-column ${isOver ? 'kanban-column--over' : ''} ${index === 0 ? 'kanban-column--first' : 'kanban-column--middle'}`}
+      className={`kanban-column ${isOver ? "kanban-column--over" : ""} ${index === 0 ? "kanban-column--first" : "kanban-column--middle"}`}
     >
       {/* Header Colored Top */}
       <div
         className="kanban-column__header-top"
-        style={{ backgroundColor: stage.color || '#6366F1' }}
+        style={{ backgroundColor: stage.color || "#6366F1" }}
       >
         <div className="flex items-center gap-2 text-white font-bold text-sm w-full whitespace-nowrap overflow-hidden">
           <span className="opacity-90 flex-shrink-0">{formattedIndex} - </span>
-          {StageIcon && <StageIcon size={14} className="opacity-90 flex-shrink-0" />}
+          {StageIcon && (
+            <StageIcon size={14} className="opacity-90 flex-shrink-0" />
+          )}
           <span className="truncate flex-1">{stage.name}</span>
         </div>
       </div>
@@ -146,11 +204,18 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
           <span className="text-gray-500 text-xs">Leads</span>
         </div>
         <div className="flex gap-2">
-          <Palette size={14} className="text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => setIsColorDialogOpen(true)} />
+          <Palette
+            size={14}
+            className="text-gray-400 cursor-pointer hover:text-gray-600"
+            onClick={() => setIsColorDialogOpen(true)}
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <MoreVertical size={14} className="text-gray-400 cursor-pointer hover:text-gray-600 outline-none" />
+              <MoreVertical
+                size={14}
+                className="text-gray-400 cursor-pointer hover:text-gray-600 outline-none"
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
@@ -176,17 +241,24 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
       </div>
       <div className="kanban-column__value-row">
         <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
-          <div className="bg-pink-600 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center text-[9px]">$</div>
+          <div className="bg-pink-600 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center text-[9px]">
+            $
+          </div>
           <span>${totalValue}</span>
         </div>
       </div>
 
       {/* Automation Bar */}
-      <div className={`px-2 py-1.5 flex items-center justify-between text-xs font-medium transition-colors ${automation ? 'bg-[#666] text-white' : 'bg-[#9CA3AF] text-white'}`}>
+      <div
+        className={`px-2 py-1.5 flex items-center justify-between text-xs font-medium transition-colors ${automation ? "bg-[#666] text-white" : "bg-[#9CA3AF] text-white"}`}
+      >
         {automation ? (
           <>
             <span>Automation</span>
-            <div className="flex items-center gap-1 cursor-pointer hover:text-gray-200" onClick={() => setIsAutomationModalOpen(true)}>
+            <div
+              className="flex items-center gap-1 cursor-pointer hover:text-gray-200"
+              onClick={() => setIsAutomationModalOpen(true)}
+            >
               <span>Edit</span>
               <Info size={12} />
             </div>
@@ -216,7 +288,9 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
       )}
 
       {/* Downward Arrow Indicator */}
-      <div className={`kanban-column__header-indicator ${!automation ? 'kanban-column__header-indicator--no-auto' : ''}`}></div>
+      <div
+        className={`kanban-column__header-indicator ${!automation ? "kanban-column__header-indicator--no-auto" : ""}`}
+      ></div>
 
       {/* Content */}
       <SortableContext
@@ -284,7 +358,7 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
       <style jsx>{`
         .kanban-column {
           flex: 0 0 280px;
-          background: #EBF8FC; 
+          background: #ebf8fc;
           border-radius: 4px;
           display: flex;
           flex-direction: column;
@@ -299,67 +373,74 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
         }
 
         .kanban-column__header-top {
-            padding: 8px 10px;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            /* Arrow pointing right */
-            clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
-            /* If it's not the first column, we might want a notch on the left too, 
+          padding: 8px 10px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          /* Arrow pointing right */
+          clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+          /* If it's not the first column, we might want a notch on the left too, 
                but for now let's just make them point right. 
                To truly interlock, we'd need:
                clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%, 5% 50%);
                And padding-left to compensate. */
-             
-             /* Dynamic clip-path is safer inline or via class if index varies */
-             min-height: 40px;
-             display: flex;
-             align-items: center;
+
+          /* Dynamic clip-path is safer inline or via class if index varies */
+          min-height: 40px;
+          display: flex;
+          align-items: center;
         }
-        
+
         /* Specific interlocking shape classes */
         .kanban-column--first .kanban-column__header-top {
-             clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+          clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
         }
-        
+
         .kanban-column--middle .kanban-column__header-top {
-             clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%, 5% 50%);
-             padding-left: 20px; /* Compensate for left notch */
+          clip-path: polygon(
+            0% 0%,
+            95% 0%,
+            100% 50%,
+            95% 100%,
+            0% 100%,
+            5% 50%
+          );
+          padding-left: 20px; /* Compensate for left notch */
         }
-        
+
         /* Downward Chevron Indicator container */
         .kanban-column__header-indicator {
-            height: 12px;
-            background: #EBF8FC; 
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            z-index: 10;
+          height: 12px;
+          background: #ebf8fc;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          z-index: 10;
         }
-        
+
         .kanban-column__header-indicator::after {
-            content: '';
-            width: 0;
-            height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-top: 10px solid #666; /* Gray to match automation bar */
+          content: "";
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-top: 10px solid #666; /* Gray to match automation bar */
         }
-        
+
         .kanban-column__header-indicator--no-auto::after {
-            border-top-color: #9CA3AF;
+          border-top-color: #9ca3af;
         }
 
         .kanban-column__metrics {
-            padding: 6px 10px 2px 10px;
-            background: #EBF8FC;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+          padding: 6px 10px 2px 10px;
+          background: #ebf8fc;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
-        
+
         .kanban-column__value-row {
-            padding: 0 10px 8px 10px;
-            background: #EBF8FC;
+          padding: 0 10px 8px 10px;
+          background: #ebf8fc;
         }
 
         .kanban-column__content {
@@ -371,14 +452,14 @@ export function KanbanColumn({ stage, index, onLeadClick, onUpdateLead, pipeline
           gap: 8px;
           /* Custom scrollbar */
         }
-        
+
         .kanban-column__content::-webkit-scrollbar {
-            width: 4px;
+          width: 4px;
         }
-        
+
         .kanban-column__content::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 4px;
+          background-color: #cbd5e1;
+          border-radius: 4px;
         }
       `}</style>
     </div>

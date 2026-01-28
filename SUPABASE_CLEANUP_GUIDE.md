@@ -10,9 +10,11 @@
 ## Backup Locations
 
 ### 1. Supabase Credentials
+
 **File:** `scripts/backup/.supabase-backup` (secured with chmod 600)
 
 Contains:
+
 - Original DATABASE_URL (pooled connection)
 - Original DIRECT_URL (direct connection)
 - Project reference: doewttvwknkhjzhzceub
@@ -20,13 +22,16 @@ Contains:
 - Current Neon connection for reference
 
 ### 2. Archived Documentation
+
 **Directory:** `docs/legacy/supabase/`
 
 Contains:
+
 - `DATABASE_SETUP.md` - Original manual SQL setup for Supabase
 - `DOCKER_SETUP.md` - Docker vs Supabase setup guide
 
 ### 3. Environment Backup
+
 **File:** `scripts/backup/.env.temp.supabase-backup`
 
 Contains your temporary environment file with Supabase credentials.
@@ -36,12 +41,14 @@ Contains your temporary environment file with Supabase credentials.
 ### Recommended Timeline
 
 **Days 1-7: Monitoring Period** ✅ CURRENT
+
 - Keep Supabase project active
 - Monitor Neon dashboard for issues
 - Test all application features
 - Watch for any performance problems
 
 **Day 7: Production Verification** (if applicable)
+
 - If you have production deployment:
   - Update production environment variables to Neon
   - Test production environment thoroughly
@@ -49,10 +56,12 @@ Contains your temporary environment file with Supabase credentials.
 - If development only: Proceed to next step
 
 **Day 8-30: Safe Period**
+
 - If everything works: Pause Supabase project
 - Keep paused for 30 days as safety net
 
 **After 30 Days: Final Deletion**
+
 - Delete Supabase project permanently
 - Remove backup files (optional)
 
@@ -67,6 +76,7 @@ Contains your temporary environment file with Supabase credentials.
 5. Confirm pause
 
 **Benefits of pausing:**
+
 - Stops billing
 - Keeps data for 30 days
 - Can resume if needed
@@ -104,14 +114,17 @@ npm run dev
 ## What to Keep
 
 **Keep for now:**
+
 - ✅ `scripts/backup/.supabase-backup` - Keep for 30 days
 - ✅ `docs/legacy/supabase/` - Keep for reference
 - ✅ `docs/NEON_MIGRATION_COMPLETE.md` - Migration record
 
 **Can delete immediately:**
+
 - ❌ `scripts/backup/.env.temp.supabase-backup` - Temp file backup
 
 **Delete after 30 days:**
+
 - 🗑️ `scripts/backup/.supabase-backup` - No longer needed
 - 🗑️ `docs/legacy/supabase/` - Unless you want historical reference
 
@@ -120,6 +133,7 @@ npm run dev
 **URL:** https://console.neon.tech/
 
 **Project Details:**
+
 - Region: sa-east-1 (São Paulo, Brazil)
 - Database: neondb
 - Tables: 39
@@ -138,17 +152,20 @@ No `DIRECT_URL` needed with Neon!
 ## Monitoring Checklist
 
 **Week 1 (Daily):**
+
 - [ ] Check Neon dashboard for errors
 - [ ] Test API endpoints
 - [ ] Verify data persistence
 - [ ] Monitor query performance
 
 **Week 2-4 (Weekly):**
+
 - [ ] Review Neon usage metrics
 - [ ] Check connection limits
 - [ ] Verify backup systems
 
 **Ongoing:**
+
 - [ ] Monitor Neon costs
 - [ ] Review query performance
 - [ ] Check for any anomalies
@@ -162,6 +179,7 @@ No `DIRECT_URL` needed with Neon!
 ## Questions?
 
 If you have issues:
+
 1. Check `docs/NEON_MIGRATION_COMPLETE.md` for migration details
 2. Review Neon dashboard logs
 3. Use rollback procedure if needed

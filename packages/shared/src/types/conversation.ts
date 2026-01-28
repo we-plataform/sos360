@@ -1,9 +1,20 @@
-import { Platform } from './lead';
+import { Platform } from "./lead";
 
-export type ConversationStatus = 'active' | 'archived';
-export type SenderType = 'agent' | 'lead' | 'system';
-export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'document' | 'template';
-export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+export type ConversationStatus = "active" | "archived";
+export type SenderType = "agent" | "lead" | "system";
+export type MessageType =
+  | "text"
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "template";
+export type MessageStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
 
 export interface Conversation {
   id: string;

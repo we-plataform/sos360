@@ -20,7 +20,7 @@ Inserir entre as linhas 87 e 89 do arquivo atual. O código final ficará assim:
 
 ```typescript
 if (!workspaceMember) {
-  throw new UnauthorizedError('Usuário não tem acesso a este workspace');
+  throw new UnauthorizedError("Usuário não tem acesso a este workspace");
 }
 
 // Definir variáveis de sessão do PostgreSQL para RLS
@@ -43,10 +43,12 @@ req.user = {
 ## Segurança
 
 **✅ Correto:** Usar `prisma.$executeRaw` com template literals (backticks)
+
 - O Prisma sanitiza automaticamente os valores
 - Evita SQL injection mesmo se o JWT for comprometido
 
 **❌ NUNCA USAR:** `prisma.$executeRawUnsafe` com interpolação de strings
+
 ```typescript
 // NÃO FAÇA ISSO - vulnerável a SQL injection!
 await prisma.$executeRawUnsafe(`SET LOCAL app.user_id = '${payload.sub}'`);
@@ -63,6 +65,7 @@ Após fazer a modificação:
 3. Faça uma requisição autenticada para qualquer endpoint (ex: GET /api/v1/leads)
 
 4. No console do Neon, execute:
+
 ```sql
 -- Verificar se as variáveis de sessão foram definidas
 SELECT
@@ -80,6 +83,7 @@ SELECT
 **Causa:** Variáveis de sessão não foram definidas
 
 **Solução:**
+
 - Verifique se o middleware foi atualizado corretamente
 - Confirme que as requisições passam pelo middleware `authenticate`
 - Execute a query de teste acima para confirmar os valores
@@ -102,6 +106,7 @@ ALTER TABLE company_members DISABLE ROW LEVEL SECURITY;
 ```
 
 Ou execute:
+
 ```sql
 -- Desabilitar RLS em TODAS as tabelas do schema public
 DO $$

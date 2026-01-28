@@ -1,6 +1,6 @@
-import { Redis } from 'ioredis';
-import { env } from '../config/env.js';
-import { logger } from './logger.js';
+import { Redis } from "ioredis";
+import { env } from "../config/env.js";
+import { logger } from "./logger.js";
 
 // Redis client - optional, fallback to in-memory if not available
 let redis: Redis | null = null;
@@ -11,10 +11,11 @@ const memoryStore = new Map<string, { value: string; expiresAt?: number }>();
 
 // Initialize Redis only if URL is provided and not empty/default
 // Skip Redis if URL is empty, default localhost, or explicitly disabled
-const redisUrl = (env.REDIS_URL || '').trim();
-const shouldUseRedis = redisUrl !== '' && 
-  redisUrl !== 'redis://localhost:6379' &&
-  process.env.REDIS_DISABLED !== 'true';
+const redisUrl = (env.REDIS_URL || "").trim();
+const shouldUseRedis =
+  redisUrl !== "" &&
+  redisUrl !== "redis://localhost:6379" &&
+  process.env.REDIS_DISABLED !== "true";
 
 if (shouldUseRedis && !redisDisabled) {
   try {
@@ -29,25 +30,25 @@ if (shouldUseRedis && !redisDisabled) {
 
     let connectionAttempted = false;
 
-    redis.on('connect', () => {
-      logger.info('✓ Connected to Redis');
+    redis.on("connect", () => {
+      logger.info("✓ Connected to Redis");
     });
 
-    redis.on('ready', () => {
-      logger.info('✓ Redis ready');
+    redis.on("ready", () => {
+      logger.info("✓ Redis ready");
     });
 
-    redis.on('error', (_err: Error) => {
+    redis.on("error", (_err: Error) => {
       // Only log once, then disable Redis
       if (!connectionAttempted) {
         connectionAttempted = true;
-        logger.warn('Redis unavailable, using in-memory storage');
+        logger.warn("Redis unavailable, using in-memory storage");
       }
       redis = null;
       redisDisabled = true;
     });
 
-    redis.on('close', () => {
+    redis.on("close", () => {
       redis = null;
       redisDisabled = true;
     });
@@ -55,17 +56,17 @@ if (shouldUseRedis && !redisDisabled) {
     // Try to connect once, with timeout
     const connectPromise = redis.connect();
     const timeoutPromise = new Promise<void>((_, reject) => {
-      setTimeout(() => reject(new Error('Connection timeout')), 2000);
+      setTimeout(() => reject(new Error("Connection timeout")), 2000);
     });
 
     Promise.race([connectPromise, timeoutPromise])
       .then(() => {
-        logger.info('✓ Redis connected successfully');
+        logger.info("✓ Redis connected successfully");
       })
       .catch(() => {
         if (!connectionAttempted) {
           connectionAttempted = true;
-          logger.warn('Redis connection failed, using in-memory storage');
+          logger.warn("Redis connection failed, using in-memory storage");
         }
         const redisInstance = redis;
         redis = null;
@@ -76,7 +77,7 @@ if (shouldUseRedis && !redisDisabled) {
         }
       });
   } catch (error) {
-    logger.warn('Redis not configured, using in-memory storage');
+    logger.warn("Redis not configured, using in-memory storage");
     redis = null;
     redisDisabled = true;
   }
@@ -88,7 +89,7 @@ if (shouldUseRedis && !redisDisabled) {
 // Unified storage interface
 export const storage = {
   async get(key: string): Promise<string | null> {
-    if (redis && !redisDisabled && redis.status === 'ready') {
+    if (redis && !redisDisabled && redis.status === "ready") {
       try {
         return await redis.get(key);
       } catch {
@@ -106,11 +107,16 @@ export const storage = {
     return item.value;
   },
 
-  async set(key: string, value: string, exMode?: 'EX', exSeconds?: number): Promise<void> {
-    if (redis && !redisDisabled && redis.status === 'ready') {
+  async set(
+    key: string,
+    value: string,
+    exMode?: "EX",
+    exSeconds?: number,
+  ): Promise<void> {
+    if (redis && !redisDisabled && redis.status === "ready") {
       try {
-        if (exMode === 'EX' && exSeconds) {
-          await redis.set(key, value, 'EX', exSeconds);
+        if (exMode === "EX" && exSeconds) {
+          await redis.set(key, value, "EX", exSeconds);
         } else {
           await redis.set(key, value);
         }
@@ -126,7 +132,7 @@ export const storage = {
   },
 
   async del(key: string): Promise<void> {
-    if (redis && !redisDisabled && redis.status === 'ready') {
+    if (redis && !redisDisabled && redis.status === "ready") {
       try {
         await redis.del(key);
         return;
@@ -139,7 +145,7 @@ export const storage = {
   },
 
   async incr(key: string): Promise<number> {
-    if (redis && !redisDisabled && redis.status === 'ready') {
+    if (redis && !redisDisabled && redis.status === "ready") {
       try {
         return await redis.incr(key);
       } catch {
@@ -148,13 +154,13 @@ export const storage = {
       }
     }
     const current = memoryStore.get(key);
-    const newValue = (parseInt(current?.value || '0', 10) + 1).toString();
+    const newValue = (parseInt(current?.value || "0", 10) + 1).toString();
     memoryStore.set(key, { value: newValue, expiresAt: current?.expiresAt });
     return parseInt(newValue, 10);
   },
 
   async expire(key: string, seconds: number): Promise<void> {
-    if (redis && !redisDisabled && redis.status === 'ready') {
+    if (redis && !redisDisabled && redis.status === "ready") {
       try {
         await redis.expire(key, seconds);
         return;

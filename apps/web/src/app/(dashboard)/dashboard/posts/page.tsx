@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Plus,
   Search,
@@ -24,15 +24,15 @@ import {
   ChevronUp,
   Filter,
   User,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-import { api } from '@/lib/api';
-import { formatRelativeTime, cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { api } from "@/lib/api";
+import { formatRelativeTime, cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Post {
   id: string;
@@ -73,11 +73,14 @@ interface PostsResponse {
   };
 }
 
-type ViewMode = 'grid' | 'list';
-type SortField = 'importedAt' | 'postDate' | 'likesCount' | 'commentsCount';
-type SortDirection = 'asc' | 'desc';
+type ViewMode = "grid" | "list";
+type SortField = "importedAt" | "postDate" | "likesCount" | "commentsCount";
+type SortDirection = "asc" | "desc";
 
-const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const platformIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   instagram: Instagram,
   linkedin: Linkedin,
 };
@@ -85,23 +88,26 @@ const platformIcons: Record<string, React.ComponentType<{ className?: string }>>
 export default function PostsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [platform, setPlatform] = useState<string>('all');
-  const [hasLead, setHasLead] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [sortField, setSortField] = useState<SortField>('importedAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [search, setSearch] = useState("");
+  const [platform, setPlatform] = useState<string>("all");
+  const [hasLead, setHasLead] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [sortField, setSortField] = useState<SortField>("importedAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const { data: postsData, isLoading } = useQuery({
-    queryKey: ['posts', { page, platform, hasLead, search, sortField, sortDirection }],
+    queryKey: [
+      "posts",
+      { page, platform, hasLead, search, sortField, sortDirection },
+    ],
     queryFn: () =>
       api.getPosts({
         page,
-        limit: viewMode === 'grid' ? 12 : 20,
-        ...(platform !== 'all' && { platform }),
-        ...(hasLead !== 'all' && { hasLead: hasLead === 'linked' }),
+        limit: viewMode === "grid" ? 12 : 20,
+        ...(platform !== "all" && { platform }),
+        ...(hasLead !== "all" && { hasLead: hasLead === "linked" }),
         ...(search && { search }),
         sort: sortField,
         order: sortDirection,
@@ -114,32 +120,32 @@ export default function PostsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deletePost(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
       setDeleteId(null);
-      toast.success('Post removido com sucesso');
+      toast.success("Post removido com sucesso");
     },
     onError: () => {
-      toast.error('Erro ao remover post');
+      toast.error("Erro ao remover post");
     },
   });
 
   const unlinkMutation = useMutation({
     mutationFn: (postId: string) => api.unlinkPostFromLead(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      toast.success('Post desvinculado do lead');
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      toast.success("Post desvinculado do lead");
     },
     onError: () => {
-      toast.error('Erro ao desvincular post');
+      toast.error("Erro ao desvincular post");
     },
   });
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection("desc");
     }
   };
 
@@ -149,7 +155,7 @@ export default function PostsPage() {
   };
 
   const formatNumber = (num: number | null) => {
-    if (num === null || num === undefined) return '-';
+    if (num === null || num === undefined) return "-";
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
@@ -157,7 +163,7 @@ export default function PostsPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ? (
+    return sortDirection === "asc" ? (
       <ChevronUp className="h-4 w-4 ml-1" />
     ) : (
       <ChevronDown className="h-4 w-4 ml-1" />
@@ -168,10 +174,10 @@ export default function PostsPage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Biblioteca de Posts</h1>
-          <p className="text-gray-600">
-            Posts importados de redes sociais
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Biblioteca de Posts
+          </h1>
+          <p className="text-gray-600">Posts importados de redes sociais</p>
         </div>
       </div>
 
@@ -193,7 +199,10 @@ export default function PostsPage() {
 
           <select
             value={platform}
-            onChange={(e) => { setPlatform(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setPlatform(e.target.value);
+              setPage(1);
+            }}
             className="flex h-10 w-[160px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="all">Todas</option>
@@ -203,7 +212,10 @@ export default function PostsPage() {
 
           <select
             value={hasLead}
-            onChange={(e) => { setHasLead(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setHasLead(e.target.value);
+              setPage(1);
+            }}
             className="flex h-10 w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="all">Todos</option>
@@ -213,20 +225,20 @@ export default function PostsPage() {
 
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <button
-              onClick={() => setViewMode('grid')}
+              onClick={() => setViewMode("grid")}
               className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'grid' ? 'bg-gray-100' : 'hover:bg-gray-50'
+                "p-2 rounded transition-colors",
+                viewMode === "grid" ? "bg-gray-100" : "hover:bg-gray-50",
               )}
               title="Visualização em grade"
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'list' ? 'bg-gray-100' : 'hover:bg-gray-50'
+                "p-2 rounded transition-colors",
+                viewMode === "list" ? "bg-gray-100" : "hover:bg-gray-50",
               )}
               title="Visualização em lista"
             >
@@ -245,15 +257,15 @@ export default function PostsPage() {
         <Card className="flex h-64 flex-col items-center justify-center">
           <FileText className="h-12 w-12 text-gray-300 mb-4" />
           <p className="text-gray-500 mb-4">
-            {search || platform !== 'all' || hasLead !== 'all'
-              ? 'Nenhum post encontrado'
-              : 'Nenhum post importado ainda'}
+            {search || platform !== "all" || hasLead !== "all"
+              ? "Nenhum post encontrado"
+              : "Nenhum post importado ainda"}
           </p>
           <p className="text-sm text-gray-400 text-center max-w-md">
             Use a extensão do Chrome para salvar posts do Instagram ou LinkedIn
           </p>
         </Card>
-      ) : viewMode === 'grid' ? (
+      ) : viewMode === "grid" ? (
         /* Grid View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {posts.map((post: Post) => (
@@ -360,17 +372,23 @@ export default function PostsPage() {
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="px-6 py-4 text-left">
-                    <span className="font-semibold text-sm text-gray-600">Post</span>
+                    <span className="font-semibold text-sm text-gray-600">
+                      Post
+                    </span>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <span className="font-semibold text-sm text-gray-600">Autor</span>
+                    <span className="font-semibold text-sm text-gray-600">
+                      Autor
+                    </span>
                   </th>
                   <th className="px-6 py-4 text-left">
-                    <span className="font-semibold text-sm text-gray-600">Lead Vinculado</span>
+                    <span className="font-semibold text-sm text-gray-600">
+                      Lead Vinculado
+                    </span>
                   </th>
                   <th className="px-6 py-4 text-left">
                     <button
-                      onClick={() => handleSort('likesCount')}
+                      onClick={() => handleSort("likesCount")}
                       className="flex items-center font-semibold text-sm text-gray-600 hover:text-gray-900"
                     >
                       Engajamento
@@ -379,7 +397,7 @@ export default function PostsPage() {
                   </th>
                   <th className="px-6 py-4 text-left">
                     <button
-                      onClick={() => handleSort('importedAt')}
+                      onClick={() => handleSort("importedAt")}
                       className="flex items-center font-semibold text-sm text-gray-600 hover:text-gray-900"
                     >
                       Importado em
@@ -387,7 +405,9 @@ export default function PostsPage() {
                     </button>
                   </th>
                   <th className="px-6 py-4 text-right">
-                    <span className="font-semibold text-sm text-gray-600">Ações</span>
+                    <span className="font-semibold text-sm text-gray-600">
+                      Ações
+                    </span>
                   </th>
                 </tr>
               </thead>
@@ -417,9 +437,14 @@ export default function PostsPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline" className="text-xs shrink-0">
+                            <Badge
+                              variant="outline"
+                              className="text-xs shrink-0"
+                            >
                               <PlatformIcon platform={post.platform} />
-                              <span className="ml-1 capitalize">{post.platform}</span>
+                              <span className="ml-1 capitalize">
+                                {post.platform}
+                              </span>
                             </Badge>
                             {post.postType && (
                               <Badge variant="secondary" className="text-xs">
@@ -452,9 +477,13 @@ export default function PostsPage() {
                           </div>
                         )}
                         <div>
-                          <p className="text-sm font-medium">@{post.authorUsername}</p>
+                          <p className="text-sm font-medium">
+                            @{post.authorUsername}
+                          </p>
                           {post.authorFullName && (
-                            <p className="text-xs text-gray-500">{post.authorFullName}</p>
+                            <p className="text-xs text-gray-500">
+                              {post.authorFullName}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -463,10 +492,14 @@ export default function PostsPage() {
                       {post.lead ? (
                         <div className="flex items-center gap-2">
                           <Link2 className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">{post.lead.fullName || post.lead.username}</span>
+                          <span className="text-sm">
+                            {post.lead.fullName || post.lead.username}
+                          </span>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-400">Não vinculado</span>
+                        <span className="text-sm text-gray-400">
+                          Não vinculado
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -523,7 +556,9 @@ export default function PostsPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/dashboard/posts/${post.id}?link=true`);
+                              router.push(
+                                `/dashboard/posts/${post.id}?link=true`,
+                              );
                             }}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                             title="Vincular a lead"
@@ -552,7 +587,9 @@ export default function PostsPage() {
           {/* Table Footer */}
           <div className="px-6 py-3 bg-gray-50 border-t text-sm text-gray-500 flex items-center justify-between">
             <span>
-              {pagination?.total || posts.length} post{(pagination?.total || posts.length) !== 1 ? 's' : ''} encontrado{(pagination?.total || posts.length) !== 1 ? 's' : ''}
+              {pagination?.total || posts.length} post
+              {(pagination?.total || posts.length) !== 1 ? "s" : ""} encontrado
+              {(pagination?.total || posts.length) !== 1 ? "s" : ""}
             </span>
             {pagination && pagination.totalPages > 1 && (
               <div className="flex items-center gap-2">
@@ -582,7 +619,7 @@ export default function PostsPage() {
       )}
 
       {/* Pagination for grid view */}
-      {viewMode === 'grid' && pagination && pagination.totalPages > 1 && (
+      {viewMode === "grid" && pagination && pagination.totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <Button
             variant="outline"
@@ -610,7 +647,8 @@ export default function PostsPage() {
           <Card className="p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-2">Excluir Post</h3>
             <p className="text-gray-600 mb-4">
-              Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este post? Esta ação não pode ser
+              desfeita.
             </p>
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => setDeleteId(null)}>
@@ -621,7 +659,7 @@ export default function PostsPage() {
                 onClick={() => deleteMutation.mutate(deleteId)}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
+                {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
               </Button>
             </div>
           </Card>

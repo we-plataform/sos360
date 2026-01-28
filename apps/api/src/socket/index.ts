@@ -1,8 +1,8 @@
-import type { Server, Socket } from 'socket.io';
-import { verifyAccessToken } from '../lib/jwt.js';
-import { logger } from '../lib/logger.js';
-import { prisma } from '@lia360/database';
-import type { WorkspaceRole } from '@lia360/shared';
+import type { Server, Socket } from "socket.io";
+import { verifyAccessToken } from "../lib/jwt.js";
+import { logger } from "../lib/logger.js";
+import { prisma } from "@lia360/database";
+import type { WorkspaceRole } from "@lia360/shared";
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -13,10 +13,10 @@ interface AuthenticatedSocket extends Socket {
 export function setupSocket(io: Server): void {
   // Authentication middleware
   io.use((socket: AuthenticatedSocket, next) => {
-    const token = socket.handshake.auth.token?.replace('Bearer ', '');
+    const token = socket.handshake.auth.token?.replace("Bearer ", "");
 
     if (!token) {
-      return next(new Error('Authentication required'));
+      return next(new Error("Authentication required"));
     }
 
     try {
@@ -26,12 +26,12 @@ export function setupSocket(io: Server): void {
       socket.workspaceRole = payload.workspaceRole;
       next();
     } catch {
-      next(new Error('Invalid token'));
+      next(new Error("Invalid token"));
     }
   });
 
-  io.on('connection', (socket: AuthenticatedSocket) => {
-    logger.info({ userId: socket.userId }, 'Client connected');
+  io.on("connection", (socket: AuthenticatedSocket) => {
+    logger.info({ userId: socket.userId }, "Client connected");
 
     // Join workspace room
     if (socket.workspaceId) {
@@ -39,7 +39,7 @@ export function setupSocket(io: Server): void {
     }
 
     // Join conversation room
-    socket.on('join:conversation', async (conversationId: string) => {
+    socket.on("join:conversation", async (conversationId: string) => {
       try {
         // Verify conversation exists and user has access
         const conversation = await prisma.conversation.findFirst({
@@ -56,59 +56,66 @@ export function setupSocket(io: Server): void {
         if (!conversation) {
           logger.warn(
             { userId: socket.userId, conversationId },
-            'Unauthorized attempt to join conversation room'
+            "Unauthorized attempt to join conversation room",
           );
-          socket.emit('error', { message: 'Conversation not found' });
+          socket.emit("error", { message: "Conversation not found" });
           return;
         }
 
         // Agents can only join conversations assigned to them
         if (
-          socket.workspaceRole === 'agent' &&
+          socket.workspaceRole === "agent" &&
           conversation.assignedToId !== socket.userId
         ) {
           logger.warn(
-            { userId: socket.userId, conversationId, workspaceRole: socket.workspaceRole },
-            'Agent attempted to join unassigned conversation room'
+            {
+              userId: socket.userId,
+              conversationId,
+              workspaceRole: socket.workspaceRole,
+            },
+            "Agent attempted to join unassigned conversation room",
           );
-          socket.emit('error', { message: 'Access denied' });
+          socket.emit("error", { message: "Access denied" });
           return;
         }
 
         socket.join(`conversation:${conversationId}`);
         logger.debug(
           { userId: socket.userId, conversationId },
-          'Joined conversation room'
+          "Joined conversation room",
         );
       } catch (error) {
-        logger.error({ error, conversationId }, 'Error joining conversation room');
-        socket.emit('error', { message: 'Failed to join conversation' });
+        logger.error(
+          { error, conversationId },
+          "Error joining conversation room",
+        );
+        socket.emit("error", { message: "Failed to join conversation" });
       }
     });
 
     // Leave conversation room
-    socket.on('leave:conversation', (conversationId: string) => {
+    socket.on("leave:conversation", (conversationId: string) => {
       socket.leave(`conversation:${conversationId}`);
-      logger.debug({ conversationId }, 'Left conversation room');
+      logger.debug({ conversationId }, "Left conversation room");
     });
 
     // Typing indicator
-    socket.on('typing:start', (conversationId: string) => {
-      socket.to(`conversation:${conversationId}`).emit('typing:start', {
+    socket.on("typing:start", (conversationId: string) => {
+      socket.to(`conversation:${conversationId}`).emit("typing:start", {
         userId: socket.userId,
         conversationId,
       });
     });
 
-    socket.on('typing:stop', (conversationId: string) => {
-      socket.to(`conversation:${conversationId}`).emit('typing:stop', {
+    socket.on("typing:stop", (conversationId: string) => {
+      socket.to(`conversation:${conversationId}`).emit("typing:stop", {
         userId: socket.userId,
         conversationId,
       });
     });
 
-    socket.on('disconnect', () => {
-      logger.info({ userId: socket.userId }, 'Client disconnected');
+    socket.on("disconnect", () => {
+      logger.info({ userId: socket.userId }, "Client disconnected");
     });
   });
 }

@@ -3,6 +3,7 @@
 ## 🎯 Objetivo
 
 Configurar o frontend na Vercel para usar:
+
 - ✅ API de produção (Render)
 - ✅ API gerencia o banco de dados (PostgreSQL via Docker)
 
@@ -13,6 +14,7 @@ Configurar o frontend na Vercel para usar:
 ### 1. Obter URL da API
 
 #### API (Render)
+
 - [ ] Acessar Render Dashboard
 - [ ] Settings → Networking
 - [ ] Copiar **Public URL** → `NEXT_PUBLIC_API_URL`
@@ -59,11 +61,11 @@ NEXT_PUBLIC_WS_URL=wss://sua-api.onrender.com
 
 ```javascript
 // Verificar variável
-console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
+console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
 
 // Testar API
-fetch(process.env.NEXT_PUBLIC_API_URL + '/health')
-  .then(r => r.json())
+fetch(process.env.NEXT_PUBLIC_API_URL + "/health")
+  .then((r) => r.json())
   .then(console.log);
 ```
 

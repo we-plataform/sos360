@@ -3,6 +3,7 @@
 ## 🎯 Configuração Essencial
 
 ### 1. Criar Web Service
+
 - **New +** → **Web Service**
 - Conecte repositório `lia360`
 - **Root Directory**: `.` (vazio/raiz) ⚠️ **NÃO** `apps/api`
@@ -10,11 +11,13 @@
 ### 2. Build & Start Commands
 
 **Build Command:**
+
 ```bash
 npm install && npm run build:api
 ```
 
 **Start Command:**
+
 ```bash
 npm run start --workspace=@lia360/api
 ```
@@ -52,12 +55,12 @@ curl https://sua-api.onrender.com/health
 
 ## 🐛 Problemas Comuns
 
-| Problema | Solução |
-|----------|---------|
-| Prisma não inicializado | Verifique Root Directory = `.` e Build Command = `npm run build:api` |
-| Workspace não encontrado | Root Directory deve ser raiz do projeto, não `apps/api` |
-| CORS error | Adicione URL exata do frontend em `CORS_ORIGINS` |
-| Serviço dorme | Free tier dorme após 15min - upgrade para Starter ($7/mês) |
+| Problema                 | Solução                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| Prisma não inicializado  | Verifique Root Directory = `.` e Build Command = `npm run build:api` |
+| Workspace não encontrado | Root Directory deve ser raiz do projeto, não `apps/api`              |
+| CORS error               | Adicione URL exata do frontend em `CORS_ORIGINS`                     |
+| Serviço dorme            | Free tier dorme após 15min - upgrade para Starter ($7/mês)           |
 
 ## 📋 Checklist
 

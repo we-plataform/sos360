@@ -12,6 +12,7 @@ Successfully implemented a comprehensive AI-powered lead scoring system that aut
 ### 1. Database Schema ✅
 
 **New Tables:**
+
 - `ScoringModel` - Stores scoring configuration per pipeline
   - Criteria (job titles, companies, engagement, completeness)
   - Weights for each factor
@@ -24,12 +25,14 @@ Successfully implemented a comprehensive AI-powered lead scoring system that aut
   - Trigger source (import, enrichment, manual, batch)
 
 **Updated Tables:**
+
 - `Pipeline` - Added `scoringModel` relation
 - `Lead` - Added `scoreHistories` relation
 
 ### 2. Backend Services ✅
 
 **Scoring Service** (`apps/api/src/services/scoring.ts`)
+
 - Factor-based scoring algorithm:
   - Job Title Match (0-100)
   - Company Relevance (0-100)
@@ -40,11 +43,13 @@ Successfully implemented a comprehensive AI-powered lead scoring system that aut
 - Score history tracking
 
 **Batch Scoring Scheduler** (`apps/api/src/services/batch-scoring.ts`)
+
 - Daily automatic re-scoring
 - Pipeline-level batch processing
 - Configurable intervals
 
 **OpenAI Integration** (enhanced existing `apps/api/src/lib/openai.ts`)
+
 - Lead qualification prompts
 - Factor-specific analysis
 - Batch scoring support
@@ -52,6 +57,7 @@ Successfully implemented a comprehensive AI-powered lead scoring system that aut
 ### 3. API Endpoints ✅
 
 **Scoring Model Management:**
+
 ```
 POST   /api/v1/pipelines/:pipelineId/scoring-model  - Create/update model
 GET    /api/v1/pipelines/:pipelineId/scoring-model  - Get model config
@@ -59,6 +65,7 @@ DELETE /api/v1/pipelines/:pipelineId/scoring-model  - Delete model
 ```
 
 **Lead Scoring Operations:**
+
 ```
 POST   /api/v1/leads/:id/rescore                    - Manual re-score
 POST   /api/v1/leads/batch-rescore                  - Batch re-score
@@ -75,11 +82,13 @@ GET    /api/v1/leads/:id/score-history              - Get history
 ### 5. Frontend Components ✅
 
 **Scoring Components:**
+
 - `ScoreBadge` - Visual score indicator with color coding
 - `ScoreBreakdownModal` - Detailed factor breakdown and history
 - `ScoringModelEditor` - Configuration UI for scoring models
 
 **UI Components Added:**
+
 - Slider (`components/ui/slider.tsx`)
 - Progress (`components/ui/progress.tsx`)
 - Switch (`components/ui/switch.tsx`)
@@ -87,6 +96,7 @@ GET    /api/v1/leads/:id/score-history              - Get history
 ### 6. Validation Schemas ✅
 
 **Zod Schemas** (`packages/shared/src/schemas/scoring.ts`)
+
 - `scoringCriteriaSchema` - ICP definition validation
 - `scoringWeightsSchema` - Factor weight validation
 - `createScoringModelSchema` - Model creation validation
@@ -96,11 +106,13 @@ GET    /api/v1/leads/:id/score-history              - Get history
 ### 7. Testing ✅
 
 **Unit Tests:**
+
 - Scoring algorithm math validation
 - Classification logic tests
 - Weight calculation verification
 
 **Integration Tests:**
+
 - API endpoint tests
 - Service method tests
 - Mock validation
@@ -138,6 +150,7 @@ GET    /api/v1/leads/:id/score-history              - Get history
    - Minimal: 0-19
 
 **Final Score:**
+
 ```
 score = (jobTitle × weight) + (company × weight) + (engagement × weight) + (completeness × weight)
        -------------------------------------------------------------------------------------------
@@ -145,6 +158,7 @@ score = (jobTitle × weight) + (company × weight) + (engagement × weight) + (c
 ```
 
 **Classification:**
+
 - **Hot**: score >= thresholdHigh (default 80)
 - **Warm**: score >= thresholdMedium (default 50)
 - **Cold**: score < thresholdMedium

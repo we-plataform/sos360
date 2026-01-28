@@ -16,19 +16,19 @@ erDiagram
     Workspace ||--o{ Template : creates
     Workspace ||--o{ Automation : configures
     Workspace ||--o{ Webhook : registers
-    
+
     User ||--o{ Lead : assigned
     User ||--o{ Conversation : handles
     User ||--o{ Message : sends
-    
+
     Lead ||--o{ LeadTag : has
     Lead ||--|| Conversation : has
     Lead ||--o{ Activity : generates
-    
+
     Tag ||--o{ LeadTag : applied
-    
+
     Conversation ||--o{ Message : contains
-    
+
     Automation ||--o{ AutomationLog : produces
 ```
 
@@ -252,10 +252,10 @@ model Tag {
 model LeadTag {
   leadId    String
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  
+
   tagId     String
   tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
 
   @@id([leadId, tagId])
@@ -513,12 +513,12 @@ enum ImportJobStatus {
 
 Representa uma conta/organização no sistema.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| name | String | Nome do workspace |
-| plan | Enum | Plano de assinatura |
-| settings | JSON | Configurações customizadas |
+| Campo    | Tipo   | Descrição                  |
+| -------- | ------ | -------------------------- |
+| id       | CUID   | Identificador único        |
+| name     | String | Nome do workspace          |
+| plan     | Enum   | Plano de assinatura        |
+| settings | JSON   | Configurações customizadas |
 
 **Índices:** PK em `id`
 
@@ -528,14 +528,14 @@ Representa uma conta/organização no sistema.
 
 Usuários do sistema.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| email | String | Email único |
+| Campo        | Tipo   | Descrição            |
+| ------------ | ------ | -------------------- |
+| id           | CUID   | Identificador único  |
+| email        | String | Email único          |
 | passwordHash | String | Hash bcrypt da senha |
-| fullName | String | Nome completo |
-| role | Enum | Papel no workspace |
-| workspaceId | FK | Workspace associado |
+| fullName     | String | Nome completo        |
+| role         | Enum   | Papel no workspace   |
+| workspaceId  | FK     | Workspace associado  |
 
 **Índices:** `email` (unique), `workspaceId`
 
@@ -545,17 +545,18 @@ Usuários do sistema.
 
 Leads importados das redes sociais.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| platform | Enum | Plataforma de origem |
-| username | String | Username na plataforma |
-| profileUrl | String | URL do perfil |
-| score | Int | Pontuação (0-100) |
-| status | Enum | Status no funil |
-| customFields | JSON | Campos personalizados |
+| Campo        | Tipo   | Descrição              |
+| ------------ | ------ | ---------------------- |
+| id           | CUID   | Identificador único    |
+| platform     | Enum   | Plataforma de origem   |
+| username     | String | Username na plataforma |
+| profileUrl   | String | URL do perfil          |
+| score        | Int    | Pontuação (0-100)      |
+| status       | Enum   | Status no funil        |
+| customFields | JSON   | Campos personalizados  |
 
-**Índices:** 
+**Índices:**
+
 - Unique: `(workspaceId, platform, profileUrl)` - evita duplicatas
 - `(workspaceId, status)` - filtros comuns
 - `(workspaceId, platform)` - filtros por plataforma
@@ -568,13 +569,13 @@ Leads importados das redes sociais.
 
 Conversas com leads (1:1 com Lead).
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| leadId | FK | Lead associado (unique) |
-| platform | Enum | Plataforma da conversa |
-| unreadCount | Int | Mensagens não lidas |
-| lastMessageAt | DateTime | Última mensagem |
+| Campo         | Tipo     | Descrição               |
+| ------------- | -------- | ----------------------- |
+| id            | CUID     | Identificador único     |
+| leadId        | FK       | Lead associado (unique) |
+| platform      | Enum     | Plataforma da conversa  |
+| unreadCount   | Int      | Mensagens não lidas     |
+| lastMessageAt | DateTime | Última mensagem         |
 
 **Índices:** `leadId` (unique), `(status, lastMessageAt)`
 
@@ -584,13 +585,13 @@ Conversas com leads (1:1 com Lead).
 
 Mensagens em conversas.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| conversationId | FK | Conversa associada |
-| content | Text | Conteúdo da mensagem |
-| senderType | Enum | agent, lead, system |
-| status | Enum | pending, sent, delivered, read, failed |
+| Campo          | Tipo | Descrição                              |
+| -------------- | ---- | -------------------------------------- |
+| id             | CUID | Identificador único                    |
+| conversationId | FK   | Conversa associada                     |
+| content        | Text | Conteúdo da mensagem                   |
+| senderType     | Enum | agent, lead, system                    |
+| status         | Enum | pending, sent, delivered, read, failed |
 
 **Índices:** `(conversationId, sentAt)` - paginação cronológica
 
@@ -600,13 +601,13 @@ Mensagens em conversas.
 
 Templates de mensagens reutilizáveis.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| name | String | Nome do template |
-| content | Text | Conteúdo com variáveis |
-| variables | JSON | Lista de variáveis detectadas |
-| stats | JSON | Estatísticas de uso |
+| Campo     | Tipo   | Descrição                     |
+| --------- | ------ | ----------------------------- |
+| id        | CUID   | Identificador único           |
+| name      | String | Nome do template              |
+| content   | Text   | Conteúdo com variáveis        |
+| variables | JSON   | Lista de variáveis detectadas |
+| stats     | JSON   | Estatísticas de uso           |
 
 ---
 
@@ -614,15 +615,15 @@ Templates de mensagens reutilizáveis.
 
 Automações configuradas.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| triggerType | String | Tipo de gatilho |
-| triggerConfig | JSON | Configuração do gatilho |
-| actions | JSON | Lista de ações |
-| conditions | JSON | Condições opcionais |
-| enabled | Bool | Ativo/inativo |
-| stats | JSON | Contadores de execução |
+| Campo         | Tipo   | Descrição               |
+| ------------- | ------ | ----------------------- |
+| id            | CUID   | Identificador único     |
+| triggerType   | String | Tipo de gatilho         |
+| triggerConfig | JSON   | Configuração do gatilho |
+| actions       | JSON   | Lista de ações          |
+| conditions    | JSON   | Condições opcionais     |
+| enabled       | Bool   | Ativo/inativo           |
+| stats         | JSON   | Contadores de execução  |
 
 ---
 
@@ -630,13 +631,13 @@ Automações configuradas.
 
 Trail de auditoria de ações.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | CUID | Identificador único |
-| type | Enum | Tipo de atividade |
-| leadId | FK | Lead relacionado |
-| userId | FK | Usuário que executou |
-| metadata | JSON | Detalhes adicionais |
+| Campo    | Tipo | Descrição            |
+| -------- | ---- | -------------------- |
+| id       | CUID | Identificador único  |
+| type     | Enum | Tipo de atividade    |
+| leadId   | FK   | Lead relacionado     |
+| userId   | FK   | Usuário que executou |
+| metadata | JSON | Detalhes adicionais  |
 
 **Índices:** `(leadId, createdAt)`, `(userId, createdAt)`
 
@@ -703,7 +704,7 @@ CREATE TABLE "users" (
 ### Listar leads com filtros
 
 ```sql
-SELECT 
+SELECT
   l.*,
   u.full_name as assigned_to_name,
   array_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color)) as tags
@@ -723,7 +724,7 @@ LIMIT $5 OFFSET $6;
 ### Contagem por status (funil)
 
 ```sql
-SELECT 
+SELECT
   status,
   COUNT(*) as count
 FROM leads
@@ -736,7 +737,7 @@ GROUP BY status;
 ### Conversas não lidas
 
 ```sql
-SELECT 
+SELECT
   c.*,
   l.username,
   l.full_name,
@@ -757,12 +758,14 @@ ORDER BY c.last_message_at DESC;
 ### Índices Recomendados
 
 1. **Full-text search** em leads:
+
 ```sql
-CREATE INDEX leads_search_idx ON leads 
+CREATE INDEX leads_search_idx ON leads
 USING gin(to_tsvector('portuguese', coalesce(full_name, '') || ' ' || coalesce(username, '') || ' ' || coalesce(bio, '')));
 ```
 
 2. **Trigram para busca fuzzy**:
+
 ```sql
 CREATE INDEX leads_username_trgm_idx ON leads USING gin(username gin_trgm_ops);
 CREATE INDEX leads_fullname_trgm_idx ON leads USING gin(full_name gin_trgm_ops);
@@ -784,12 +787,12 @@ CREATE TABLE leads_p1 PARTITION OF leads FOR VALUES WITH (MODULUS 4, REMAINDER 1
 
 ### Cache Strategy
 
-| Dado | TTL | Invalidação |
-|------|-----|-------------|
-| User (por ID) | 5 min | On update |
-| Workspace settings | 10 min | On update |
-| Tags list | 5 min | On create/update/delete |
-| Lead count por status | 1 min | On status change |
+| Dado                       | TTL                   | Invalidação             |
+| -------------------------- | --------------------- | ----------------------- |
+| User (por ID)              | 5 min                 | On update               |
+| Workspace settings         | 10 min                | On update               |
+| Tags list                  | 5 min                 | On create/update/delete |
+| Lead count por status      | 1 min                 | On status change        |
 | Unread conversations count | Real-time via pub/sub |
 
 ---
@@ -798,11 +801,11 @@ CREATE TABLE leads_p1 PARTITION OF leads FOR VALUES WITH (MODULUS 4, REMAINDER 1
 
 ### Estratégia
 
-| Tipo | Frequência | Retenção |
-|------|------------|----------|
-| Full backup | Diário (2am) | 30 dias |
-| WAL archiving | Contínuo | 7 dias |
-| Point-in-time | Últimas 24h | - |
+| Tipo          | Frequência   | Retenção |
+| ------------- | ------------ | -------- |
+| Full backup   | Diário (2am) | 30 dias  |
+| WAL archiving | Contínuo     | 7 dias   |
+| Point-in-time | Últimas 24h  | -        |
 
 ### Comandos
 

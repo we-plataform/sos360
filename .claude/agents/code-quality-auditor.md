@@ -71,6 +71,7 @@ Structure your audit report as follows:
 ## Self-Verification Checklist
 
 Before delivering your audit, verify:
+
 - [ ] You reviewed the actual code, not just file names
 - [ ] Your suggestions are specific and actionable
 - [ ] You considered the project context and conventions

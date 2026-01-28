@@ -16,7 +16,7 @@
 ✅ Cria todos os **índices** para performance  
 ✅ Cria **triggers** para atualizar `updatedAt` automaticamente  
 ✅ Habilita extensão **pg_trgm** para busca full-text  
-✅ Cria índices **GIN** para busca em JSONB  
+✅ Cria índices **GIN** para busca em JSONB
 
 ## Verificar se Funcionou
 
@@ -24,21 +24,22 @@ Depois de executar, verifique:
 
 ```sql
 -- Listar todas as tabelas
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
 ORDER BY table_name;
 
 -- Contar tabelas (deve retornar 15)
-SELECT COUNT(*) 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
+SELECT COUNT(*)
+FROM information_schema.tables
+WHERE table_schema = 'public'
 AND table_type = 'BASE TABLE';
 ```
 
 ## Depois de Executar
 
 1. **Gerar Prisma Client**:
+
    ```bash
    npm run db:generate
    ```
@@ -51,10 +52,12 @@ AND table_type = 'BASE TABLE';
 ## Troubleshooting
 
 ### Erro: "type already exists"
+
 - Significa que alguns ENUMs já existem
 - Remova manualmente os ENUMs existentes ou ignore o erro
 
 ### Erro: "relation already exists"
+
 - Significa que algumas tabelas já existem
 - Você pode dropar tudo primeiro:
   ```sql
@@ -66,6 +69,7 @@ AND table_type = 'BASE TABLE';
   **CUIDADO**: Isso apaga TODOS os dados!
 
 ### Erro: "extension pg_trgm does not exist"
+
 - O Supabase pode não ter essa extensão habilitada
 - Remova a linha `CREATE EXTENSION IF NOT EXISTS pg_trgm;` e os índices relacionados
 

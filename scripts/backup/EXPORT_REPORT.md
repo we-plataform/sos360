@@ -10,22 +10,24 @@
 ## Details
 
 ### Database Connection
+
 - **Source:** Supabase PostgreSQL
 - **Host:** db.doewttvwknkhjzhzceub.supabase.co
 - **Port:** 5432 (DIRECT_URL)
 - **Status:** Connected successfully
 
 ### Data Counts
-| Table | Records |
-|-------|---------|
-| Company | 0 |
-| Workspace | 0 |
-| User | 0 |
-| Pipeline | 0 |
-| Stage | 0 |
-| Lead | 0 |
-| AuditLog | 0 |
-| **Total** | **0** |
+
+| Table     | Records |
+| --------- | ------- |
+| Company   | 0       |
+| Workspace | 0       |
+| User      | 0       |
+| Pipeline  | 0       |
+| Stage     | 0       |
+| Lead      | 0       |
+| AuditLog  | 0       |
+| **Total** | **0**   |
 
 ## Conclusion
 

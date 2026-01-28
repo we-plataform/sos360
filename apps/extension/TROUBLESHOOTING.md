@@ -5,11 +5,13 @@
 ### 1. Erro: "Could not load manifest"
 
 **Causas:**
+
 - JSON inválido (vírgulas extras, sintaxe incorreta)
 - Arquivos referenciados não existem
 - Permissões inválidas
 
 **Solução:**
+
 ```bash
 # Validar JSON
 python3 -m json.tool manifest.json
@@ -24,6 +26,7 @@ ls -la content-scripts/*.js
 **Causa:** Falta permissão `contextMenus` no manifest
 
 **Solução:** Já adicionada! Verifique se o manifest tem:
+
 ```json
 "permissions": [
   "storage",
@@ -38,6 +41,7 @@ ls -la content-scripts/*.js
 **Causa:** API não está rodando ou bloqueio de CORS
 
 **Solução:**
+
 1. Verifique se API está rodando: `curl http://localhost:3001/health`
 2. Verifique CORS na API permite `http://localhost:3000`
 3. Verifique `API_URL` no `background.js` está correto
@@ -45,10 +49,12 @@ ls -la content-scripts/*.js
 ### 4. Erro: "Service worker registration failed"
 
 **Causas:**
+
 - Erro de sintaxe no `background.js`
 - Uso de APIs não suportadas
 
 **Solução:**
+
 1. Abra `chrome://extensions`
 2. Clique em "service worker" na extensão
 3. Veja o erro no console
@@ -56,10 +62,12 @@ ls -la content-scripts/*.js
 ### 5. Erro: "Content script failed to load"
 
 **Causas:**
+
 - Erro de sintaxe nos content scripts
 - Caminho incorreto no manifest
 
 **Solução:**
+
 1. Verifique console da página (F12)
 2. Verifique se arquivos existem em `content-scripts/`
 3. Verifique paths no manifest estão corretos
@@ -91,6 +99,7 @@ Console mostra erros do `background.js`
 ### 4. Verificar Storage
 
 No console do service worker:
+
 ```javascript
 chrome.storage.local.get(null, console.log);
 ```
@@ -98,9 +107,10 @@ chrome.storage.local.get(null, console.log);
 ### 5. Testar API Manualmente
 
 No console do service worker:
+
 ```javascript
-fetch('http://localhost:3001/health')
-  .then(r => r.json())
+fetch("http://localhost:3001/health")
+  .then((r) => r.json())
   .then(console.log)
   .catch(console.error);
 ```
@@ -118,16 +128,18 @@ fetch('http://localhost:3001/health')
 ## 📝 Logs Úteis
 
 ### Service Worker
+
 ```javascript
 // Adicionar no background.js para debug
-console.log('API_URL:', API_URL);
-console.log('Request:', endpoint, options);
+console.log("API_URL:", API_URL);
+console.log("Request:", endpoint, options);
 ```
 
 ### Content Scripts
+
 ```javascript
 // Já existe nos scripts:
-console.log('Lia 360 Instagram content script loaded');
+console.log("Lia 360 Instagram content script loaded");
 ```
 
 ## 🆘 Se Nada Funcionar

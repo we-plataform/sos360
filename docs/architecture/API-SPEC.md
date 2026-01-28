@@ -12,16 +12,17 @@
 ## Autenticação
 
 Todas as rotas (exceto `/auth/*`) requerem header:
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 ### Tokens
 
-| Tipo | Duração | Uso |
-|------|---------|-----|
-| Access Token | 15 minutos | Requisições API |
-| Refresh Token | 7 dias | Obter novo access token |
+| Tipo          | Duração    | Uso                     |
+| ------------- | ---------- | ----------------------- |
+| Access Token  | 15 minutos | Requisições API         |
+| Refresh Token | 7 dias     | Obter novo access token |
 
 ---
 
@@ -83,6 +84,7 @@ Authorization: Bearer <access_token>
 Cria uma nova conta e workspace.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -93,6 +95,7 @@ Cria uma nova conta e workspace.
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -123,6 +126,7 @@ Cria uma nova conta e workspace.
 Autentica usuário existente.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -131,6 +135,7 @@ Autentica usuário existente.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -151,6 +156,7 @@ Autentica usuário existente.
 ```
 
 **Errors:**
+
 - `401` - Credenciais inválidas
 - `403` - Conta desativada
 
@@ -161,6 +167,7 @@ Autentica usuário existente.
 Renova o access token.
 
 **Request:**
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
@@ -168,6 +175,7 @@ Renova o access token.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -185,6 +193,7 @@ Renova o access token.
 Invalida o refresh token.
 
 **Request:**
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
@@ -192,6 +201,7 @@ Invalida o refresh token.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -208,6 +218,7 @@ Invalida o refresh token.
 Retorna usuário autenticado.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -237,20 +248,21 @@ Lista leads com filtros e paginação.
 
 **Query Parameters:**
 
-| Param | Tipo | Default | Descrição |
-|-------|------|---------|-----------|
-| page | int | 1 | Página atual |
-| limit | int | 20 | Itens por página (max: 100) |
-| platform | string | - | Filtro por plataforma |
-| status | string | - | Filtro por status |
-| tags | string | - | IDs de tags (comma-separated) |
-| assignedTo | string | - | ID do usuário atribuído |
-| search | string | - | Busca por nome/username |
-| sort | string | -createdAt | Campo e direção de ordenação |
-| scoreMin | int | - | Score mínimo |
-| scoreMax | int | - | Score máximo |
+| Param      | Tipo   | Default    | Descrição                     |
+| ---------- | ------ | ---------- | ----------------------------- |
+| page       | int    | 1          | Página atual                  |
+| limit      | int    | 20         | Itens por página (max: 100)   |
+| platform   | string | -          | Filtro por plataforma         |
+| status     | string | -          | Filtro por status             |
+| tags       | string | -          | IDs de tags (comma-separated) |
+| assignedTo | string | -          | ID do usuário atribuído       |
+| search     | string | -          | Busca por nome/username       |
+| sort       | string | -createdAt | Campo e direção de ordenação  |
+| scoreMin   | int    | -          | Score mínimo                  |
+| scoreMax   | int    | -          | Score máximo                  |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -275,9 +287,7 @@ Lista leads com filtros e paginação.
         "id": "usr_xyz",
         "fullName": "Maria"
       },
-      "tags": [
-        { "id": "tag_1", "name": "Hot Lead", "color": "#FF5733" }
-      ],
+      "tags": [{ "id": "tag_1", "name": "Hot Lead", "color": "#FF5733" }],
       "lastInteraction": "2025-01-15T10:30:00Z",
       "createdAt": "2025-01-10T08:00:00Z",
       "updatedAt": "2025-01-15T10:30:00Z"
@@ -299,6 +309,7 @@ Lista leads com filtros e paginação.
 Cria um novo lead.
 
 **Request:**
+
 ```json
 {
   "platform": "instagram",
@@ -319,6 +330,7 @@ Cria um novo lead.
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -338,6 +350,7 @@ Cria um novo lead.
 Importa leads em lote (CSV ou extensão).
 
 **Request:**
+
 ```json
 {
   "source": "extension",
@@ -364,6 +377,7 @@ Importa leads em lote (CSV ou extensão).
 ```
 
 **Response (202):**
+
 ```json
 {
   "success": true,
@@ -383,6 +397,7 @@ Importa leads em lote (CSV ou extensão).
 Consulta status de importação.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -408,6 +423,7 @@ Consulta status de importação.
 Retorna um lead específico com detalhes.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -434,9 +450,7 @@ Retorna um lead específico com detalhes.
       "fullName": "Maria",
       "avatarUrl": "https://..."
     },
-    "tags": [
-      { "id": "tag_1", "name": "Hot Lead", "color": "#FF5733" }
-    ],
+    "tags": [{ "id": "tag_1", "name": "Hot Lead", "color": "#FF5733" }],
     "customFields": {
       "empresa": "Acme Inc",
       "cargo": "CEO"
@@ -467,6 +481,7 @@ Retorna um lead específico com detalhes.
 Atualiza um lead.
 
 **Request:**
+
 ```json
 {
   "status": "qualified",
@@ -479,6 +494,7 @@ Atualiza um lead.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -496,6 +512,7 @@ Atualiza um lead.
 Remove um lead.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -512,6 +529,7 @@ Remove um lead.
 Adiciona tags a um lead.
 
 **Request:**
+
 ```json
 {
   "tagIds": ["tag_1", "tag_2"]
@@ -519,6 +537,7 @@ Adiciona tags a um lead.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -539,6 +558,7 @@ Adiciona tags a um lead.
 Remove tag de um lead.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -555,6 +575,7 @@ Remove tag de um lead.
 Atribui lead a um usuário.
 
 **Request:**
+
 ```json
 {
   "userId": "usr_xyz789"
@@ -562,6 +583,7 @@ Atribui lead a um usuário.
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -584,6 +606,7 @@ Atribui lead a um usuário.
 Lista todas as tags do workspace.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -613,6 +636,7 @@ Lista todas as tags do workspace.
 Cria uma nova tag.
 
 **Request:**
+
 ```json
 {
   "name": "Qualificado",
@@ -621,6 +645,7 @@ Cria uma nova tag.
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -641,6 +666,7 @@ Cria uma nova tag.
 Atualiza uma tag.
 
 **Request:**
+
 ```json
 {
   "name": "Super Qualificado",
@@ -657,6 +683,7 @@ Atualiza uma tag.
 Remove uma tag (desvincula de leads).
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -676,16 +703,17 @@ Lista conversas do workspace.
 
 **Query Parameters:**
 
-| Param | Tipo | Default | Descrição |
-|-------|------|---------|-----------|
-| page | int | 1 | Página atual |
-| limit | int | 20 | Itens por página |
-| status | string | active | active, archived, all |
-| unread | bool | - | Apenas não lidas |
-| platform | string | - | Filtro por plataforma |
-| assignedTo | string | - | Filtro por responsável |
+| Param      | Tipo   | Default | Descrição              |
+| ---------- | ------ | ------- | ---------------------- |
+| page       | int    | 1       | Página atual           |
+| limit      | int    | 20      | Itens por página       |
+| status     | string | active  | active, archived, all  |
+| unread     | bool   | -       | Apenas não lidas       |
+| platform   | string | -       | Filtro por plataforma  |
+| assignedTo | string | -       | Filtro por responsável |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -733,12 +761,13 @@ Retorna conversa com mensagens.
 
 **Query Parameters:**
 
-| Param | Tipo | Default | Descrição |
-|-------|------|---------|-----------|
-| messagesLimit | int | 50 | Número de mensagens |
-| messagesBefore | string | - | Cursor para paginação |
+| Param          | Tipo   | Default | Descrição             |
+| -------------- | ------ | ------- | --------------------- |
+| messagesLimit  | int    | 50      | Número de mensagens   |
+| messagesBefore | string | -       | Cursor para paginação |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -791,6 +820,7 @@ Retorna conversa com mensagens.
 Envia mensagem em uma conversa.
 
 **Request:**
+
 ```json
 {
   "content": "Que bom que gostou! Posso te explicar melhor?",
@@ -799,6 +829,7 @@ Envia mensagem em uma conversa.
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -821,6 +852,7 @@ Envia mensagem em uma conversa.
 Marca conversa como lida.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -838,6 +870,7 @@ Marca conversa como lida.
 Atribui conversa a um usuário.
 
 **Request:**
+
 ```json
 {
   "userId": "usr_xyz"
@@ -853,6 +886,7 @@ Atribui conversa a um usuário.
 Arquiva uma conversa.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -873,12 +907,13 @@ Lista templates de mensagem.
 
 **Query Parameters:**
 
-| Param | Tipo | Descrição |
-|-------|------|-----------|
+| Param    | Tipo   | Descrição             |
+| -------- | ------ | --------------------- |
 | platform | string | Filtro por plataforma |
-| category | string | Filtro por categoria |
+| category | string | Filtro por categoria  |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -911,6 +946,7 @@ Lista templates de mensagem.
 Cria novo template.
 
 **Request:**
+
 ```json
 {
   "name": "Follow-up Semana",
@@ -943,6 +979,7 @@ Remove template.
 Lista automações do workspace.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -982,6 +1019,7 @@ Lista automações do workspace.
 Cria automação simples (MVP: trigger + action única).
 
 **Request:**
+
 ```json
 {
   "name": "Boas-vindas automático",
@@ -1017,6 +1055,7 @@ Atualiza automação.
 Ativa/desativa automação.
 
 **Request:**
+
 ```json
 {
   "enabled": false
@@ -1031,13 +1070,14 @@ Logs de execução da automação.
 
 **Query Parameters:**
 
-| Param | Tipo | Descrição |
-|-------|------|-----------|
-| page | int | Página |
-| limit | int | Itens por página |
+| Param  | Tipo   | Descrição                |
+| ------ | ------ | ------------------------ |
+| page   | int    | Página                   |
+| limit  | int    | Itens por página         |
 | status | string | success, failed, skipped |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1069,13 +1109,14 @@ Métricas gerais do workspace.
 
 **Query Parameters:**
 
-| Param | Tipo | Default | Descrição |
-|-------|------|---------|-----------|
-| startDate | date | -30 days | Data inicial |
-| endDate | date | hoje | Data final |
-| platform | string | - | Filtro por plataforma |
+| Param     | Tipo   | Default  | Descrição             |
+| --------- | ------ | -------- | --------------------- |
+| startDate | date   | -30 days | Data inicial          |
+| endDate   | date   | hoje     | Data final            |
+| platform  | string | -        | Filtro por plataforma |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1087,7 +1128,7 @@ Métricas gerais do workspace.
     "leads": {
       "total": 1500,
       "new": 250,
-      "growth": 0.20
+      "growth": 0.2
     },
     "conversations": {
       "total": 800,
@@ -1122,6 +1163,7 @@ Métricas gerais do workspace.
 Funil de conversão.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1130,15 +1172,15 @@ Funil de conversão.
       { "name": "Importado", "count": 1500, "rate": 1.0 },
       { "name": "Contatado", "count": 800, "rate": 0.53 },
       { "name": "Respondeu", "count": 500, "rate": 0.33 },
-      { "name": "Qualificado", "count": 150, "rate": 0.10 },
+      { "name": "Qualificado", "count": 150, "rate": 0.1 },
       { "name": "Agendado", "count": 50, "rate": 0.033 },
       { "name": "Fechado", "count": 20, "rate": 0.013 }
     ],
     "conversionRates": {
       "contactedToResponded": 0.625,
-      "respondedToQualified": 0.30,
+      "respondedToQualified": 0.3,
       "qualifiedToScheduled": 0.33,
-      "scheduledToClosed": 0.40
+      "scheduledToClosed": 0.4
     }
   }
 }
@@ -1152,12 +1194,13 @@ Atividade ao longo do tempo.
 
 **Query Parameters:**
 
-| Param | Tipo | Default | Descrição |
-|-------|------|---------|-----------|
-| interval | string | day | hour, day, week, month |
-| metric | string | leads | leads, conversations, messages |
+| Param    | Tipo   | Default | Descrição                      |
+| -------- | ------ | ------- | ------------------------------ |
+| interval | string | day     | hour, day, week, month         |
+| metric   | string | leads   | leads, conversations, messages |
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1182,6 +1225,7 @@ Atividade ao longo do tempo.
 Lista usuários do workspace.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1210,6 +1254,7 @@ Lista usuários do workspace.
 Convida usuário para o workspace.
 
 **Request:**
+
 ```json
 {
   "email": "joao@empresa.com",
@@ -1218,6 +1263,7 @@ Convida usuário para o workspace.
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -1238,6 +1284,7 @@ Convida usuário para o workspace.
 Atualiza usuário (role, etc).
 
 **Request:**
+
 ```json
 {
   "role": "manager"
@@ -1259,6 +1306,7 @@ Remove usuário do workspace.
 Lista webhooks configurados.
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1282,6 +1330,7 @@ Lista webhooks configurados.
 Cria webhook.
 
 **Request:**
+
 ```json
 {
   "url": "https://api.exemplo.com/webhook",
@@ -1303,6 +1352,7 @@ Remove webhook.
 Testa webhook (envia payload de exemplo).
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -1321,40 +1371,41 @@ Testa webhook (envia payload de exemplo).
 ### Conexão
 
 ```javascript
-const socket = io('wss://api.snapleads.com', {
-  auth: { token: 'Bearer <access_token>' }
+const socket = io("wss://api.snapleads.com", {
+  auth: { token: "Bearer <access_token>" },
 });
 
-socket.on('connect', () => {
+socket.on("connect", () => {
   // Entrar nas rooms do workspace
-  socket.emit('join:workspace', workspaceId);
+  socket.emit("join:workspace", workspaceId);
 });
 ```
 
 ### Eventos Emitidos pelo Servidor
 
-| Evento | Payload | Descrição |
-|--------|---------|-----------|
-| `lead:created` | `{ lead }` | Novo lead criado |
-| `lead:updated` | `{ lead }` | Lead atualizado |
-| `lead:deleted` | `{ leadId }` | Lead removido |
-| `conversation:new_message` | `{ conversationId, message }` | Nova mensagem recebida |
-| `conversation:message_sent` | `{ conversationId, messageId, status }` | Status de envio |
-| `import:progress` | `{ jobId, progress, status }` | Progresso de importação |
-| `import:completed` | `{ jobId, result }` | Importação concluída |
+| Evento                      | Payload                                 | Descrição               |
+| --------------------------- | --------------------------------------- | ----------------------- |
+| `lead:created`              | `{ lead }`                              | Novo lead criado        |
+| `lead:updated`              | `{ lead }`                              | Lead atualizado         |
+| `lead:deleted`              | `{ leadId }`                            | Lead removido           |
+| `conversation:new_message`  | `{ conversationId, message }`           | Nova mensagem recebida  |
+| `conversation:message_sent` | `{ conversationId, messageId, status }` | Status de envio         |
+| `import:progress`           | `{ jobId, progress, status }`           | Progresso de importação |
+| `import:completed`          | `{ jobId, result }`                     | Importação concluída    |
 
 ---
 
 ## Rate Limiting
 
-| Endpoint | Limite | Janela |
-|----------|--------|--------|
-| `/auth/*` | 10 req | 1 min |
-| `/leads/import` | 5 req | 1 min |
-| `/conversations/*/messages` | 60 req | 1 min |
-| `Outros` | 100 req | 1 min |
+| Endpoint                    | Limite  | Janela |
+| --------------------------- | ------- | ------ |
+| `/auth/*`                   | 10 req  | 1 min  |
+| `/leads/import`             | 5 req   | 1 min  |
+| `/conversations/*/messages` | 60 req  | 1 min  |
+| `Outros`                    | 100 req | 1 min  |
 
 **Headers de Resposta:**
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -1365,12 +1416,12 @@ X-RateLimit-Reset: 1705312800
 
 ## Códigos de Erro
 
-| Código | Tipo | Descrição |
-|--------|------|-----------|
-| 400 | validation_error | Dados inválidos |
-| 401 | unauthorized | Token inválido ou expirado |
-| 403 | forbidden | Sem permissão |
-| 404 | not_found | Recurso não encontrado |
-| 409 | conflict | Conflito (ex: email duplicado) |
-| 429 | rate_limited | Rate limit excedido |
-| 500 | internal_error | Erro interno do servidor |
+| Código | Tipo             | Descrição                      |
+| ------ | ---------------- | ------------------------------ |
+| 400    | validation_error | Dados inválidos                |
+| 401    | unauthorized     | Token inválido ou expirado     |
+| 403    | forbidden        | Sem permissão                  |
+| 404    | not_found        | Recurso não encontrado         |
+| 409    | conflict         | Conflito (ex: email duplicado) |
+| 429    | rate_limited     | Rate limit excedido            |
+| 500    | internal_error   | Erro interno do servidor       |

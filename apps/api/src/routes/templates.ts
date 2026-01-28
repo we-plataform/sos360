@@ -1,16 +1,20 @@
-import { Router } from 'express';
-import { prisma } from '@lia360/database';
-import { createTemplateSchema, updateTemplateSchema, extractTemplateVariables } from '@lia360/shared';
-import { authenticate, authorize } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
-import { NotFoundError } from '../lib/errors.js';
+import { Router } from "express";
+import { prisma } from "@lia360/database";
+import {
+  createTemplateSchema,
+  updateTemplateSchema,
+  extractTemplateVariables,
+} from "@lia360/shared";
+import { authenticate, authorize } from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import { NotFoundError } from "../lib/errors.js";
 
 export const templatesRouter = Router();
 
 templatesRouter.use(authenticate);
 
 // GET /templates - List templates
-templatesRouter.get('/', async (req, res, next) => {
+templatesRouter.get("/", async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
     const { platform, category } = req.query;
@@ -26,7 +30,7 @@ templatesRouter.get('/', async (req, res, next) => {
           select: { id: true, fullName: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     res.json({
@@ -40,8 +44,8 @@ templatesRouter.get('/', async (req, res, next) => {
 
 // POST /templates - Create template
 templatesRouter.post(
-  '/',
-  authorize('owner', 'admin', 'manager'),
+  "/",
+  authorize("owner", "admin", "manager"),
   validate(createTemplateSchema),
   async (req, res, next) => {
     try {
@@ -76,11 +80,11 @@ templatesRouter.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // GET /templates/:id - Get template
-templatesRouter.get('/:id', async (req, res, next) => {
+templatesRouter.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
@@ -95,7 +99,7 @@ templatesRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!template) {
-      throw new NotFoundError('Template');
+      throw new NotFoundError("Template");
     }
 
     res.json({
@@ -109,8 +113,8 @@ templatesRouter.get('/:id', async (req, res, next) => {
 
 // PATCH /templates/:id - Update template
 templatesRouter.patch(
-  '/:id',
-  authorize('owner', 'admin', 'manager'),
+  "/:id",
+  authorize("owner", "admin", "manager"),
   validate(updateTemplateSchema),
   async (req, res, next) => {
     try {
@@ -123,7 +127,7 @@ templatesRouter.patch(
       });
 
       if (!template) {
-        throw new NotFoundError('Template');
+        throw new NotFoundError("Template");
       }
 
       // Re-extract variables if content changed
@@ -148,30 +152,34 @@ templatesRouter.patch(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // DELETE /templates/:id - Delete template
-templatesRouter.delete('/:id', authorize('owner', 'admin', 'manager'), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const workspaceId = req.user!.workspaceId;
+templatesRouter.delete(
+  "/:id",
+  authorize("owner", "admin", "manager"),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const workspaceId = req.user!.workspaceId;
 
-    const template = await prisma.template.findFirst({
-      where: { id, workspaceId },
-    });
+      const template = await prisma.template.findFirst({
+        where: { id, workspaceId },
+      });
 
-    if (!template) {
-      throw new NotFoundError('Template');
+      if (!template) {
+        throw new NotFoundError("Template");
+      }
+
+      await prisma.template.delete({ where: { id } });
+
+      res.json({
+        success: true,
+        data: { message: "Template removido com sucesso" },
+      });
+    } catch (error) {
+      next(error);
     }
-
-    await prisma.template.delete({ where: { id } });
-
-    res.json({
-      success: true,
-      data: { message: 'Template removido com sucesso' },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+  },
+);

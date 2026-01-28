@@ -26,7 +26,7 @@ flowchart TB
             facebook[Facebook]
             linkedin[LinkedIn]
         end
-        
+
         subgraph services [Serviços]
             sendgrid[SendGrid]
             gcal[Google Calendar]
@@ -46,21 +46,21 @@ flowchart TB
 
 ### Atores
 
-| Ator | Descrição | Interações Principais |
-|------|-----------|----------------------|
-| Gerente de Vendas | Gerencia equipe, analisa métricas | Dashboard, relatórios, gestão de equipe |
-| Consultor/Freelancer | Prospecção individual | Importação, inbox, automações |
-| Agência de Marketing | Multi-clientes, alto volume | Workspaces múltiplos, white-label |
+| Ator                 | Descrição                         | Interações Principais                   |
+| -------------------- | --------------------------------- | --------------------------------------- |
+| Gerente de Vendas    | Gerencia equipe, analisa métricas | Dashboard, relatórios, gestão de equipe |
+| Consultor/Freelancer | Prospecção individual             | Importação, inbox, automações           |
+| Agência de Marketing | Multi-clientes, alto volume       | Workspaces múltiplos, white-label       |
 
 ### Sistemas Externos
 
-| Sistema | Tipo | Integração |
-|---------|------|------------|
-| Instagram | Rede Social | Scraping via extensão, API Graph (limitada) |
-| Facebook | Rede Social | Scraping via extensão, API Graph |
-| LinkedIn | Rede Social | Scraping via extensão |
-| SendGrid | Email | API REST para notificações |
-| Google Calendar | Calendário | OAuth2, API REST |
+| Sistema         | Tipo        | Integração                                  |
+| --------------- | ----------- | ------------------------------------------- |
+| Instagram       | Rede Social | Scraping via extensão, API Graph (limitada) |
+| Facebook        | Rede Social | Scraping via extensão, API Graph            |
+| LinkedIn        | Rede Social | Scraping via extensão                       |
+| SendGrid        | Email       | API REST para notificações                  |
+| Google Calendar | Calendário  | OAuth2, API REST                            |
 
 ---
 
@@ -115,48 +115,48 @@ flowchart TB
 
 ### Container: Web Application
 
-| Aspecto | Detalhe |
-|---------|---------|
-| **Tecnologia** | Next.js 14, React 18, TypeScript |
-| **Responsabilidades** | UI do dashboard, inbox, analytics |
-| **Comunicação** | REST API, WebSocket |
-| **Estado** | Zustand (local), TanStack Query (servidor) |
+| Aspecto               | Detalhe                                    |
+| --------------------- | ------------------------------------------ |
+| **Tecnologia**        | Next.js 14, React 18, TypeScript           |
+| **Responsabilidades** | UI do dashboard, inbox, analytics          |
+| **Comunicação**       | REST API, WebSocket                        |
+| **Estado**            | Zustand (local), TanStack Query (servidor) |
 
 ### Container: Chrome Extension
 
-| Aspecto | Detalhe |
-|---------|---------|
-| **Tecnologia** | Manifest V3, TypeScript |
+| Aspecto               | Detalhe                     |
+| --------------------- | --------------------------- |
+| **Tecnologia**        | Manifest V3, TypeScript     |
 | **Responsabilidades** | Scraping de leads, UI popup |
-| **Comunicação** | REST API com bearer token |
-| **Armazenamento** | chrome.storage para config |
+| **Comunicação**       | REST API com bearer token   |
+| **Armazenamento**     | chrome.storage para config  |
 
 ### Container: API Server
 
-| Aspecto | Detalhe |
-|---------|---------|
-| **Tecnologia** | Express 4, Node.js 20, TypeScript |
-| **Responsabilidades** | REST endpoints, auth, validação |
-| **Comunicação** | HTTP/REST, integrado com Socket.io |
-| **Padrões** | Controller-Service-Repository |
+| Aspecto               | Detalhe                            |
+| --------------------- | ---------------------------------- |
+| **Tecnologia**        | Express 4, Node.js 20, TypeScript  |
+| **Responsabilidades** | REST endpoints, auth, validação    |
+| **Comunicação**       | HTTP/REST, integrado com Socket.io |
+| **Padrões**           | Controller-Service-Repository      |
 
 ### Container: WebSocket Server
 
-| Aspecto | Detalhe |
-|---------|---------|
-| **Tecnologia** | Socket.io 4 |
-| **Responsabilidades** | Eventos realtime, presence |
-| **Comunicação** | WebSocket com fallback |
-| **Scaling** | Redis adapter para multi-instance |
+| Aspecto               | Detalhe                           |
+| --------------------- | --------------------------------- |
+| **Tecnologia**        | Socket.io 4                       |
+| **Responsabilidades** | Eventos realtime, presence        |
+| **Comunicação**       | WebSocket com fallback            |
+| **Scaling**           | Redis adapter para multi-instance |
 
 ### Container: Background Workers
 
-| Aspecto | Detalhe |
-|---------|---------|
-| **Tecnologia** | Bull (BullMQ), Node.js |
+| Aspecto               | Detalhe                                 |
+| --------------------- | --------------------------------------- |
+| **Tecnologia**        | Bull (BullMQ), Node.js                  |
 | **Responsabilidades** | Jobs assíncronos, processamento em lote |
-| **Filas** | imports, messages, automations, scoring |
-| **Retry** | Exponential backoff, dead letter queue |
+| **Filas**             | imports, messages, automations, scoring |
+| **Retry**             | Exponential backoff, dead letter queue  |
 
 ---
 
@@ -209,29 +209,29 @@ flowchart TB
     auth_routes --> auth_mw --> auth_svc --> user_repo
     lead_routes --> auth_mw --> rate_mw --> lead_svc --> lead_repo
     conv_routes --> auth_mw --> conv_svc --> conv_repo
-    
+
     %% External connections
     user_repo --> prisma
     lead_repo --> prisma
     conv_repo --> prisma
-    
+
     lead_svc --> bull_queue
     platform_svc --> redis_client
 ```
 
 ### Componentes do API Server
 
-| Componente | Responsabilidade |
-|------------|------------------|
-| **Auth Routes** | Login, logout, refresh, registro |
-| **Lead Routes** | CRUD leads, importação, tagging |
-| **Conversation Routes** | Listar conversas, enviar mensagens |
-| **Automation Routes** | CRUD automações, toggle, logs |
-| **Analytics Routes** | Métricas, funil, relatórios |
-| **Auth Service** | JWT, bcrypt, validação de sessão |
-| **Lead Service** | Lógica de negócio de leads |
-| **Conversation Service** | Gestão de conversas e mensagens |
-| **Platform Service** | Abstração de envio por plataforma |
+| Componente               | Responsabilidade                   |
+| ------------------------ | ---------------------------------- |
+| **Auth Routes**          | Login, logout, refresh, registro   |
+| **Lead Routes**          | CRUD leads, importação, tagging    |
+| **Conversation Routes**  | Listar conversas, enviar mensagens |
+| **Automation Routes**    | CRUD automações, toggle, logs      |
+| **Analytics Routes**     | Métricas, funil, relatórios        |
+| **Auth Service**         | JWT, bcrypt, validação de sessão   |
+| **Lead Service**         | Lógica de negócio de leads         |
+| **Conversation Service** | Gestão de conversas e mensagens    |
+| **Platform Service**     | Abstração de envio por plataforma  |
 
 ---
 
@@ -274,31 +274,31 @@ flowchart TB
     %% Flows
     popup --> sw
     options --> sync
-    
+
     ig_script --> dom
     fb_script --> dom
     li_script --> dom
-    
+
     ig_script --> sw
     fb_script --> sw
     li_script --> sw
-    
+
     sw --> rate_limiter --> api_client --> api
     sw --> local
 ```
 
 ### Componentes da Extensão
 
-| Componente | Responsabilidade |
-|------------|------------------|
-| **Service Worker** | Orquestra comunicação, mantém estado |
-| **API Client** | Comunicação HTTP com backend |
-| **Rate Limiter** | Controle local de rate limiting |
-| **Instagram Script** | Extração de dados do Instagram |
-| **Facebook Script** | Extração de dados do Facebook |
-| **LinkedIn Script** | Extração de dados do LinkedIn |
-| **Popup** | Interface rápida, status, ações |
-| **Options Page** | Configurações, login |
+| Componente           | Responsabilidade                     |
+| -------------------- | ------------------------------------ |
+| **Service Worker**   | Orquestra comunicação, mantém estado |
+| **API Client**       | Comunicação HTTP com backend         |
+| **Rate Limiter**     | Controle local de rate limiting      |
+| **Instagram Script** | Extração de dados do Instagram       |
+| **Facebook Script**  | Extração de dados do Facebook        |
+| **LinkedIn Script**  | Extração de dados do LinkedIn        |
+| **Popup**            | Interface rápida, status, ações      |
+| **Options Page**     | Configurações, login                 |
 
 ---
 
@@ -329,13 +329,13 @@ sequenceDiagram
     API->>Queue: Enfileira job de importação
     API-->>SW: {jobId, status: "queued"}
     SW-->>Ext: Notifica progresso
-    
+
     Worker->>Queue: Consome job
     Worker->>DB: Deduplica por profile_url
     Worker->>DB: INSERT batch de leads
     Worker->>DB: UPDATE workspace.lead_count
     Worker-->>Queue: Job completed
-    
+
     Note over User,DB: WebSocket notifica conclusão
 ```
 
@@ -427,26 +427,26 @@ flowchart TB
     cf_dns --> cf_waf
     cf_waf --> cf_cdn
     cf_cdn --> alb
-    
+
     alb --> ecs_api_a
     alb --> ecs_api_b
     alb --> ecs_web_a
-    
+
     ecs_api_a --> rds
     ecs_api_b --> rds
     ecs_worker --> rds
-    
+
     ecs_api_a --> elasticache
     ecs_api_b --> elasticache
     ecs_worker --> elasticache
-    
+
     ecs_api_a --> s3
     ecs_web_a --> s3
-    
+
     ecs_api_a --> secrets
     ecs_api_b --> secrets
     ecs_worker --> secrets
-    
+
     ecs_api_a --> cloudwatch
     ecs_api_b --> cloudwatch
     ecs_worker --> cloudwatch
@@ -456,13 +456,13 @@ flowchart TB
 
 ## Legenda
 
-| Símbolo | Significado |
-|---------|-------------|
-| Retângulo | Container/Componente |
-| Cilindro | Banco de Dados/Storage |
-| Seta sólida | Comunicação síncrona |
+| Símbolo        | Significado            |
+| -------------- | ---------------------- |
+| Retângulo      | Container/Componente   |
+| Cilindro       | Banco de Dados/Storage |
+| Seta sólida    | Comunicação síncrona   |
 | Seta tracejada | Comunicação assíncrona |
-| Subgraph | Agrupamento lógico |
+| Subgraph       | Agrupamento lógico     |
 
 ---
 

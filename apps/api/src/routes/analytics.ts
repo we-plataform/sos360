@@ -1,18 +1,20 @@
-import { Router } from 'express';
-import { prisma } from '@lia360/database';
-import { authenticate } from '../middleware/auth.js';
+import { Router } from "express";
+import { prisma } from "@lia360/database";
+import { authenticate } from "../middleware/auth.js";
 
 export const analyticsRouter = Router();
 
 analyticsRouter.use(authenticate);
 
 // GET /analytics/overview - Dashboard metrics
-analyticsRouter.get('/overview', async (req, res, next) => {
+analyticsRouter.get("/overview", async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
     const { startDate, endDate, platform } = req.query;
 
-    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const start = startDate
+      ? new Date(startDate as string)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate as string) : new Date();
 
     const baseWhere: Record<string, unknown> = {
@@ -39,7 +41,8 @@ analyticsRouter.get('/overview', async (req, res, next) => {
       }),
     ]);
 
-    const growth = leadsLastPeriod > 0 ? (newLeads - leadsLastPeriod) / leadsLastPeriod : 0;
+    const growth =
+      leadsLastPeriod > 0 ? (newLeads - leadsLastPeriod) / leadsLastPeriod : 0;
 
     // Get conversation stats
     const [totalConversations, conversationsWithResponses] = await Promise.all([
@@ -49,50 +52,59 @@ analyticsRouter.get('/overview', async (req, res, next) => {
       prisma.conversation.count({
         where: {
           lead: { workspaceId },
-          messages: { some: { senderType: 'lead' } },
+          messages: { some: { senderType: "lead" } },
         },
       }),
     ]);
 
-    const responseRate = totalConversations > 0 ? conversationsWithResponses / totalConversations : 0;
+    const responseRate =
+      totalConversations > 0
+        ? conversationsWithResponses / totalConversations
+        : 0;
 
     // Get leads by platform
     const leadsByPlatform = await prisma.lead.groupBy({
-      by: ['platform'],
+      by: ["platform"],
       where: { workspaceId },
       _count: { id: true },
     });
 
     const platformCounts = leadsByPlatform.reduce(
-      (acc: Record<string, number>, item: { platform: string | null; _count: { id: number } }) => {
-        const key = item.platform || 'unknown';
+      (
+        acc: Record<string, number>,
+        item: { platform: string | null; _count: { id: number } },
+      ) => {
+        const key = item.platform || "unknown";
         acc[key] = item._count.id;
         return acc;
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     );
 
     // Get leads by status
     const leadsByStatus = await prisma.lead.groupBy({
-      by: ['status'],
+      by: ["status"],
       where: { workspaceId },
       _count: { id: true },
     });
 
     const statusCounts = leadsByStatus.reduce(
-      (acc: Record<string, number>, item: { status: string; _count: { id: number } }) => {
+      (
+        acc: Record<string, number>,
+        item: { status: string; _count: { id: number } },
+      ) => {
         acc[item.status] = item._count.id;
         return acc;
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     );
 
     res.json({
       success: true,
       data: {
         period: {
-          start: start.toISOString().split('T')[0],
-          end: end.toISOString().split('T')[0],
+          start: start.toISOString().split("T")[0],
+          end: end.toISOString().split("T")[0],
         },
         leads: {
           total: totalLeads,
@@ -114,22 +126,34 @@ analyticsRouter.get('/overview', async (req, res, next) => {
 });
 
 // GET /analytics/funnel - Conversion funnel
-analyticsRouter.get('/funnel', async (req, res, next) => {
+analyticsRouter.get("/funnel", async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
 
-    const statusOrder = ['new', 'contacted', 'responded', 'qualified', 'scheduled', 'closed'];
+    const statusOrder = [
+      "new",
+      "contacted",
+      "responded",
+      "qualified",
+      "scheduled",
+      "closed",
+    ];
 
     const leadsByStatus = await prisma.lead.groupBy({
-      by: ['status'],
+      by: ["status"],
       where: { workspaceId },
       _count: { id: true },
     });
 
-    const totalLeads = leadsByStatus.reduce((sum: number, item: { _count: { id: number } }) => sum + item._count.id, 0);
+    const totalLeads = leadsByStatus.reduce(
+      (sum: number, item: { _count: { id: number } }) => sum + item._count.id,
+      0,
+    );
 
     const stages = statusOrder.map((status) => {
-      const found = leadsByStatus.find((item: { status: string }) => item.status === status);
+      const found = leadsByStatus.find(
+        (item: { status: string }) => item.status === status,
+      );
       const count = found?._count.id || 0;
       return {
         name: status.charAt(0).toUpperCase() + status.slice(1),
@@ -160,12 +184,12 @@ analyticsRouter.get('/funnel', async (req, res, next) => {
 });
 
 // GET /analytics/timeline - Activity over time
-analyticsRouter.get('/timeline', async (req, res, next) => {
+analyticsRouter.get("/timeline", async (req, res, next) => {
   try {
     const workspaceId = req.user!.workspaceId;
-    const { interval = 'day', metric = 'leads' } = req.query;
+    const { interval = "day", metric = "leads" } = req.query;
 
-    const days = interval === 'week' ? 12 : interval === 'month' ? 12 : 30;
+    const days = interval === "week" ? 12 : interval === "month" ? 12 : 30;
     const points: Array<{ date: string; value: number }> = [];
 
     const now = new Date();
@@ -175,40 +199,49 @@ analyticsRouter.get('/timeline', async (req, res, next) => {
       let end: Date;
       let dateLabel: string;
 
-      if (interval === 'month') {
+      if (interval === "month") {
         start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+        end = new Date(
+          now.getFullYear(),
+          now.getMonth() - i + 1,
+          0,
+          23,
+          59,
+          59,
+        );
         dateLabel = start.toISOString().slice(0, 7);
-      } else if (interval === 'week') {
+      } else if (interval === "week") {
         const dayOfWeek = now.getDay();
-        start = new Date(now.getTime() - (i * 7 + dayOfWeek) * 24 * 60 * 60 * 1000);
+        start = new Date(
+          now.getTime() - (i * 7 + dayOfWeek) * 24 * 60 * 60 * 1000,
+        );
         end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
         end.setHours(23, 59, 59, 999);
-        dateLabel = start.toISOString().split('T')[0];
+        dateLabel = start.toISOString().split("T")[0];
       } else {
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         end = new Date(start);
         end.setHours(23, 59, 59, 999);
-        dateLabel = start.toISOString().split('T')[0];
+        dateLabel = start.toISOString().split("T")[0];
       }
 
       let count = 0;
 
-      if (metric === 'leads') {
+      if (metric === "leads") {
         count = await prisma.lead.count({
           where: {
             workspaceId,
             createdAt: { gte: start, lte: end },
           },
         });
-      } else if (metric === 'conversations') {
+      } else if (metric === "conversations") {
         count = await prisma.conversation.count({
           where: {
             lead: { workspaceId },
             createdAt: { gte: start, lte: end },
           },
         });
-      } else if (metric === 'messages') {
+      } else if (metric === "messages") {
         count = await prisma.message.count({
           where: {
             conversation: { lead: { workspaceId } },

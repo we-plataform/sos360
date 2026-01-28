@@ -6,7 +6,7 @@
 ✅ **Ambiente isolado** - Não interfere com outras instalações  
 ✅ **Reproduzível** - Mesmo ambiente para todos os devs  
 ✅ **Controle total** - Você controla versões e configurações  
-✅ **Gratuito** - Sem limites de uso  
+✅ **Gratuito** - Sem limites de uso
 
 ## 📋 Pré-requisitos
 
@@ -26,6 +26,7 @@ docker-compose ps
 ```
 
 **Deve mostrar:**
+
 ```
 NAME                STATUS
 lia360-postgres     Up (healthy)
@@ -147,6 +148,7 @@ docker exec -it lia360-redis sh
 ### Usar Docker (local)
 
 Use `.env` com:
+
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lia360
 REDIS_URL=redis://localhost:6379
@@ -155,6 +157,7 @@ REDIS_URL=redis://localhost:6379
 ### Usar Supabase (produção/cloud)
 
 Use `.env` com:
+
 ```env
 DATABASE_URL=postgresql://postgres.[ref]:[senha]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 REDIS_URL=
@@ -165,6 +168,7 @@ REDIS_URL=
 ### Erro: "port 5432 is already in use"
 
 **Solução:**
+
 ```bash
 # Parar PostgreSQL local (se tiver)
 sudo service postgresql stop  # Linux
@@ -178,6 +182,7 @@ ports:
 ### Erro: "port 6379 is already in use"
 
 **Solução:**
+
 ```bash
 # Parar Redis local (se tiver)
 sudo service redis-server stop  # Linux

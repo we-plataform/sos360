@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,17 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, X } from 'lucide-react';
-import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, X } from "lucide-react";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface ScoringCriteria {
   jobTitles: {
@@ -60,7 +60,7 @@ const defaultCriteria: ScoringCriteria = {
   jobTitles: {
     target: [],
     exclude: [],
-    seniority: ['C-level', 'VP', 'Director', 'Manager', 'Senior'],
+    seniority: ["C-level", "VP", "Director", "Manager", "Senior"],
   },
   companies: {
     industries: [],
@@ -71,8 +71,8 @@ const defaultCriteria: ScoringCriteria = {
     hasRecentPosts: true,
   },
   completeness: {
-    required: ['email', 'jobTitle', 'company', 'bio'],
-    bonus: ['phone', 'website', 'experience'],
+    required: ["email", "jobTitle", "company", "bio"],
+    bonus: ["phone", "website", "experience"],
   },
 };
 
@@ -91,8 +91,8 @@ export function ScoringModelEditor({
 }: ScoringModelEditorProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [criteria, setCriteria] = useState<ScoringCriteria>(defaultCriteria);
   const [weights, setWeights] = useState<ScoringWeights>(defaultWeights);
@@ -100,9 +100,9 @@ export function ScoringModelEditor({
   const [thresholdMedium, setThresholdMedium] = useState(50);
 
   // Temporary state for adding new items
-  const [newJobTitle, setNewJobTitle] = useState('');
-  const [newIndustry, setNewIndustry] = useState('');
-  const [newExcludeIndustry, setNewExcludeIndustry] = useState('');
+  const [newJobTitle, setNewJobTitle] = useState("");
+  const [newIndustry, setNewIndustry] = useState("");
+  const [newExcludeIndustry, setNewExcludeIndustry] = useState("");
 
   useEffect(() => {
     if (open && pipelineId) {
@@ -113,11 +113,13 @@ export function ScoringModelEditor({
   const fetchScoringModel = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/v1/pipelines/${pipelineId}/scoring-model`);
+      const response = await api.get(
+        `/api/v1/pipelines/${pipelineId}/scoring-model`,
+      );
       if (response.data.success && response.data.data) {
         const model = response.data.data;
         setName(model.name);
-        setDescription(model.description || '');
+        setDescription(model.description || "");
         setEnabled(model.enabled);
         setCriteria(model.criteria);
         setWeights(model.weights);
@@ -125,10 +127,10 @@ export function ScoringModelEditor({
         setThresholdMedium(model.thresholdMedium);
       }
     } catch (error) {
-      console.error('Failed to fetch scoring model:', error);
+      console.error("Failed to fetch scoring model:", error);
       // Set defaults if no model exists
-      setName('Default Scoring Model');
-      setDescription('');
+      setName("Default Scoring Model");
+      setDescription("");
     } finally {
       setLoading(false);
     }
@@ -149,7 +151,7 @@ export function ScoringModelEditor({
       onSave?.();
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to save scoring model:', error);
+      console.error("Failed to save scoring model:", error);
     } finally {
       setSaving(false);
     }
@@ -158,7 +160,7 @@ export function ScoringModelEditor({
   const addToList = (
     category: keyof ScoringCriteria,
     field: string,
-    value: string
+    value: string,
   ) => {
     setCriteria((prev) => ({
       ...prev,
@@ -172,14 +174,14 @@ export function ScoringModelEditor({
   const removeFromList = (
     category: keyof ScoringCriteria,
     field: string,
-    index: number
+    index: number,
   ) => {
     setCriteria((prev) => ({
       ...prev,
       [category]: {
         ...(prev[category] as any),
         [field]: ((prev[category] as any)[field] as string[]).filter(
-          (_, i) => i !== index
+          (_, i) => i !== index,
         ),
       },
     }));
@@ -203,7 +205,8 @@ export function ScoringModelEditor({
         <DialogHeader>
           <DialogTitle>Scoring Model Configuration</DialogTitle>
           <DialogDescription>
-            Define how leads should be scored based on your ideal customer profile (ICP).
+            Define how leads should be scored based on your ideal customer
+            profile (ICP).
           </DialogDescription>
         </DialogHeader>
 
@@ -251,9 +254,9 @@ export function ScoringModelEditor({
                   onChange={(e) => setNewJobTitle(e.target.value)}
                   placeholder="e.g., CEO, CTO"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newJobTitle) {
-                      addToList('jobTitles', 'target', newJobTitle);
-                      setNewJobTitle('');
+                    if (e.key === "Enter" && newJobTitle) {
+                      addToList("jobTitles", "target", newJobTitle);
+                      setNewJobTitle("");
                     }
                   }}
                 />
@@ -263,8 +266,8 @@ export function ScoringModelEditor({
                   size="icon"
                   onClick={() => {
                     if (newJobTitle) {
-                      addToList('jobTitles', 'target', newJobTitle);
-                      setNewJobTitle('');
+                      addToList("jobTitles", "target", newJobTitle);
+                      setNewJobTitle("");
                     }
                   }}
                 >
@@ -277,7 +280,7 @@ export function ScoringModelEditor({
                     {title}
                     <button
                       type="button"
-                      onClick={() => removeFromList('jobTitles', 'target', i)}
+                      onClick={() => removeFromList("jobTitles", "target", i)}
                       className="ml-1 hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
@@ -300,9 +303,9 @@ export function ScoringModelEditor({
                   onChange={(e) => setNewIndustry(e.target.value)}
                   placeholder="e.g., SaaS, Technology"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newIndustry) {
-                      addToList('companies', 'industries', newIndustry);
-                      setNewIndustry('');
+                    if (e.key === "Enter" && newIndustry) {
+                      addToList("companies", "industries", newIndustry);
+                      setNewIndustry("");
                     }
                   }}
                 />
@@ -312,8 +315,8 @@ export function ScoringModelEditor({
                   size="icon"
                   onClick={() => {
                     if (newIndustry) {
-                      addToList('companies', 'industries', newIndustry);
-                      setNewIndustry('');
+                      addToList("companies", "industries", newIndustry);
+                      setNewIndustry("");
                     }
                   }}
                 >
@@ -326,7 +329,9 @@ export function ScoringModelEditor({
                     {ind}
                     <button
                       type="button"
-                      onClick={() => removeFromList('companies', 'industries', i)}
+                      onClick={() =>
+                        removeFromList("companies", "industries", i)
+                      }
                       className="ml-1 hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
@@ -344,7 +349,9 @@ export function ScoringModelEditor({
               <div key={key} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="capitalize">{key}</Label>
-                  <span className="text-sm text-muted-foreground">{value.toFixed(1)}x</span>
+                  <span className="text-sm text-muted-foreground">
+                    {value.toFixed(1)}x
+                  </span>
                 </div>
                 <Slider
                   value={[value]}
@@ -399,7 +406,7 @@ export function ScoringModelEditor({
                 Saving...
               </>
             ) : (
-              'Save Model'
+              "Save Model"
             )}
           </Button>
         </DialogFooter>

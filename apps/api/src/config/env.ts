@@ -1,70 +1,114 @@
-import { z } from 'zod';
-import { logger } from '../lib/logger.js';
+import { z } from "zod";
+import { logger } from "../lib/logger.js";
 
-if (process.env.NODE_ENV === 'development') {
-  logger.debug('[Config] Validating environment variables...');
-  logger.debug({
-    availableEnvVars: Object.keys(process.env).filter(k =>
-      k.startsWith('DATABASE') ||
-      k.startsWith('JWT') ||
-      k.startsWith('CORS') ||
-      k.startsWith('NODE') ||
-      k.startsWith('PORT') ||
-      k.startsWith('REDIS')
-    ).join(', ')
-  }, '[Config] Available env vars');
+if (process.env.NODE_ENV === "development") {
+  logger.debug("[Config] Validating environment variables...");
+  logger.debug(
+    {
+      availableEnvVars: Object.keys(process.env)
+        .filter(
+          (k) =>
+            k.startsWith("DATABASE") ||
+            k.startsWith("JWT") ||
+            k.startsWith("CORS") ||
+            k.startsWith("NODE") ||
+            k.startsWith("PORT") ||
+            k.startsWith("REDIS"),
+        )
+        .join(", "),
+    },
+    "[Config] Available env vars",
+  );
 }
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   PORT: z.coerce.number().default(3001),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required').refine(
-    (val) => {
-      try {
-        const url = new URL(val);
-        return url.hostname && url.hostname.length > 0;
-      } catch {
-        return false;
-      }
-    },
-    { message: 'DATABASE_URL must be a valid PostgreSQL connection string with hostname' }
-  ),
+  DATABASE_URL: z
+    .string()
+    .min(1, "DATABASE_URL is required")
+    .refine(
+      (val) => {
+        try {
+          const url = new URL(val);
+          return url.hostname && url.hostname.length > 0;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message:
+          "DATABASE_URL must be a valid PostgreSQL connection string with hostname",
+      },
+    ),
   DIRECT_URL: z.string().optional(),
-  REDIS_URL: z.string().default(''),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  JWT_EXPIRES_IN: z.string().default('30d'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
+  REDIS_URL: z.string().default(""),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  JWT_EXPIRES_IN: z.string().default("30d"),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default("30d"),
   CORS_ORIGINS: z
     .string()
-    .default('http://localhost:3000')
-    .transform((val) => val.split(',').map((origin) => origin.trim()).filter(Boolean)),
+    .default("http://localhost:3000")
+    .transform((val) =>
+      val
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ),
   OPENAI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('=== FATAL: Invalid environment variables ===');
-  console.error('Errors:', JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
-  console.error('');
-  console.error('Required variables:');
-  console.error('  - DATABASE_URL: PostgreSQL connection string');
-  console.error('  - JWT_SECRET: Secret key for JWT (min 32 chars)');
-  console.error('');
-  console.error('Current values (redacted):');
-  console.error('  - DATABASE_URL:', process.env.DATABASE_URL ? `set (${process.env.DATABASE_URL.length} chars)` : 'NOT SET');
-  console.error('  - JWT_SECRET:', process.env.JWT_SECRET ? `set (${process.env.JWT_SECRET.length} chars)` : 'NOT SET');
-  console.error('  - PORT:', process.env.PORT || 'NOT SET (will use default 3001)');
-  console.error('  - NODE_ENV:', process.env.NODE_ENV || 'NOT SET (will use default development)');
-  console.error('  - CORS_ORIGINS:', process.env.CORS_ORIGINS || 'NOT SET (will use default)');
+  console.error("=== FATAL: Invalid environment variables ===");
+  console.error(
+    "Errors:",
+    JSON.stringify(parsed.error.flatten().fieldErrors, null, 2),
+  );
+  console.error("");
+  console.error("Required variables:");
+  console.error("  - DATABASE_URL: PostgreSQL connection string");
+  console.error("  - JWT_SECRET: Secret key for JWT (min 32 chars)");
+  console.error("");
+  console.error("Current values (redacted):");
+  console.error(
+    "  - DATABASE_URL:",
+    process.env.DATABASE_URL
+      ? `set (${process.env.DATABASE_URL.length} chars)`
+      : "NOT SET",
+  );
+  console.error(
+    "  - JWT_SECRET:",
+    process.env.JWT_SECRET
+      ? `set (${process.env.JWT_SECRET.length} chars)`
+      : "NOT SET",
+  );
+  console.error(
+    "  - PORT:",
+    process.env.PORT || "NOT SET (will use default 3001)",
+  );
+  console.error(
+    "  - NODE_ENV:",
+    process.env.NODE_ENV || "NOT SET (will use default development)",
+  );
+  console.error(
+    "  - CORS_ORIGINS:",
+    process.env.CORS_ORIGINS || "NOT SET (will use default)",
+  );
   process.exit(1);
 }
 
-if (process.env.NODE_ENV === 'development') {
-  logger.debug('[Config] Environment validated successfully');
-  logger.debug({ nodeEnv: parsed.data.NODE_ENV }, '[Config] NODE_ENV');
-  logger.debug({ port: parsed.data.PORT }, '[Config] PORT');
-  logger.debug({ corsOrigins: parsed.data.CORS_ORIGINS }, '[Config] CORS_ORIGINS');
+if (process.env.NODE_ENV === "development") {
+  logger.debug("[Config] Environment validated successfully");
+  logger.debug({ nodeEnv: parsed.data.NODE_ENV }, "[Config] NODE_ENV");
+  logger.debug({ port: parsed.data.PORT }, "[Config] PORT");
+  logger.debug(
+    { corsOrigins: parsed.data.CORS_ORIGINS },
+    "[Config] CORS_ORIGINS",
+  );
 }
 
 export const env = parsed.data;

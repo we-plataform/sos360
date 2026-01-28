@@ -1,8 +1,8 @@
-import type { Request, Response, NextFunction } from 'express';
-import { prisma } from '@lia360/database';
-import { verifyAccessToken } from '../lib/jwt.js';
-import { UnauthorizedError, ForbiddenError } from '../lib/errors.js';
-import type { JwtPayload, CompanyRole, WorkspaceRole } from '@lia360/shared';
+import type { Request, Response, NextFunction } from "express";
+import { prisma } from "@lia360/database";
+import { verifyAccessToken } from "../lib/jwt.js";
+import { UnauthorizedError, ForbiddenError } from "../lib/errors.js";
+import type { JwtPayload, CompanyRole, WorkspaceRole } from "@lia360/shared";
 
 declare global {
   namespace Express {
@@ -27,12 +27,12 @@ declare global {
 export async function authenticate(
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Token não fornecido');
+    if (!authHeader?.startsWith("Bearer ")) {
+      throw new UnauthorizedError("Token não fornecido");
     }
 
     const token = authHeader.slice(7);
@@ -41,7 +41,7 @@ export async function authenticate(
     try {
       payload = verifyAccessToken(token);
     } catch {
-      throw new UnauthorizedError('Token inválido ou expirado');
+      throw new UnauthorizedError("Token inválido ou expirado");
     }
 
     // Validate that user exists and has access to the company/workspace
@@ -55,7 +55,7 @@ export async function authenticate(
     });
 
     if (!user) {
-      throw new UnauthorizedError('Usuário não encontrado');
+      throw new UnauthorizedError("Usuário não encontrado");
     }
 
     // Verify company membership
@@ -69,7 +69,7 @@ export async function authenticate(
     });
 
     if (!companyMember) {
-      throw new UnauthorizedError('Usuário não pertence a esta empresa');
+      throw new UnauthorizedError("Usuário não pertence a esta empresa");
     }
 
     // Verify workspace membership
@@ -83,7 +83,7 @@ export async function authenticate(
     });
 
     if (!workspaceMember) {
-      throw new UnauthorizedError('Usuário não tem acesso a este workspace');
+      throw new UnauthorizedError("Usuário não tem acesso a este workspace");
     }
 
     req.user = {
@@ -134,10 +134,14 @@ export function authorize(...allowedRoles: WorkspaceRole[]) {
     }
 
     const userRoleLevel = workspaceRoleHierarchy[req.user.workspaceRole];
-    const minRequiredLevel = Math.min(...allowedRoles.map((r) => workspaceRoleHierarchy[r]));
+    const minRequiredLevel = Math.min(
+      ...allowedRoles.map((r) => workspaceRoleHierarchy[r]),
+    );
 
     if (userRoleLevel < minRequiredLevel) {
-      return next(new ForbiddenError('Você não tem permissão para acessar este recurso'));
+      return next(
+        new ForbiddenError("Você não tem permissão para acessar este recurso"),
+      );
     }
 
     next();
@@ -154,10 +158,16 @@ export function authorizeCompany(...allowedRoles: CompanyRole[]) {
     }
 
     const userRoleLevel = companyRoleHierarchy[req.user.companyRole];
-    const minRequiredLevel = Math.min(...allowedRoles.map((r) => companyRoleHierarchy[r]));
+    const minRequiredLevel = Math.min(
+      ...allowedRoles.map((r) => companyRoleHierarchy[r]),
+    );
 
     if (userRoleLevel < minRequiredLevel) {
-      return next(new ForbiddenError('Você não tem permissão para gerenciar esta empresa'));
+      return next(
+        new ForbiddenError(
+          "Você não tem permissão para gerenciar esta empresa",
+        ),
+      );
     }
 
     next();

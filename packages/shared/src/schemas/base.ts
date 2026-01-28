@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { PLATFORMS } from '../constants';
+import { z } from "zod";
+import { PLATFORMS } from "../constants";
 
 // Platform schema
 export const platformSchema = z.enum(PLATFORMS);

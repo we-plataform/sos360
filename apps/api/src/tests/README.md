@@ -63,16 +63,19 @@ The test reports:
 ### Expected Results
 
 **Good Performance**:
+
 - Throughput: >5 leads/second
 - Average time per lead: <200ms
 - Success rate: 100%
 
 **Acceptable Performance**:
+
 - Throughput: 1-5 leads/second
 - Average time per lead: 200ms-1s
 - Success rate: >95%
 
 **Needs Optimization**:
+
 - Throughput: <1 lead/second
 - Average time per lead: >1s
 - Success rate: <95%
@@ -200,6 +203,7 @@ The scoring feature will work with fallback explanations, but for full functiona
 **Performance is slow (<1 lead/second)**
 
 Possible causes:
+
 - Database connection issues
 - High latency to OpenAI API
 - Network issues
@@ -222,7 +226,7 @@ on:
     branches: [main]
   schedule:
     # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 jobs:
   performance:
@@ -243,7 +247,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm ci

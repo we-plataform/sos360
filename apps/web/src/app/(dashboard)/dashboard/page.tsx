@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { Users, MessageSquare, Calendar, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/lib/api';
-import { formatNumber, formatPercent } from '@/lib/utils';
-import { FunnelChart } from '@/components/analytics/FunnelChart';
+import { useQuery } from "@tanstack/react-query";
+import { Users, MessageSquare, Calendar, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
+import { formatNumber, formatPercent } from "@/lib/utils";
+import { FunnelChart } from "@/components/analytics/FunnelChart";
 
 export default function DashboardPage() {
   const { data: overview, isLoading } = useQuery({
-    queryKey: ['analytics', 'overview'],
+    queryKey: ["analytics", "overview"],
     queryFn: () => api.getAnalyticsOverview() as any,
   });
 
   const { data: funnel } = useQuery({
-    queryKey: ['analytics', 'funnel'],
+    queryKey: ["analytics", "funnel"],
     queryFn: () => api.getAnalyticsFunnel() as any,
   });
 
@@ -28,32 +28,32 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      name: 'Total de Leads',
+      name: "Total de Leads",
       value: formatNumber(overview?.leads?.total || 0),
       change: `+${formatNumber(overview?.leads?.new || 0)} este mês`,
       icon: Users,
-      color: 'bg-blue-500',
+      color: "bg-blue-500",
     },
     {
-      name: 'Conversas Ativas',
+      name: "Conversas Ativas",
       value: formatNumber(overview?.conversations?.total || 0),
       change: `${formatPercent(overview?.conversations?.responseRate || 0)} taxa de resposta`,
       icon: MessageSquare,
-      color: 'bg-green-500',
+      color: "bg-green-500",
     },
     {
-      name: 'Agendamentos',
+      name: "Agendamentos",
       value: formatNumber(overview?.scheduled?.total || 0),
       change: `${overview?.scheduled?.completed || 0} concluídos`,
       icon: Calendar,
-      color: 'bg-purple-500',
+      color: "bg-purple-500",
     },
     {
-      name: 'Crescimento',
+      name: "Crescimento",
       value: formatPercent(overview?.leads?.growth || 0),
-      change: 'vs. período anterior',
+      change: "vs. período anterior",
       icon: TrendingUp,
-      color: 'bg-orange-500',
+      color: "bg-orange-500",
     },
   ];
 
@@ -107,15 +107,22 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(overview?.byPlatform || {}).map(([platform, count]) => (
-                <div key={platform} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-indigo-600" />
-                    <span className="capitalize">{platform}</span>
+              {Object.entries(overview?.byPlatform || {}).map(
+                ([platform, count]) => (
+                  <div
+                    key={platform}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-3 rounded-full bg-indigo-600" />
+                      <span className="capitalize">{platform}</span>
+                    </div>
+                    <span className="font-medium">
+                      {formatNumber(count as number)}
+                    </span>
                   </div>
-                  <span className="font-medium">{formatNumber(count as number)}</span>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </CardContent>
         </Card>

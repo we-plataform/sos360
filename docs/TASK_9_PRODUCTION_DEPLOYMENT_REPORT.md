@@ -39,6 +39,7 @@ DIRECT_URL=postgresql://neondb_owner:npg_6Aerb1TskcCt@ep-floral-surf-ac2o21mi-po
 ```
 
 **Variables to Remove** (if present):
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `SUPABASE_ANON_KEY`
@@ -91,6 +92,7 @@ curl https://lia360api-production.up.railway.app/health
 **Supabase Backup Location**: `scripts/backup/.supabase-backup`
 
 If production update fails, you can restore Supabase connection:
+
 1. Find backup connection string in: `scripts/backup/.env.temp.supabase-backup`
 2. Restore `DATABASE_URL` in Railway variables
 3. Trigger redeployment
@@ -102,6 +104,7 @@ If production update fails, you can restore Supabase connection:
 **Production Deployment Guide**: `docs/PRODUCTION_DEPLOYMENT_NEON.md`
 
 This guide includes:
+
 - ✅ Step-by-step Railway update instructions
 - ✅ Verification procedures
 - ✅ Troubleshooting common issues
@@ -113,14 +116,14 @@ This guide includes:
 
 ## Current Status Summary
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Development Environment | ✅ Complete | Successfully migrated to Neon |
-| Development Tests | ✅ Passing | All 6 test suites passing |
-| Production Deployment | ⚠️ Needs Update | 502 errors, needs Neon config |
-| Railway Config | ✅ Found | `railway.json` present |
-| Supabase Backup | ✅ Created | `scripts/backup/.supabase-backup` |
-| Documentation | ✅ Complete | Production guide created |
+| Component               | Status          | Notes                             |
+| ----------------------- | --------------- | --------------------------------- |
+| Development Environment | ✅ Complete     | Successfully migrated to Neon     |
+| Development Tests       | ✅ Passing      | All 6 test suites passing         |
+| Production Deployment   | ⚠️ Needs Update | 502 errors, needs Neon config     |
+| Railway Config          | ✅ Found        | `railway.json` present            |
+| Supabase Backup         | ✅ Created      | `scripts/backup/.supabase-backup` |
+| Documentation           | ✅ Complete     | Production guide created          |
 
 ---
 
@@ -179,12 +182,14 @@ This guide includes:
 Production deployment has been identified and verified. The deployment exists on Railway and requires environment variable updates to use Neon instead of Supabase. Complete documentation has been provided for updating production, including verification steps and rollback procedures.
 
 **Risk Level**: Low
+
 - Development environment fully tested with Neon
 - Clear rollback path exists
 - Supabase backup preserved
 - Step-by-step documentation provided
 
 **Estimated Time to Complete**: 10-15 minutes
+
 - Update Railway variables: 5 minutes
 - Verify deployment: 5 minutes
 - Monitor initial deployment: 5-10 minutes

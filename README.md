@@ -34,11 +34,13 @@ lia360/
 - Docker Desktop (recomendado) ou conta no Neon
 
 ### Opção 1: Docker (Recomendado para desenvolvimento local)
+
 - ✅ Funciona offline
 - ✅ Ambiente isolado
 - ✅ Controle total
 
 ### Opção 2: Neon (Para produção/cloud)
+
 - ✅ Managed service
 - ✅ Sem instalação local
 
@@ -261,4 +263,5 @@ vercel
 ## Licença
 
 Proprietary - Todos os direitos reservados.
+
 # lia360

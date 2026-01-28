@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { prisma } from '@lia360/database';
+import { Router } from "express";
+import { prisma } from "@lia360/database";
 import {
   createPostSchema,
   updatePostSchema,
@@ -9,13 +9,13 @@ import {
   PAGINATION_DEFAULTS,
   calculateOffset,
   calculateTotalPages,
-} from '@lia360/shared';
-import { authenticate, authorize } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
-import { importRateLimit } from '../middleware/rate-limit.js';
-import { NotFoundError } from '../lib/errors.js';
-import type { z } from 'zod';
-import type { Server } from 'socket.io';
+} from "@lia360/shared";
+import { authenticate, authorize } from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import { importRateLimit } from "../middleware/rate-limit.js";
+import { NotFoundError } from "../lib/errors.js";
+import type { z } from "zod";
+import type { Server } from "socket.io";
 
 export const postsRouter = Router();
 
@@ -23,81 +23,96 @@ export const postsRouter = Router();
 postsRouter.use(authenticate);
 
 // GET /posts - List posts with filters and pagination
-postsRouter.get('/', validate(postFiltersSchema, 'query'), async (req, res, next) => {
-  try {
-    const workspaceId = req.user!.workspaceId;
-    const {
-      page = PAGINATION_DEFAULTS.page,
-      limit = PAGINATION_DEFAULTS.limit,
-      platform,
-      authorUsername,
-      leadId,
-      hasLead,
-      search,
-      sort = 'importedAt',
-      order = 'desc',
-    } = req.query as z.infer<typeof postFiltersSchema>;
+postsRouter.get(
+  "/",
+  validate(postFiltersSchema, "query"),
+  async (req, res, next) => {
+    try {
+      const workspaceId = req.user!.workspaceId;
+      const {
+        page = PAGINATION_DEFAULTS.page,
+        limit = PAGINATION_DEFAULTS.limit,
+        platform,
+        authorUsername,
+        leadId,
+        hasLead,
+        search,
+        sort = "importedAt",
+        order = "desc",
+      } = req.query as z.infer<typeof postFiltersSchema>;
 
-    // Build where clause
-    const where: Record<string, unknown> = { workspaceId };
+      // Build where clause
+      const where: Record<string, unknown> = { workspaceId };
 
-    if (platform) where.platform = platform;
-    if (authorUsername) where.authorUsername = { contains: authorUsername, mode: 'insensitive' };
-    if (leadId) where.leadId = leadId;
-    if (hasLead !== undefined) {
-      where.leadId = hasLead ? { not: null } : null;
-    }
-    if (search) {
-      where.OR = [
-        { content: { contains: search, mode: 'insensitive' } },
-        { authorUsername: { contains: search, mode: 'insensitive' } },
-        { authorFullName: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+      if (platform) where.platform = platform;
+      if (authorUsername)
+        where.authorUsername = {
+          contains: authorUsername,
+          mode: "insensitive",
+        };
+      if (leadId) where.leadId = leadId;
+      if (hasLead !== undefined) {
+        where.leadId = hasLead ? { not: null } : null;
+      }
+      if (search) {
+        where.OR = [
+          { content: { contains: search, mode: "insensitive" } },
+          { authorUsername: { contains: search, mode: "insensitive" } },
+          { authorFullName: { contains: search, mode: "insensitive" } },
+        ];
+      }
 
-    const [posts, total] = await Promise.all([
-      prisma.post.findMany({
-        where,
-        include: {
-          lead: {
-            select: { id: true, fullName: true, username: true, avatarUrl: true },
-          },
-          tags: {
-            include: {
-              tag: { select: { id: true, name: true, color: true } },
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where,
+          include: {
+            lead: {
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+            tags: {
+              include: {
+                tag: { select: { id: true, name: true, color: true } },
+              },
             },
           },
+          orderBy: { [sort]: order },
+          skip: calculateOffset(page, limit),
+          take: limit,
+        }),
+        prisma.post.count({ where }),
+      ]);
+
+      // Format response
+      const formattedPosts = posts.map((post) => ({
+        ...post,
+        tags: post.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
+      }));
+
+      res.json({
+        success: true,
+        data: formattedPosts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: calculateTotalPages(total, limit),
         },
-        orderBy: { [sort]: order },
-        skip: calculateOffset(page, limit),
-        take: limit,
-      }),
-      prisma.post.count({ where }),
-    ]);
-
-    // Format response
-    const formattedPosts = posts.map((post) => ({
-      ...post,
-      tags: post.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
-    }));
-
-    res.json({
-      success: true,
-      data: formattedPosts,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: calculateTotalPages(total, limit),
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 // GET /posts/:id - Get single post
-postsRouter.get('/:id', async (req, res, next) => {
+postsRouter.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const workspaceId = req.user!.workspaceId;
@@ -106,7 +121,13 @@ postsRouter.get('/:id', async (req, res, next) => {
       where: { id, workspaceId },
       include: {
         lead: {
-          select: { id: true, fullName: true, username: true, avatarUrl: true, profileUrl: true },
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            avatarUrl: true,
+            profileUrl: true,
+          },
         },
         tags: {
           include: {
@@ -117,14 +138,16 @@ postsRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!post) {
-      throw new NotFoundError('Post');
+      throw new NotFoundError("Post");
     }
 
     res.json({
       success: true,
       data: {
         ...post,
-        tags: post.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+        tags: post.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
       },
     });
   } catch (error) {
@@ -134,8 +157,8 @@ postsRouter.get('/:id', async (req, res, next) => {
 
 // POST /posts - Create/import a single post
 postsRouter.post(
-  '/',
-  authorize('owner', 'admin', 'manager', 'agent'),
+  "/",
+  authorize("owner", "admin", "manager", "agent"),
   validate(createPostSchema),
   async (req, res, next) => {
     try {
@@ -172,7 +195,12 @@ postsRouter.post(
           },
           include: {
             lead: {
-              select: { id: true, fullName: true, username: true, avatarUrl: true },
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+                avatarUrl: true,
+              },
             },
             tags: {
               include: {
@@ -186,9 +214,12 @@ postsRouter.post(
           success: true,
           data: {
             ...updatedPost,
-            tags: updatedPost.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+            tags: updatedPost.tags.map(
+              (pt: { tag: { id: string; name: string; color: string } }) =>
+                pt.tag,
+            ),
           },
-          message: 'Post atualizado',
+          message: "Post atualizado",
         });
       }
 
@@ -215,7 +246,12 @@ postsRouter.post(
         },
         include: {
           lead: {
-            select: { id: true, fullName: true, username: true, avatarUrl: true },
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              avatarUrl: true,
+            },
           },
           tags: {
             include: {
@@ -226,29 +262,34 @@ postsRouter.post(
       });
 
       // Emit socket event
-      const io = req.app.get('io') as Server;
-      io.to(`workspace:${workspaceId}`).emit('post:created', {
+      const io = req.app.get("io") as Server;
+      io.to(`workspace:${workspaceId}`).emit("post:created", {
         ...post,
-        tags: post.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+        tags: post.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
       });
 
       res.status(201).json({
         success: true,
         data: {
           ...post,
-          tags: post.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+          tags: post.tags.map(
+            (pt: { tag: { id: string; name: string; color: string } }) =>
+              pt.tag,
+          ),
         },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // POST /posts/import - Import posts in bulk
 postsRouter.post(
-  '/import',
-  authorize('owner', 'admin', 'manager', 'agent'),
+  "/import",
+  authorize("owner", "admin", "manager", "agent"),
   importRateLimit,
   validate(importPostsSchema),
   async (req, res, next) => {
@@ -259,7 +300,11 @@ postsRouter.post(
       let imported = 0;
       let updated = 0;
       let errors = 0;
-      const results: { id: string; postUrl: string; status: 'created' | 'updated' }[] = [];
+      const results: {
+        id: string;
+        postUrl: string;
+        status: "created" | "updated";
+      }[] = [];
 
       for (const postData of posts) {
         try {
@@ -289,11 +334,17 @@ postsRouter.post(
                 authorFullName: postData.authorFullName,
                 authorAvatarUrl: postData.authorAvatarUrl,
                 authorProfileUrl: postData.authorProfileUrl,
-                postDate: postData.postDate ? new Date(postData.postDate) : null,
+                postDate: postData.postDate
+                  ? new Date(postData.postDate)
+                  : null,
               },
             });
             updated++;
-            results.push({ id: existingPost.id, postUrl: postData.postUrl, status: 'updated' });
+            results.push({
+              id: existingPost.id,
+              postUrl: postData.postUrl,
+              status: "updated",
+            });
           } else {
             // Create new post
             const newPost = await prisma.post.create({
@@ -314,7 +365,9 @@ postsRouter.post(
                 authorFullName: postData.authorFullName,
                 authorAvatarUrl: postData.authorAvatarUrl,
                 authorProfileUrl: postData.authorProfileUrl,
-                postDate: postData.postDate ? new Date(postData.postDate) : null,
+                postDate: postData.postDate
+                  ? new Date(postData.postDate)
+                  : null,
                 ...(tags?.length && {
                   tags: {
                     create: tags.map((tagId: string) => ({ tagId })),
@@ -323,11 +376,15 @@ postsRouter.post(
               },
             });
             imported++;
-            results.push({ id: newPost.id, postUrl: postData.postUrl, status: 'created' });
+            results.push({
+              id: newPost.id,
+              postUrl: postData.postUrl,
+              status: "created",
+            });
           }
         } catch (err) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error importing post:', err);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Error importing post:", err);
           }
           errors++;
         }
@@ -347,13 +404,13 @@ postsRouter.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // PATCH /posts/:id - Update post
 postsRouter.patch(
-  '/:id',
-  authorize('owner', 'admin', 'manager', 'agent'),
+  "/:id",
+  authorize("owner", "admin", "manager", "agent"),
   validate(updatePostSchema),
   async (req, res, next) => {
     try {
@@ -366,7 +423,7 @@ postsRouter.patch(
       });
 
       if (!existingPost) {
-        throw new NotFoundError('Post');
+        throw new NotFoundError("Post");
       }
 
       // Update post
@@ -397,7 +454,12 @@ postsRouter.patch(
         where: { id },
         include: {
           lead: {
-            select: { id: true, fullName: true, username: true, avatarUrl: true },
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              avatarUrl: true,
+            },
           },
           tags: {
             include: {
@@ -408,29 +470,34 @@ postsRouter.patch(
       });
 
       // Emit socket event
-      const io = req.app.get('io') as Server;
-      io.to(`workspace:${workspaceId}`).emit('post:updated', {
+      const io = req.app.get("io") as Server;
+      io.to(`workspace:${workspaceId}`).emit("post:updated", {
         ...updatedPost!,
-        tags: updatedPost!.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+        tags: updatedPost!.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
       });
 
       res.json({
         success: true,
         data: {
           ...updatedPost!,
-          tags: updatedPost!.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+          tags: updatedPost!.tags.map(
+            (pt: { tag: { id: string; name: string; color: string } }) =>
+              pt.tag,
+          ),
         },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // DELETE /posts/:id - Delete post
 postsRouter.delete(
-  '/:id',
-  authorize('owner', 'admin', 'manager'),
+  "/:id",
+  authorize("owner", "admin", "manager"),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -441,29 +508,29 @@ postsRouter.delete(
       });
 
       if (!post) {
-        throw new NotFoundError('Post');
+        throw new NotFoundError("Post");
       }
 
       await prisma.post.delete({ where: { id } });
 
       // Emit socket event
-      const io = req.app.get('io') as Server;
-      io.to(`workspace:${workspaceId}`).emit('post:deleted', { id });
+      const io = req.app.get("io") as Server;
+      io.to(`workspace:${workspaceId}`).emit("post:deleted", { id });
 
       res.json({
         success: true,
-        data: { message: 'Post removido com sucesso' },
+        data: { message: "Post removido com sucesso" },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // POST /posts/:id/link-lead - Link post to an existing lead
 postsRouter.post(
-  '/:id/link-lead',
-  authorize('owner', 'admin', 'manager', 'agent'),
+  "/:id/link-lead",
+  authorize("owner", "admin", "manager", "agent"),
   validate(linkPostToLeadSchema),
   async (req, res, next) => {
     try {
@@ -477,7 +544,7 @@ postsRouter.post(
       });
 
       if (!post) {
-        throw new NotFoundError('Post');
+        throw new NotFoundError("Post");
       }
 
       // Check if lead exists
@@ -486,7 +553,7 @@ postsRouter.post(
       });
 
       if (!lead) {
-        throw new NotFoundError('Lead');
+        throw new NotFoundError("Lead");
       }
 
       // Link post to lead
@@ -495,7 +562,12 @@ postsRouter.post(
         data: { leadId },
         include: {
           lead: {
-            select: { id: true, fullName: true, username: true, avatarUrl: true },
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              avatarUrl: true,
+            },
           },
           tags: {
             include: {
@@ -506,29 +578,34 @@ postsRouter.post(
       });
 
       // Emit socket event
-      const io = req.app.get('io') as Server;
-      io.to(`workspace:${workspaceId}`).emit('post:updated', {
+      const io = req.app.get("io") as Server;
+      io.to(`workspace:${workspaceId}`).emit("post:updated", {
         ...updatedPost,
-        tags: updatedPost.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+        tags: updatedPost.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
       });
 
       res.json({
         success: true,
         data: {
           ...updatedPost,
-          tags: updatedPost.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+          tags: updatedPost.tags.map(
+            (pt: { tag: { id: string; name: string; color: string } }) =>
+              pt.tag,
+          ),
         },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // DELETE /posts/:id/link-lead - Unlink post from lead
 postsRouter.delete(
-  '/:id/link-lead',
-  authorize('owner', 'admin', 'manager', 'agent'),
+  "/:id/link-lead",
+  authorize("owner", "admin", "manager", "agent"),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -539,7 +616,7 @@ postsRouter.delete(
       });
 
       if (!post) {
-        throw new NotFoundError('Post');
+        throw new NotFoundError("Post");
       }
 
       // Unlink post from lead
@@ -548,7 +625,12 @@ postsRouter.delete(
         data: { leadId: null },
         include: {
           lead: {
-            select: { id: true, fullName: true, username: true, avatarUrl: true },
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              avatarUrl: true,
+            },
           },
           tags: {
             include: {
@@ -559,21 +641,26 @@ postsRouter.delete(
       });
 
       // Emit socket event
-      const io = req.app.get('io') as Server;
-      io.to(`workspace:${workspaceId}`).emit('post:updated', {
+      const io = req.app.get("io") as Server;
+      io.to(`workspace:${workspaceId}`).emit("post:updated", {
         ...updatedPost,
-        tags: updatedPost.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+        tags: updatedPost.tags.map(
+          (pt: { tag: { id: string; name: string; color: string } }) => pt.tag,
+        ),
       });
 
       res.json({
         success: true,
         data: {
           ...updatedPost,
-          tags: updatedPost.tags.map((pt: { tag: { id: string; name: string; color: string } }) => pt.tag),
+          tags: updatedPost.tags.map(
+            (pt: { tag: { id: string; name: string; color: string } }) =>
+              pt.tag,
+          ),
         },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );

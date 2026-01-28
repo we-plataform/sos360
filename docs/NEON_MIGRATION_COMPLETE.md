@@ -29,18 +29,22 @@
 ## Next Steps
 
 ### Immediate (Optional)
+
 1. Monitor Neon dashboard for 24-48 hours
 2. Test all application features thoroughly
 3. Update production deployment environment variables
 
 ### Before Supabase Deletion
+
 1. ✅ Keep Supabase project active for 7 days
 2. Monitor for any issues or rollbacks needed
 3. Verify production deployment if applicable
 4. After 7 days of stable operation, proceed with deletion
 
 ### Supabase Project Deletion
+
 When ready to delete the Supabase project:
+
 1. Go to https://supabase.com/dashboard
 2. Select project: doewttvwknkhjzhzceub
 3. Project Settings → General
@@ -50,6 +54,7 @@ When ready to delete the Supabase project:
 ## Rollback Plan
 
 If rollback is needed:
+
 1. Restore .env from scripts/backup/.supabase-backup
 2. Run: git checkout HEAD -- packages/database/src/index.ts apps/api/src/config/env.ts
 3. Run: npm install @supabase/supabase-js
@@ -67,6 +72,7 @@ If rollback is needed:
 ## Files Archived
 
 The following Supabase-specific documentation files have been moved to `docs/legacy/supabase/`:
+
 - `DATABASE_SETUP.md` - Original manual SQL setup guide for Supabase
 - `DOCKER_SETUP.md` - Docker setup guide with Supabase comparison
 
@@ -83,6 +89,7 @@ These files are preserved for reference but are no longer relevant for the curre
 ## Key Differences from Supabase
 
 **Neon Advantages:**
+
 - Serverless PostgreSQL with auto-scaling
 - Branching for isolated development environments
 - Built-in connection pooling
@@ -91,6 +98,7 @@ These files are preserved for reference but are no longer relevant for the curre
 - Per-second billing
 
 **Configuration Changes:**
+
 - Single connection string (no separate DIRECT_URL needed)
 - Automatic SSL and connection pooling
 - No pgBouncer required (built-in)

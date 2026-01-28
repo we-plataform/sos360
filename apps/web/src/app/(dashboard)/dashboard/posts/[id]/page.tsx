@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowLeft,
   ExternalLink,
@@ -24,14 +24,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
-import { formatRelativeTime, cn } from '@/lib/utils';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
+import { formatRelativeTime, cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Post {
   id: string;
@@ -71,7 +71,10 @@ interface Lead {
   platform: string | null;
 }
 
-const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const platformIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   instagram: Instagram,
   linkedin: Linkedin,
 };
@@ -81,68 +84,71 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showLinkModal, setShowLinkModal] = useState(searchParams.get('link') === 'true');
-  const [leadSearch, setLeadSearch] = useState('');
+  const [showLinkModal, setShowLinkModal] = useState(
+    searchParams.get("link") === "true",
+  );
+  const [leadSearch, setLeadSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const { data: post, isLoading } = useQuery({
-    queryKey: ['post', params.id],
+    queryKey: ["post", params.id],
     queryFn: () => api.getPost(params.id) as Promise<Post>,
   });
 
   const { data: leads = [] } = useQuery({
-    queryKey: ['leads', leadSearch],
-    queryFn: () => api.getLeads({ search: leadSearch, limit: 10 }) as Promise<Lead[]>,
+    queryKey: ["leads", leadSearch],
+    queryFn: () =>
+      api.getLeads({ search: leadSearch, limit: 10 }) as Promise<Lead[]>,
     enabled: showLinkModal,
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deletePost(params.id),
     onSuccess: () => {
-      toast.success('Post removido com sucesso');
-      router.push('/dashboard/posts');
+      toast.success("Post removido com sucesso");
+      router.push("/dashboard/posts");
     },
     onError: () => {
-      toast.error('Erro ao remover post');
+      toast.error("Erro ao remover post");
     },
   });
 
   const linkMutation = useMutation({
     mutationFn: (leadId: string) => api.linkPostToLead(params.id, leadId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post', params.id] });
+      queryClient.invalidateQueries({ queryKey: ["post", params.id] });
       setShowLinkModal(false);
-      toast.success('Post vinculado ao lead');
+      toast.success("Post vinculado ao lead");
     },
     onError: () => {
-      toast.error('Erro ao vincular post');
+      toast.error("Erro ao vincular post");
     },
   });
 
   const unlinkMutation = useMutation({
     mutationFn: () => api.unlinkPostFromLead(params.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post', params.id] });
-      toast.success('Post desvinculado do lead');
+      queryClient.invalidateQueries({ queryKey: ["post", params.id] });
+      toast.success("Post desvinculado do lead");
     },
     onError: () => {
-      toast.error('Erro ao desvincular post');
+      toast.error("Erro ao desvincular post");
     },
   });
 
   const formatNumber = (num: number | null) => {
-    if (num === null || num === undefined) return '-';
+    if (num === null || num === undefined) return "-";
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
   };
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
   };
 
@@ -164,7 +170,11 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
       <div className="flex h-64 flex-col items-center justify-center">
         <FileText className="h-12 w-12 text-gray-300 mb-4" />
         <p className="text-gray-500">Post não encontrado</p>
-        <Button variant="outline" className="mt-4" onClick={() => router.push('/dashboard/posts')}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => router.push("/dashboard/posts")}
+        >
           Voltar para Posts
         </Button>
       </div>
@@ -176,11 +186,17 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/posts')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/dashboard/posts")}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Detalhes do Post</h1>
+            <h1 className="text-xl font-bold text-gray-900">
+              Detalhes do Post
+            </h1>
             <p className="text-sm text-gray-500">
               Importado {formatRelativeTime(post.importedAt)}
             </p>
@@ -228,7 +244,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() =>
                         setCurrentImageIndex((prev) =>
-                          prev === 0 ? post.imageUrls.length - 1 : prev - 1
+                          prev === 0 ? post.imageUrls.length - 1 : prev - 1,
                         )
                       }
                       className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
@@ -238,7 +254,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() =>
                         setCurrentImageIndex((prev) =>
-                          prev === post.imageUrls.length - 1 ? 0 : prev + 1
+                          prev === post.imageUrls.length - 1 ? 0 : prev + 1,
                         )
                       }
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
@@ -251,8 +267,10 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                           key={idx}
                           onClick={() => setCurrentImageIndex(idx)}
                           className={cn(
-                            'w-2 h-2 rounded-full transition-colors',
-                            idx === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                            "w-2 h-2 rounded-full transition-colors",
+                            idx === currentImageIndex
+                              ? "bg-white"
+                              : "bg-white/50",
                           )}
                         />
                       ))}
@@ -267,7 +285,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
           {post.content && (
             <Card className="p-6">
               <h3 className="font-semibold text-gray-900 mb-3">Conteúdo</h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{post.content}</p>
+              <p className="text-gray-600 whitespace-pre-wrap">
+                {post.content}
+              </p>
             </Card>
           )}
 
@@ -314,7 +334,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-medium text-gray-900">@{post.authorUsername}</p>
+                <p className="font-medium text-gray-900">
+                  @{post.authorUsername}
+                </p>
                 {post.authorFullName && (
                   <p className="text-sm text-gray-500">{post.authorFullName}</p>
                 )}
@@ -339,25 +361,33 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-gray-50 rounded-lg">
                 <Heart className="h-5 w-5 mx-auto text-red-500 mb-1" />
-                <p className="text-lg font-semibold">{formatNumber(post.likesCount)}</p>
+                <p className="text-lg font-semibold">
+                  {formatNumber(post.likesCount)}
+                </p>
                 <p className="text-xs text-gray-500">Curtidas</p>
               </div>
               <div className="text-center p-3 bg-gray-50 rounded-lg">
                 <MessageCircle className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-                <p className="text-lg font-semibold">{formatNumber(post.commentsCount)}</p>
+                <p className="text-lg font-semibold">
+                  {formatNumber(post.commentsCount)}
+                </p>
                 <p className="text-xs text-gray-500">Comentários</p>
               </div>
               {post.sharesCount !== null && (
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <Share2 className="h-5 w-5 mx-auto text-green-500 mb-1" />
-                  <p className="text-lg font-semibold">{formatNumber(post.sharesCount)}</p>
+                  <p className="text-lg font-semibold">
+                    {formatNumber(post.sharesCount)}
+                  </p>
                   <p className="text-xs text-gray-500">Compartilhamentos</p>
                 </div>
               )}
               {post.viewsCount !== null && (
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <Eye className="h-5 w-5 mx-auto text-purple-500 mb-1" />
-                  <p className="text-lg font-semibold">{formatNumber(post.viewsCount)}</p>
+                  <p className="text-lg font-semibold">
+                    {formatNumber(post.viewsCount)}
+                  </p>
                   <p className="text-xs text-gray-500">Visualizações</p>
                 </div>
               )}
@@ -402,7 +432,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                   {post.lead.avatarUrl ? (
                     <Image
                       src={post.lead.avatarUrl}
-                      alt={post.lead.fullName || post.lead.username || 'Lead'}
+                      alt={post.lead.fullName || post.lead.username || "Lead"}
                       width={40}
                       height={40}
                       className="rounded-full"
@@ -418,7 +448,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                       {post.lead.fullName || post.lead.username}
                     </p>
                     {post.lead.username && post.lead.fullName && (
-                      <p className="text-sm text-gray-500">@{post.lead.username}</p>
+                      <p className="text-sm text-gray-500">
+                        @{post.lead.username}
+                      </p>
                     )}
                   </div>
                   <Link2 className="h-4 w-4 text-green-500 shrink-0 ml-auto" />
@@ -431,7 +463,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                   disabled={unlinkMutation.isPending}
                 >
                   <Unlink className="mr-2 h-4 w-4" />
-                  {unlinkMutation.isPending ? 'Desvinculando...' : 'Desvincular'}
+                  {unlinkMutation.isPending
+                    ? "Desvinculando..."
+                    : "Desvincular"}
                 </Button>
               </div>
             ) : (
@@ -455,7 +489,10 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                 {post.tags.map((tag) => (
                   <Badge
                     key={tag.id}
-                    style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                    style={{
+                      backgroundColor: tag.color + "20",
+                      color: tag.color,
+                    }}
                   >
                     {tag.name}
                   </Badge>
@@ -483,7 +520,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             <div className="flex-1 overflow-y-auto space-y-2 mb-4">
               {(leads as any)?.length === 0 ? (
                 <p className="text-center text-gray-500 py-4">
-                  {leadSearch ? 'Nenhum lead encontrado' : 'Digite para buscar leads'}
+                  {leadSearch
+                    ? "Nenhum lead encontrado"
+                    : "Digite para buscar leads"}
                 </p>
               ) : (
                 (leads as any)?.map((lead: Lead) => (
@@ -496,7 +535,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                     {lead.avatarUrl ? (
                       <Image
                         src={lead.avatarUrl}
-                        alt={lead.fullName || lead.username || 'Lead'}
+                        alt={lead.fullName || lead.username || "Lead"}
                         width={40}
                         height={40}
                         className="rounded-full"
@@ -512,7 +551,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                         {lead.fullName || lead.username}
                       </p>
                       {lead.username && (
-                        <p className="text-sm text-gray-500">@{lead.username}</p>
+                        <p className="text-sm text-gray-500">
+                          @{lead.username}
+                        </p>
                       )}
                     </div>
                   </button>
@@ -534,7 +575,8 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
           <Card className="p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-2">Excluir Post</h3>
             <p className="text-gray-600 mb-4">
-              Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este post? Esta ação não pode ser
+              desfeita.
             </p>
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => setDeleteConfirm(false)}>
@@ -545,7 +587,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
+                {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
               </Button>
             </div>
           </Card>
