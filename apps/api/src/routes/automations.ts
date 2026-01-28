@@ -3,11 +3,12 @@ import { prisma } from '@lia360/database';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { NotFoundError } from '../lib/errors.js';
 import { validate } from '../middleware/validate.js';
+import { generateMessage } from '../lib/openai.js';
 
 export const automationsRouter = Router();
 
 // Schemas
-import { upsertAutomationSchema } from '@lia360/shared';
+import { upsertAutomationSchema, generateMessageSchema } from '@lia360/shared';
 
 // All routes require authentication
 automationsRouter.use(authenticate);
@@ -237,3 +238,103 @@ automationsRouter.patch(
     }
 );
 
+// POST /automations/generate-message - Generate AI message for a lead
+automationsRouter.post(
+    '/generate-message',
+    authorize('owner', 'admin', 'manager', 'agent'),
+    validate(generateMessageSchema),
+    async (req, res, next) => {
+        try {
+            const workspaceId = req.user!.workspaceId;
+            const { agentId, leadId, messageType = 'first_message', context } = req.body;
+
+            // Fetch agent
+            const agent = await prisma.agent.findFirst({
+                where: {
+                    id: agentId,
+                    workspaceId,
+                    enabled: true,
+                },
+            });
+
+            if (!agent) {
+                return res.status(404).json({
+                    success: false,
+                    error: {
+                        type: 'not_found',
+                        title: 'Agent not found',
+                        detail: 'Agente AI não encontrado ou desabilitado',
+                    },
+                });
+            }
+
+            // Fetch lead
+            const lead = await prisma.lead.findFirst({
+                where: {
+                    id: leadId,
+                    workspaceId,
+                },
+                select: {
+                    id: true,
+                    username: true,
+                    fullName: true,
+                    profileUrl: true,
+                    avatarUrl: true,
+                    bio: true,
+                    platform: true,
+                    location: true,
+                    followersCount: true,
+                    followingCount: true,
+                    headline: true,
+                    company: true,
+                    industry: true,
+                    connectionCount: true,
+                },
+            });
+
+            if (!lead) {
+                return res.status(404).json({
+                    success: false,
+                    error: {
+                        type: 'not_found',
+                        title: 'Lead not found',
+                        detail: 'Lead não encontrado',
+                    },
+                });
+            }
+
+            // Generate message using AI
+            const result = await generateMessage(
+                {
+                    systemPrompt: agent.systemPrompt,
+                    temperature: agent.temperature,
+                    maxTokens: agent.maxTokens,
+                    model: agent.model,
+                    type: agent.type,
+                },
+                {
+                    username: lead.username || '',
+                    fullName: lead.fullName,
+                    bio: lead.bio,
+                    headline: lead.headline,
+                    company: lead.company,
+                    industry: lead.industry,
+                    location: lead.location,
+                    connectionCount: lead.connectionCount,
+                    followersCount: lead.followersCount,
+                    followingCount: lead.followingCount,
+                    platform: lead.platform || undefined,
+                },
+                messageType,
+                context
+            );
+
+            res.json({
+                success: true,
+                data: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
