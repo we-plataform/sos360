@@ -15,14 +15,14 @@ import { setupRoutes } from './routes/index.js';
 import { setupSocket } from './socket/index.js';
 import { batchScoringScheduler } from './services/batch-scoring.js';
 
-// Log startup information immediately in development only
-if (env.NODE_ENV === 'development') console.log('=== Lia360 API Starting ===');
-if (env.NODE_ENV === 'development') console.log(`Node version: ${process.version}`);
-if (env.NODE_ENV === 'development') console.log(`Environment: ${process.env.NODE_ENV || 'not set'}`);
-if (env.NODE_ENV === 'development') console.log(`PORT env: ${process.env.PORT || 'not set'}`);
-if (env.NODE_ENV === 'development') console.log(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
-if (env.NODE_ENV === 'development') console.log(`JWT_SECRET set: ${!!process.env.JWT_SECRET}`);
-if (env.NODE_ENV === 'development') console.log(`CORS_ORIGINS: ${process.env.CORS_ORIGINS || 'NOT SET (will use default)'}`);
+// Log startup information
+logger.info('=== Lia360 API Starting ===');
+logger.debug(`Node version: ${process.version}`);
+logger.debug(`Environment: ${process.env.NODE_ENV || 'not set'}`);
+logger.debug(`PORT env: ${process.env.PORT || 'not set'}`);
+logger.debug(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
+logger.debug(`JWT_SECRET set: ${!!process.env.JWT_SECRET}`);
+logger.debug(`CORS_ORIGINS: ${process.env.CORS_ORIGINS || 'NOT SET (will use default)'}`);
 
 // Handle uncaught errors - log to both console and logger
 process.on('uncaughtException', (error) => {
@@ -38,7 +38,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Initialize Express app and HTTP server
-if (env.NODE_ENV === 'development') console.log('Initializing Express...');
+logger.debug('Initializing Express...');
 const app = express();
 
 // Trust proxy - CRITICAL for Render/Vercel/Cloudflare
@@ -48,7 +48,7 @@ app.set('trust proxy', true);
 const httpServer = createServer(app);
 
 // Socket.io
-if (env.NODE_ENV === 'development') console.log('Initializing Socket.io...');
+logger.debug('Initializing Socket.io...');
 let io: Server;
 try {
   io = new Server(httpServer, {
@@ -57,7 +57,7 @@ try {
       credentials: true,
     },
   });
-  if (env.NODE_ENV === 'development') console.log('Socket.io initialized successfully');
+  logger.debug('Socket.io initialized successfully');
 } catch (error) {
   console.error('FATAL: Failed to initialize Socket.io:', error);
   logger.error({ err: error }, 'Failed to initialize Socket.io');
@@ -167,10 +167,10 @@ app.get('/', (_, res) => {
 });
 
 // API Routes
-if (env.NODE_ENV === 'development') console.log('Setting up routes...');
+logger.debug('Setting up routes...');
 try {
   setupRoutes(app);
-  if (env.NODE_ENV === 'development') console.log('Routes setup completed');
+  logger.debug('Routes setup completed');
 } catch (error) {
   console.error('FATAL: Failed to setup routes:', error);
   logger.error({ err: error }, 'Failed to setup routes');
@@ -178,10 +178,10 @@ try {
 }
 
 // Socket.io setup
-if (env.NODE_ENV === 'development') console.log('Setting up Socket.io handlers...');
+logger.debug('Setting up Socket.io handlers...');
 try {
   setupSocket(io);
-  if (env.NODE_ENV === 'development') console.log('Socket.io handlers setup completed');
+  logger.debug('Socket.io handlers setup completed');
 } catch (error) {
   console.error('FATAL: Failed to setup Socket.io:', error);
   logger.error({ err: error }, 'Failed to setup Socket.io');
@@ -199,11 +199,11 @@ app.use(errorHandler);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
 const HOST = '0.0.0.0'; // Always use 0.0.0.0 for Railway
 
-if (env.NODE_ENV === 'development') console.log(`Starting server on ${HOST}:${PORT}...`);
+logger.info(`Starting server on ${HOST}:${PORT}...`);
 
 httpServer.listen(PORT, HOST, () => {
-  if (env.NODE_ENV === 'development') console.log(`=== Server running on ${HOST}:${PORT} ===`);
-  if (env.NODE_ENV === 'development') console.log('Server is ready to accept connections');
+  logger.info(`=== Server running on ${HOST}:${PORT} ===`);
+  logger.info('Server is ready to accept connections');
   logger.info(`Server running on ${HOST}:${PORT}`);
   logger.info(`Environment: ${env.NODE_ENV}`);
   logger.info(`CORS origins: ${env.CORS_ORIGINS.join(', ')}`);
