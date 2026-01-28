@@ -16,17 +16,17 @@ function decodeJWT(token: string): { exp?: number } | null {
   }
 }
 
-// Check if token is expiring soon (within 1 day)
+// Check if token is expiring soon (within 2 minutes)
 function isTokenExpiringSoon(token: string): boolean {
   const payload = decodeJWT(token);
   if (!payload || !payload.exp) return true;
 
   const expirationTime = payload.exp * 1000; // Convert to milliseconds
   const now = Date.now();
-  const oneDay = 24 * 60 * 60 * 1000;
+  const twoMinutes = 2 * 60 * 1000;
 
-  // Return true if token expires within 1 day
-  return expirationTime - now < oneDay;
+  // Return true if token expires within 2 minutes
+  return expirationTime - now < twoMinutes;
 }
 
 // Get token expiration time in milliseconds
@@ -55,7 +55,7 @@ class ApiClient {
   }
 
   private startProactiveRefresh() {
-    // Check every 30 minutes
+    // Check every 2 minutes
     this.refreshInterval = setInterval(async () => {
       const token = this.getToken();
       const refreshToken = localStorage.getItem('refreshToken');
@@ -64,12 +64,12 @@ class ApiClient {
         console.log('[API] Token expiring soon, refreshing proactively...');
         const expirationTime = getTokenExpirationTime(token);
         const now = Date.now();
-        const hoursRemaining = Math.round((expirationTime - now) / (1000 * 60 * 60));
-        console.log(`[API] Time until expiry: ${hoursRemaining} hours`);
+        const secondsRemaining = Math.round((expirationTime - now) / 1000);
+        console.log(`[API] Time until expiry: ${secondsRemaining} seconds`);
 
         await this.refreshToken();
       }
-    }, 30 * 60 * 1000); // Every 30 minutes
+    }, 2 * 60 * 1000); // Every 2 minutes
 
     // Also check immediately on init
     setTimeout(async () => {
