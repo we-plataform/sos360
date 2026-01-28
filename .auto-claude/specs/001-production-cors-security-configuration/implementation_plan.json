@@ -174,7 +174,12 @@
           "id": "subtask-3-4",
           "description": "Check and update any other deployment documentation files (docs/PRODUCTION_DEPLOYMENT_NEON.md, etc.)",
           "service": "documentation",
-          "files_to_modify": [],
+          "files_to_modify": [
+            "VARIAVEIS_RAILWAY.md",
+            "VARIAVEIS_RENDER_COMPLETAS.md",
+            "DEPLOY_RENDER_RAPIDO.md",
+            "docs/architecture/SECURITY.md"
+          ],
           "files_to_create": [],
           "patterns_from": [
             "DEPLOY_API.md"
@@ -183,7 +188,9 @@
             "type": "manual",
             "instructions": "Search for any other deployment docs that mention chrome-extension://* and update them to use CHROME_EXTENSION_ID instead"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully updated 4 additional deployment documentation files:\n\n1. **VARIAVEIS_RAILWAY.md** (3 changes):\n   - Removed chrome-extension://* from CORS_ORIGINS examples (lines 47, 105)\n   - Updated note to explicitly warn NOT to use chrome-extension://* (line 131)\n   - Added instruction to use CHROME_EXTENSION_ID instead\n\n2. **VARIAVEIS_RENDER_COMPLETAS.md** (1 change):\n   - Removed chrome-extension://* from CORS_ORIGINS format examples (lines 50-61)\n   - Added security warning not to include chrome-extension://* in CORS\n   - Updated important notes section\n\n3. **DEPLOY_RENDER_RAPIDO.md** (1 change):\n   - Removed chrome-extension://* from CORS_ORIGINS example (line 32)\n   - Added CHROME_EXTENSION_ID variable to environment variables section\n\n4. **docs/architecture/SECURITY.md** (2 changes):\n   - Updated CORS configuration code example to show CHROME_EXTENSION_ID validation pattern (lines 398-437)\n   - Added security note explaining why not to use chrome-extension://* wildcard\n   - Updated environment variables section to use CHROME_EXTENSION_ID (line 846)\n\nAll remaining references to chrome-extension://* in the codebase are now in documentation that explicitly warns AGAINST using it. Verified with grep search - all documentation now follows the security best practice of using CHROME_EXTENSION_ID for extension validation.\n\nFiles verified as already correct:\n- DEPLOY_API.md (already updated in subtask 3-1)\n- DEPLOY_RENDER.md (already updated in subtask 3-2)\n- docs/PRODUCTION_DEPLOYMENT_NEON.md (no chrome-extension://* references found)\n- docs/TASK_9_PRODUCTION_DEPLOYMENT_REPORT.md (no chrome-extension://* references found)",
+          "updated_at": "2026-01-28T18:15:00.000Z"
         }
       ]
     },
