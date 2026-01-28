@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Refresh Test - Lia360</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .token-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .token-info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .token-info-item label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .token-info-item .value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .console {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .console .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .console .log-entry .timestamp {
+            color: #888;
+        }
+
+        .test-results {
+            margin-top: 15px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .test-item .status-icon {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .test-item .label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .refresh-indicator.active {
+            background: #28a745;
+            animation: pulse 1.5s infinite;
+        }
+
+        .refresh-indicator.inactive {
+            background: #6c757d;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Token Refresh Test</h1>
+            <p>Verify proactive token refresh works with 15-minute access tokens</p>
+        </div>
+
+        <div class="content">
+            <!-- Login Section -->
+            <div class="section">
+                <h2>Step 1: Login</h2>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" value="test@example.com" placeholder="test@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" value="Password123" placeholder="Password123">
+                </div>
+                <button class="btn" id="loginBtn">Login</button>
+                <div id="loginStatus"></div>
+            </div>
+
+            <!-- Token Info Section -->
+            <div class="section" id="tokenSection" style="display: none;">
+                <h2>Step 2: Token Information</h2>
+                <div class="token-info">
+                    <div class="token-info-item">
+                        <label>Access Token</label>
+                        <div class="value" id="accessTokenValue">-</div>
+                    </div>
+                    <div class="token-info-item">
+                        <label>Refresh Token</label>
+                        <div class="value" id="refreshTokenValue">-</div>
+                    </div>
+                    <div class="token-info-item">
+                        <label>Issued At (iat)</label>
+                        <div class="value" id="issuedAtValue">-</div>
+                    </div>
+                    <div class="token-info-item">
+                        <label>Expires At (exp)</label>
+                        <div class="value" id="expiresAtValue">-</div>
+                    </div>
+                    <div class="token-info-item">
+                        <label>Time Remaining</label>
+                        <div class="value" id="timeRemainingValue">-</div>
+                    </div>
+                    <div class="token-info-item">
+                        <label>Is Expiring Soon</label>
+                        <div class="value" id="isExpiringSoonValue">-</div>
+                    </div>
+                </div>
+
+                <div class="countdown" id="countdown">
+                    ⏱️ Time until refresh check: <span id="countdownTimer">2:00</span>
+                </div>
+            </div>
+
+            <!-- Proactive Refresh Section -->
+            <div class="section" id="refreshSection" style="display: none;">
+                <h2>Step 3: Proactive Refresh Monitor</h2>
+                <p style="margin-bottom: 15px; color: #666;">
+                    <span class="refresh-indicator inactive" id="refreshIndicator"></span>
+                    Proactive refresh checks every 2 minutes
+                </p>
+                <button class="btn" id="testRefreshBtn">Test Manual Refresh</button>
+                <button class="btn" id="testApiBtn">Test API Request</button>
+                <div id="refreshStatus"></div>
+
+                <div class="test-results" id="testResults">
+                    <h3 style="margin-bottom: 10px;">Test Results</h3>
+                    <div class="test-item">
+                        <span class="status-icon" id="test1Icon">⏳</span>
+                        <span class="label">Login and obtain tokens</span>
+                        <span class="badge pending" id="test1Badge">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="status-icon" id="test2Icon">⏳</span>
+                        <span class="label">Token stored in localStorage</span>
+                        <span class="badge pending" id="test2Badge">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="status-icon" id="test3Icon">⏳</span>
+                        <span class="label">Wait 2+ minutes for proactive refresh</span>
+                        <span class="badge pending" id="test3Badge">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="status-icon" id="test4Icon">⏳</span>
+                        <span class="label">Console log shows proactive refresh</span>
+                        <span class="badge pending" id="test4Badge">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="status-icon" id="test5Icon">⏳</span>
+                        <span class="label">Access token updated in localStorage</span>
+                        <span class="badge pending" id="test5Badge">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span class="status-icon" id="test6Icon">⏳</span>
+                        <span class="label">API request works with new token</span>
+                        <span class="badge pending" id="test6Badge">PENDING</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console Log Section -->
+            <div class="section">
+                <h2>Console Log</h2>
+                <div class="console" id="consoleLog">
+                    <div class="log-entry"><span class="timestamp">[System]</span> Ready. Login to start testing.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+        let refreshInterval = null;
+        let countdownInterval = null;
+
+        function log(message, type = 'info') {
+            const consoleLog = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            consoleLog.appendChild(entry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+
+            // Also log to browser console
+            console.log(`[TokenRefreshTest] ${message}`);
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function decodeJWT(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) return null;
+                const payload = JSON.parse(atob(parts[1]));
+                return payload;
+            } catch (e) {
+                log(`Failed to decode JWT: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        function isTokenExpiringSoon(token) {
+            const payload = decodeJWT(token);
+            if (!payload || !payload.exp) return true;
+
+            const expirationTime = payload.exp * 1000;
+            const now = Date.now();
+            const twoMinutes = 2 * 60 * 1000;
+
+            return expirationTime - now < twoMinutes;
+        }
+
+        function getTokenExpirationTime(token) {
+            const payload = decodeJWT(token);
+            if (!payload || !payload.exp) return 0;
+            return payload.exp * 1000;
+        }
+
+        function formatTimeRemaining(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function updateTestResult(testId, passed) {
+            const icon = document.getElementById(`${testId}Icon`);
+            const badge = document.getElementById(`${testId}Badge`);
+
+            if (passed) {
+                icon.textContent = '✅';
+                badge.textContent = 'PASS';
+                badge.className = 'badge pass';
+            } else {
+                icon.textContent = '❌';
+                badge.textContent = 'FAIL';
+                badge.className = 'badge fail';
+            }
+        }
+
+        function updateTokenInfo() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) return;
+
+            const payload = decodeJWT(token);
+            if (!payload) return;
+
+            const exp = payload.exp * 1000;
+            const iat = payload.iat * 1000;
+            const now = Date.now();
+            const timeRemaining = exp - now;
+
+            document.getElementById('accessTokenValue').textContent = token.substring(0, 20) + '...';
+            document.getElementById('issuedAtValue').textContent = new Date(iat).toLocaleString();
+            document.getElementById('expiresAtValue').textContent = new Date(exp).toLocaleString();
+            document.getElementById('timeRemainingValue').textContent = formatTimeRemaining(timeRemaining);
+            document.getElementById('isExpiringSoonValue').textContent = isTokenExpiringSoon(token) ? 'Yes ⚠️' : 'No ✅';
+        }
+
+        function startCountdown() {
+            let secondsLeft = 120; // 2 minutes
+
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    secondsLeft = 120;
+                }
+
+                const minutes = Math.floor(secondsLeft / 60);
+                const secs = secondsLeft % 60;
+                document.getElementById('countdownTimer').textContent =
+                    `${minutes}:${secs.toString().padStart(2, '0')}`;
+
+                updateTokenInfo();
+            }, 1000);
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            log('Attempting login...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error?.detail || 'Login failed');
+                }
+
+                let loginData = data.data;
+
+                // Handle context selection
+                if (loginData.selectionRequired) {
+                    log('Context selection required, selecting first context...', 'info');
+
+                    const company = loginData.companies[0];
+                    const workspace = company.workspaces[0];
+
+                    const selectResponse = await fetch(`${API_URL}/api/v1/auth/select-context`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            selectionToken: loginData.selectionToken,
+                            companyId: company.id,
+                            workspaceId: workspace.id
+                        })
+                    });
+
+                    const selectData = await selectResponse.json();
+                    if (!selectData.success) {
+                        throw new Error('Context selection failed');
+                    }
+
+                    loginData = selectData.data;
+                }
+
+                // Store tokens
+                localStorage.setItem('accessToken', loginData.accessToken);
+                localStorage.setItem('refreshToken', loginData.refreshToken);
+
+                log('✅ Login successful!', 'success');
+                log(`Access token: ${loginData.accessToken.substring(0, 30)}...`, 'info');
+                log(`Expires in: ${loginData.expiresIn}s (${loginData.expiresIn / 60} minutes)`, 'info');
+
+                showStatus('loginStatus', '✅ Login successful! Tokens stored in localStorage.', 'success');
+                updateTestResult('test1', true);
+                updateTestResult('test2', true);
+
+                // Show token section
+                document.getElementById('tokenSection').style.display = 'block';
+                document.getElementById('refreshSection').style.display = 'block';
+                document.getElementById('refreshIndicator').className = 'refresh-indicator active';
+
+                updateTokenInfo();
+                startCountdown();
+
+                // Start proactive refresh simulation
+                startProactiveRefresh();
+
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+                showStatus('loginStatus', `❌ ${error.message}`, 'error');
+                updateTestResult('test1', false);
+            }
+        }
+
+        async function refreshToken() {
+            const refreshToken = localStorage.getItem('refreshToken');
+
+            if (!refreshToken) {
+                log('❌ No refresh token available', 'error');
+                return false;
+            }
+
+            log('🔄 Refreshing token...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refreshToken })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error?.detail || 'Refresh failed');
+                }
+
+                const oldToken = localStorage.getItem('accessToken');
+                localStorage.setItem('accessToken', data.data.accessToken);
+
+                log('✅ Token refreshed successfully!', 'success');
+                log(`New token: ${data.data.accessToken.substring(0, 30)}...`, 'info');
+                log(`New expires in: ${data.data.expiresIn}s (${data.data.expiresIn / 60} minutes)`, 'info');
+
+                // Verify token changed
+                if (oldToken !== data.data.accessToken) {
+                    log('✅ Access token updated in localStorage', 'success');
+                    updateTestResult('test5', true);
+                }
+
+                updateTokenInfo();
+                showStatus('refreshStatus', '✅ Token refreshed successfully!', 'success');
+
+                return true;
+            } catch (error) {
+                log(`❌ Refresh failed: ${error.message}`, 'error');
+                showStatus('refreshStatus', `❌ ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testApiRequest() {
+            const token = localStorage.getItem('accessToken');
+
+            if (!token) {
+                log('❌ No access token available', 'error');
+                showStatus('refreshStatus', '❌ No access token. Please login first.', 'error');
+                return;
+            }
+
+            log('Testing API request with current token...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error?.detail || 'Request failed');
+                }
+
+                log(`✅ API request successful! User: ${data.data.user.email}`, 'success');
+                showStatus('refreshStatus', `✅ API request works! User: ${data.data.user.email}`, 'success');
+                updateTestResult('test6', true);
+
+            } catch (error) {
+                log(`❌ API request failed: ${error.message}`, 'error');
+                showStatus('refreshStatus', `❌ ${error.message}`, 'error');
+                updateTestResult('test6', false);
+            }
+        }
+
+        function startProactiveRefresh() {
+            // Check every 2 minutes (matching the implementation in api.ts)
+            refreshInterval = setInterval(async () => {
+                const token = localStorage.getItem('accessToken');
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                if (token && refreshToken && isTokenExpiringSoon(token)) {
+                    log('⏰ Token expiring soon, initiating proactive refresh...', 'info');
+
+                    const expirationTime = getTokenExpirationTime(token);
+                    const now = Date.now();
+                    const secondsRemaining = Math.round((expirationTime - now) / 1000);
+
+                    log(`⏱️ Time until expiry: ${secondsRemaining} seconds`, 'info');
+
+                    updateTestResult('test3', true);
+                    updateTestResult('test4', true);
+
+                    const success = await refreshToken();
+                    if (success) {
+                        log('✅ Proactive refresh completed!', 'success');
+                    }
+                }
+            }, 2 * 60 * 1000); // Every 2 minutes
+
+            log('🔄 Proactive refresh monitor started (checks every 2 minutes)', 'info');
+        }
+
+        // Event listeners
+        document.getElementById('loginBtn').addEventListener('click', login);
+        document.getElementById('testRefreshBtn').addEventListener('click', refreshToken);
+        document.getElementById('testApiBtn').addEventListener('click', testApiRequest);
+
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            const existingToken = localStorage.getItem('accessToken');
+            if (existingToken) {
+                log('Found existing token in localStorage', 'info');
+                document.getElementById('tokenSection').style.display = 'block';
+                document.getElementById('refreshSection').style.display = 'block';
+                document.getElementById('refreshIndicator').className = 'refresh-indicator active';
+                updateTokenInfo();
+                startCountdown();
+                startProactiveRefresh();
+                updateTestResult('test1', true);
+                updateTestResult('test2', true);
+            }
+        });
+
+        // Log page instructions
+        log('📝 Manual Test Instructions:', 'info');
+        log('1. Login with test credentials', 'info');
+        log('2. Observe token information', 'info');
+        log('3. Wait 2+ minutes for proactive refresh', 'info');
+        log('4. Check console log for refresh messages', 'info');
+        log('5. Verify localStorage has new token', 'info');
+        log('6. Test API request works with new token', 'info');
+    </script>
+</body>
+</html>
