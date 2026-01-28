@@ -14,6 +14,7 @@ import { healthRouter } from './health.js';
 import { audiencesRouter } from './audiences.js';
 import { postsRouter } from './posts.js';
 import { scoringRouter } from './scoring.js';
+import { agentsRouter } from './agents.js';
 import { defaultRateLimit } from '../middleware/rate-limit.js';
 
 export function setupRoutes(app: Express): void {
@@ -38,6 +39,7 @@ export function setupRoutes(app: Express): void {
   app.use('/api/v1/audiences', audiencesRouter);
   app.use('/api/v1/posts', postsRouter);
   app.use('/api/v1/scoring', scoringRouter);
+  app.use('/api/v1/agents', agentsRouter);
 
   // 404 handler for API routes
   app.use('/api', (_req, res) => {
