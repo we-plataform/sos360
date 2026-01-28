@@ -181,6 +181,25 @@ router.post('/', authenticate, authorize('workspace', 'admin'), createHandler);
    - Modify content scripts for new data extraction
    - Test in Chrome developer mode
 
+5. **Logging Best Practices**:
+   - **Never use bare console.log in production code**
+   - Always wrap console.log with NODE_ENV check: `if (process.env.NODE_ENV === 'development') { console.log(...); }`
+   - Example pattern for development-only logging:
+     ```typescript
+     if (process.env.NODE_ENV === 'development') {
+       console.log('Debug info:', data);
+     }
+     ```
+   - **Error logging**: Use console.error for errors (allowed in production)
+   - **Never log sensitive data**:
+     - No passwords, tokens, or API keys
+     - No full user objects (sanitize first)
+     - No request bodies with PII
+   - **Use structured logging** for API routes:
+     ```typescript
+     console.error(`[${new Date().toISOString()}] Error in ${req.path}:`, error.message);
+     ```
+
 ## Database Schema Highlights
 
 **Key Models**:
