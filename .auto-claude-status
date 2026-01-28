@@ -1,10 +1,10 @@
 {
   "active": true,
   "spec": "012-reduce-jwt-access-token-lifetime-from-30-days-to-1",
-  "state": "planning",
+  "state": "building",
   "subtasks": {
-    "completed": 0,
-    "total": 0,
+    "completed": 1,
+    "total": 7,
     "in_progress": 1,
     "failed": 0
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 3,
     "started_at": "2026-01-27T21:58:42.157531"
   },
-  "last_update": "2026-01-27T22:02:40.532824"
+  "last_update": "2026-01-27T22:03:34.265367"
 }
