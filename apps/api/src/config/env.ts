@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
-console.log('[Config] Validating environment variables...');
-console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
-  k.startsWith('DATABASE') ||
-  k.startsWith('JWT') ||
-  k.startsWith('CORS') ||
-  k.startsWith('NODE') ||
-  k.startsWith('PORT') ||
-  k.startsWith('REDIS')
-).join(', '));
+if (process.env.NODE_ENV === 'development') {
+  console.log('[Config] Validating environment variables...');
+  console.log('[Config] Available env vars:', Object.keys(process.env).filter(k =>
+    k.startsWith('DATABASE') ||
+    k.startsWith('JWT') ||
+    k.startsWith('CORS') ||
+    k.startsWith('NODE') ||
+    k.startsWith('PORT') ||
+    k.startsWith('REDIS')
+  ).join(', '));
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -55,9 +57,11 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-console.log('[Config] Environment validated successfully');
-console.log('[Config] NODE_ENV:', parsed.data.NODE_ENV);
-console.log('[Config] PORT:', parsed.data.PORT);
-console.log('[Config] CORS_ORIGINS:', parsed.data.CORS_ORIGINS.join(', '));
+if (process.env.NODE_ENV === 'development') {
+  console.log('[Config] Environment validated successfully');
+  console.log('[Config] NODE_ENV:', parsed.data.NODE_ENV);
+  console.log('[Config] PORT:', parsed.data.PORT);
+  console.log('[Config] CORS_ORIGINS:', parsed.data.CORS_ORIGINS.join(', '));
+}
 
 export const env = parsed.data;
