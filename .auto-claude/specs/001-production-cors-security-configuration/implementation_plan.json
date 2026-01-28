@@ -1,0 +1,419 @@
+{
+  "feature": "Production CORS Security Configuration - Chrome Extension ID Validation",
+  "workflow_type": "refactor",
+  "workflow_rationale": "This is a REFACTOR workflow because we're changing security behavior from allowing all Chrome extensions to only allowing a specific extension ID. The change follows a stage-based approach: 1) Add new CHROME_EXTENSION_ID environment variable and validation logic alongside the existing permissive code, 2) Test that the extension still works in development, 3) Update deployment documentation to use the new secure pattern, 4) Verify production deployment works with the new configuration. This staged approach ensures no breaking changes during deployment and allows for testing before removing the old permissive behavior.",
+  "phases": [
+    {
+      "id": "phase-1-add-new-env-var",
+      "name": "Add CHROME_EXTENSION_ID Environment Variable",
+      "type": "implementation",
+      "description": "Add CHROME_EXTENSION_ID to environment variable validation in env.ts to make it available for CORS validation",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add CHROME_EXTENSION_ID environment variable to Zod schema in apps/api/src/config/env.ts",
+          "service": "api",
+          "files_to_modify": [
+            "apps/api/src/config/env.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/api/src/config/env.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd apps/api && npm run build",
+            "expected": "Build completes without errors",
+            "failure_message": "TypeScript compilation failed - check for missing or invalid CHROME_EXTENSION_ID field"
+          },
+          "status": "completed",
+          "notes": "Successfully added CHROME_EXTENSION_ID as optional string field. TypeScript syntax verified. Note: Full API build has pre-existing errors in other files (automations.ts, scoring tests) unrelated to this change."
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Update .env.temp to include CHROME_EXTENSION_ID as a documented variable (with placeholder value)",
+          "service": "api",
+          "files_to_modify": [
+            ".env.temp"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            ".env.temp"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify .env.temp has CHROME_EXTENSION_ID=<your-extension-id-here> with a comment explaining how to get the extension ID from chrome://extensions/"
+          },
+          "status": "completed",
+          "notes": "Successfully added CHROME_EXTENSION_ID variable with placeholder value and Portuguese instructions explaining how to obtain the extension ID from chrome://extensions/"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-update-cors-logic",
+      "name": "Update CORS Validation Logic",
+      "type": "implementation",
+      "description": "Replace the permissive chrome-extension:// check with specific extension ID validation",
+      "depends_on": [
+        "phase-1-add-new-env-var"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Update CORS configuration in apps/api/src/index.ts to validate chrome-extension:// origins against CHROME_EXTENSION_ID instead of allowing all extensions",
+          "service": "api",
+          "files_to_modify": [
+            "apps/api/src/index.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/api/src/index.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd apps/api && npm run build",
+            "expected": "TypeScript compilation succeeds without errors",
+            "failure_message": "Build failed - check for TypeScript errors in CORS logic"
+          },
+          "status": "completed",
+          "notes": "Successfully replaced permissive chrome-extension:// check with secure CHROME_EXTENSION_ID validation. The logic now: 1) Validates extension ID if CHROME_EXTENSION_ID is set, 2) Allows development mode without CHROME_EXTENSION_ID with warning, 3) Rejects all extensions in production if CHROME_EXTENSION_ID is not configured. Build has pre-existing errors in other files (automations.ts, scoring tests) unrelated to this change - CORS logic compiles correctly."
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Ensure development mode still allows localhost origins without requiring CHROME_EXTENSION_ID for local testing",
+          "service": "api",
+          "files_to_modify": [
+            "apps/api/src/index.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/api/src/index.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cd apps/api && NODE_ENV=development npm run build",
+            "expected": "Build succeeds and logic allows localhost without CHROME_EXTENSION_ID",
+            "failure_message": "Development mode validation is too restrictive"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-update-documentation",
+      "name": "Update Deployment Documentation",
+      "type": "implementation",
+      "description": "Update all deployment guides to document CHROME_EXTENSION_ID and remove chrome-extension://* from CORS_ORIGINS examples",
+      "depends_on": [
+        "phase-1-add-new-env-var"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Update DEPLOY_API.md to document CHROME_EXTENSION_ID and remove chrome-extension://* from CORS_ORIGINS examples",
+          "service": "documentation",
+          "files_to_modify": [
+            "DEPLOY_API.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "DEPLOY_API.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify DEPLOY_API.md: 1) Has CHROME_EXTENSION_ID in environment variables section, 2) CORS_ORIGINS examples no longer include chrome-extension://*, 3) Includes instructions on how to get extension ID from chrome://extensions/"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Update DEPLOY_RENDER.md to document CHROME_EXTENSION_ID and remove chrome-extension://* from CORS_ORIGINS examples",
+          "service": "documentation",
+          "files_to_modify": [
+            "DEPLOY_RENDER.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "DEPLOY_RENDER.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify DEPLOY_RENDER.md: 1) Has CHROME_EXTENSION_ID in environment variables table, 2) CORS_ORIGINS examples no longer include chrome-extension://*, 3) Includes security warning about extension ID validation"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Check and update VARIAVEIS_RAILWAY.md if it exists and contains CORS configuration",
+          "service": "documentation",
+          "files_to_modify": [
+            "VARIAVEIS_RAILWAY.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "DEPLOY_API.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify VARIAVEIS_RAILWAY.md has CHROME_EXTENSION_ID documented if the file exists and contains CORS configuration"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-4",
+          "description": "Check and update any other deployment documentation files (docs/PRODUCTION_DEPLOYMENT_NEON.md, etc.)",
+          "service": "documentation",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "DEPLOY_API.md"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Search for any other deployment docs that mention chrome-extension://* and update them to use CHROME_EXTENSION_ID instead"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-test-and-verify",
+      "name": "Test and Verify Implementation",
+      "type": "integration",
+      "description": "Test that the CORS configuration works correctly in both development and production modes",
+      "depends_on": [
+        "phase-2-update-cors-logic",
+        "phase-3-update-documentation"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Start API server in development mode and verify CORS allows localhost without CHROME_EXTENSION_ID",
+          "service": "api",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd apps/api && NODE_ENV=development npm run dev &",
+            "expected": "Server starts successfully and logs show CORS configured correctly",
+            "failure_message": "Development server failed to start - check for environment variable validation errors"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Test that production mode with CHROME_EXTENSION_ID set correctly validates the extension origin",
+          "service": "api",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Test with CHROME_EXTENSION_ID set: 1) Start server in production mode, 2) Make a request from extension origin, 3) Verify only the specific extension ID is allowed, 4) Verify other chrome-extension:// origins are rejected"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Verify Socket.io CORS configuration also respects CHROME_EXTENSION_ID (check apps/api/src/index.ts lines 54-58)",
+          "service": "api",
+          "files_to_modify": [
+            "apps/api/src/index.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "apps/api/src/index.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify that Socket.io CORS configuration (lines 54-58) properly handles the chrome-extension:// origin with the specific extension ID, or document why it uses env.CORS_ORIGINS array instead"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-finalize-and-clean",
+      "name": "Finalize and Verify Security",
+      "type": "cleanup",
+      "description": "Final verification that the security vulnerability has been fixed and all documentation is updated",
+      "depends_on": [
+        "phase-4-test-and-verify"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Verify that the vulnerable code (if (origin.startsWith('chrome-extension://'))) has been removed or replaced with secure validation",
+          "service": "api",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Search apps/api/src/index.ts for the old vulnerable pattern and confirm it's been replaced with CHROME_EXTENSION_ID validation"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Create security verification summary documenting the vulnerability fix",
+          "service": "documentation",
+          "files_to_modify": [],
+          "files_to_create": [
+            ".auto-claude/specs/001-production-cors-security-configuration/SECURITY_FIX_SUMMARY.md"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Verify SECURITY_FIX_SUMMARY.md exists and documents: 1) The original vulnerability, 2) The fix implemented, 3) How to obtain extension ID, 4) Testing instructions"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 13,
+    "services_involved": [
+      "api",
+      "documentation"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 2,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-2-update-cors-logic",
+            "phase-3-update-documentation"
+          ],
+          "reason": "Both depend only on phase-1 and operate on different files (code vs documentation)"
+        }
+      ],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution recommended due to documentation dependencies on code changes"
+    },
+    "startup_command": "npm run api:dev"
+  },
+  "verification_strategy": {
+    "risk_level": "high",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration",
+      "security"
+    ],
+    "security_scanning_required": true,
+    "staging_deployment_required": true,
+    "acceptance_criteria": [
+      "All existing tests pass",
+      "CORS validation requires specific extension ID in production",
+      "Development mode still allows localhost for testing",
+      "All deployment documentation updated",
+      "No chrome-extension://* patterns remain in code or docs",
+      "Socket.io CORS properly configured"
+    ],
+    "verification_steps": [
+      {
+        "name": "TypeScript Compilation",
+        "command": "cd apps/api && npm run build",
+        "expected_outcome": "Build completes without errors",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests",
+        "command": "cd apps/api && npm test",
+        "expected_outcome": "All existing unit tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Security Scan - CORS Patterns",
+        "command": "grep -r 'chrome-extension://\\*' --include='*.ts' --include='*.md' .",
+        "expected_outcome": "No results found (or only in comments)",
+        "type": "security",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Documentation Review",
+        "command": "grep -r 'CHROME_EXTENSION_ID' DEPLOY_API.md DEPLOY_RENDER.md",
+        "expected_outcome": "CHROME_EXTENSION_ID documented in deployment guides",
+        "type": "manual",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Development Mode Test",
+        "command": "cd apps/api && NODE_ENV=development npm run build",
+        "expected_outcome": "Build succeeds without requiring CHROME_EXTENSION_ID",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "High risk change because this modifies security-critical CORS configuration. A security vulnerability exists where ANY Chrome extension can access the API. The fix requires careful validation to ensure: 1) Production mode properly validates extension IDs, 2) Development mode remains functional for local testing, 3) Socket.io CORS is also properly configured, 4) All documentation is updated to prevent re-introduction of the vulnerability. Security scanning is required to ensure no remaining permissive patterns exist. Staging deployment is required to test with real extension ID before production deployment."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "cd apps/api && npm test"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "cd apps/api && npm run build"
+      ],
+      "services_to_test": [
+        "api"
+      ]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3001/health",
+          "checks": [
+            "API returns health check",
+            "CORS headers present"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": []
+    },
+    "security_verification": {
+      "required": true,
+      "checks": [
+        "grep -r 'chrome-extension://\\\\*' apps/api/src/",
+        "grep 'CHROME_EXTENSION_ID' apps/api/src/config/env.ts",
+        "grep -A5 'chrome-extension://' apps/api/src/index.ts | grep -v 'startsWith'"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2026-01-28T16:41:19.570Z"
+}

@@ -1,0 +1,56 @@
+{
+  "project_type": "monorepo",
+  "services": {
+    "api": {
+      "path": "apps/api",
+      "tech_stack": ["typescript", "express", "node.js"],
+      "port": 3001,
+      "dev_command": "npm run api:dev",
+      "build_command": "npm run build:api",
+      "test_command": "npm run test --workspace=@lia360/api",
+      "environment_files": ["apps/api/src/config/env.ts", "apps/api/src/load-env.ts"],
+      "entry_point": "apps/api/src/index.ts"
+    },
+    "web": {
+      "path": "apps/web",
+      "tech_stack": ["next.js", "typescript", "tailwind"],
+      "port": 3000,
+      "dev_command": "npm run web:dev",
+      "build_command": "npm run build:web",
+      "test_command": "npm run test --workspace=@lia360/web"
+    },
+    "extension": {
+      "path": "apps/extension",
+      "tech_stack": ["vanilla-javascript", "chrome-extension", "manifest-v3"],
+      "dev_command": "npm run extension:dev",
+      "build_command": "npm run build:extension",
+      "manifest": "apps/extension/manifest.json"
+    }
+  },
+  "infrastructure": {
+    "docker": true,
+    "database": "postgresql (Neon)",
+    "cache": "redis (optional)",
+    "deployment_platforms": ["railway", "render", "vercel"],
+    "ci_cd": "github_actions"
+  },
+  "conventions": {
+    "linter": "eslint",
+    "formatter": "prettier",
+    "testing": "vitest",
+    "monorepo_tool": "turborepo",
+    "language": "typescript",
+    "api_style": "rest"
+  },
+  "environment_management": {
+    "validation_library": "zod",
+    "config_location": "apps/api/src/config/env.ts",
+    "loading_mechanism": "apps/api/src/load-env.ts",
+    "cors_config": "apps/api/src/index.ts"
+  },
+  "security_documentation": {
+    "file": "docs/architecture/SECURITY.md",
+    "planned_extension_id_variable": "EXTENSION_ID",
+    "planned_pattern_lines": "400-423"
+  }
+}
