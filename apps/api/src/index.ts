@@ -73,9 +73,43 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Allow Chrome extensions (chrome-extension://)
+    // Validate Chrome extensions against CHROME_EXTENSION_ID
     if (origin.startsWith('chrome-extension://')) {
-      return callback(null, true);
+      const extensionId = origin.replace('chrome-extension://', '');
+
+      // If CHROME_EXTENSION_ID is configured, only allow that specific extension
+      if (env.CHROME_EXTENSION_ID) {
+        if (extensionId === env.CHROME_EXTENSION_ID) {
+          return callback(null, true);
+        }
+        // Extension ID mismatch - reject
+        if (env.NODE_ENV === 'production') {
+          logger.warn({
+            origin,
+            extensionId,
+            expectedExtensionId: env.CHROME_EXTENSION_ID
+          }, 'CORS: Chrome extension rejected - ID mismatch');
+        }
+        return callback(new Error('Not allowed by CORS'));
+      }
+
+      // If CHROME_EXTENSION_ID is not set, allow in development mode only
+      if (env.NODE_ENV === 'development') {
+        logger.warn({
+          origin,
+          extensionId,
+          message: 'CHROME_EXTENSION_ID not set - allowing extension in development mode'
+        }, 'CORS: Chrome extension allowed (development mode)');
+        return callback(null, true);
+      }
+
+      // In production, reject if CHROME_EXTENSION_ID is not configured
+      logger.warn({
+        origin,
+        extensionId,
+        message: 'CHROME_EXTENSION_ID not configured - rejecting extension in production'
+      }, 'CORS: Chrome extension rejected - missing CHROME_EXTENSION_ID');
+      return callback(new Error('Not allowed by CORS'));
     }
 
     // Check if origin matches any configured origin (exact match or wildcard)
