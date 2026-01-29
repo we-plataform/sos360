@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "015-estou-recebendo-erros-ao-abrir-a-p-gina-people-do-",
-  "state": "complete",
+  "spec": "007-comprehensive-test-suite",
+  "state": "building",
   "subtasks": {
-    "completed": 7,
-    "total": 7,
-    "in_progress": 0,
+    "completed": 4,
+    "total": 54,
+    "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Harden Phase - Validate and Test",
+    "current": "Test Infrastructure Setup",
     "id": null,
-    "total": 4
+    "total": 7
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 7,
-    "started_at": "2026-01-27T15:05:27.597160"
+    "number": 6,
+    "started_at": "2026-01-29T20:27:44.103138"
   },
-  "last_update": "2026-01-27T15:26:44.196631"
+  "last_update": "2026-01-29T20:41:50.200843"
 }
