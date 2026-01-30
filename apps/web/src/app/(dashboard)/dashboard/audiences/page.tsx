@@ -157,7 +157,7 @@ export default function AudiencesPage() {
                     )}
                 </Card>
             ) : (
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden" data-testid="audiences-list">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
