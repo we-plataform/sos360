@@ -42,17 +42,13 @@ export async function registerUser(
   await page.waitForURL('**/register');
 
   // Fill registration form
-  await page.fill('[name="fullName"], [data-testid="fullName"]', testData.fullName);
-  await page.fill('[name="email"], [data-testid="email"]', testData.email);
-  await page.fill('[name="password"], [data-testid="password"]', testData.password);
-  await page.fill('[name="companyName"], [data-testid="companyName"]', testData.companyName);
-
-  if (testData.workspaceName) {
-    await page.fill('[name="workspaceName"], [data-testid="workspaceName"]', testData.workspaceName);
-  }
+  await page.fill('#fullName', testData.fullName);
+  await page.fill('#email', testData.email);
+  await page.fill('#password', testData.password);
+  await page.fill('#companyName', testData.companyName);
 
   // Submit form
-  await page.click('button[type="submit"], [data-testid="register-button"]');
+  await page.click('button[type="submit"]');
 
   // Wait for navigation or context selection page
   await page.waitForURL('**/dashboard/**', { timeout: 10000 });
@@ -97,8 +93,8 @@ export async function loginUser(
   await page.waitForURL('**/login');
 
   // Fill login form
-  await page.fill('[name="email"], [data-testid="email"]', email);
-  await page.fill('[name="password"], [data-testid="password"]', password);
+  await page.fill('#email', email);
+  await page.fill('#password', password);
 
   // Submit form
   await page.click('button[type="submit"], [data-testid="login-button"]');
