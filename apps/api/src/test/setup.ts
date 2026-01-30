@@ -110,6 +110,14 @@ vi.mock('@lia360/database', () => ({
       delete: vi.fn(),
       count: vi.fn(),
     },
+    tag: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
