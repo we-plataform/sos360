@@ -49,6 +49,13 @@ vi.mock('bcrypt', () => ({
   },
 }));
 
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    sign: vi.fn(() => 'mock-jwt-token'),
+    verify: vi.fn(),
+  },
+}));
+
 vi.mock('../lib/redis.js', () => ({
   storage: {
     set: vi.fn(),
@@ -75,6 +82,7 @@ vi.mock('../lib/logger.js', () => ({
 const { authRouter } = await import('./auth.js');
 const { prisma } = await import('@lia360/database');
 const bcrypt = await import('bcrypt');
+const jwt = await import('jsonwebtoken');
 const { storage } = await import('../lib/redis.js');
 const { errorHandler } = await import('../middleware/error-handler.js');
 
@@ -863,6 +871,277 @@ describe('Auth API Routes - POST /auth/login', () => {
           email: 'test@example.com',
           password: 'Password123',
         })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+});
+
+describe('Auth API Routes - POST /auth/refresh', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset JWT verify mock to default implementation
+    vi.mocked(jwt.default.verify).mockReset();
+    // Reset prisma mocks
+    vi.mocked(prisma.user.findUnique).mockReset();
+    vi.mocked(storage.get).mockReset();
+  });
+
+  describe('successful token refresh', () => {
+    it('should refresh access token with valid refresh token', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: 'test@example.com',
+        fullName: 'Test User',
+      };
+
+      const mockCompanyMember = {
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'owner',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+          workspaces: [
+            {
+              id: 'workspace-123',
+              name: 'Principal',
+              members: [{ role: 'owner', userId: 'user-123' }],
+            },
+          ],
+        },
+      };
+
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        companies: [mockCompanyMember as any],
+      } as any);
+
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.accessToken).toBeDefined();
+      expect(response.body.data.expiresIn).toBeDefined();
+      expect(response.body.data.refreshToken).toBeUndefined();
+
+      expect(storage.get).toHaveBeenCalledWith(`refresh:user-123:${validRefreshToken.slice(-10)}`);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+        select: expect.objectContaining({
+          id: true,
+          companies: expect.any(Object),
+        }),
+      });
+    });
+
+    it('should handle refresh token with user having multiple workspaces', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: 'test@example.com',
+        fullName: 'Test User',
+      };
+
+      const mockCompanyMember = {
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'pro',
+          workspaces: [
+            {
+              id: 'workspace-123',
+              name: 'Principal',
+              members: [{ role: 'owner', userId: 'user-123' }],
+            },
+            {
+              id: 'workspace-456',
+              name: 'Sales',
+              members: [], // User not a member - should be filtered
+            },
+            {
+              id: 'workspace-789',
+              name: 'Marketing',
+              members: [{ role: 'admin', userId: 'user-123' }],
+            },
+          ],
+        },
+      };
+
+      const validRefreshToken = 'valid-refresh-token-xyz789';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        companies: [mockCompanyMember as any],
+      } as any);
+
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.accessToken).toBeDefined();
+      // Should use first workspace where user is a member
+      expect(prisma.user.findUnique).toHaveBeenCalled();
+    });
+  });
+
+  describe('authentication failures', () => {
+    it('should return 401 when refresh token is invalid', async () => {
+      const invalidToken = 'invalid-token';
+
+      // Mock JWT verification to fail
+      vi.mocked(jwt.default.verify).mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: invalidToken })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when stored token does not match', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+      const differentToken = 'different-refresh-token-xyz789';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+
+      // Token exists in storage but doesn't match
+      vi.mocked(storage.get).mockResolvedValue(differentToken);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when user not found', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+
+    it('should return 401 when user has no company memberships', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        companies: [], // No memberships
+      } as any);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+
+    it('should return 401 when user has no workspace access', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      const mockCompanyMember = {
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'owner',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+          workspaces: [
+            {
+              id: 'workspace-123',
+              name: 'Principal',
+              members: [], // User not a member of any workspace
+            },
+          ],
+        },
+      };
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        companies: [mockCompanyMember as any],
+      } as any);
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle storage errors during token verification', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(storage.get).mockRejectedValue(new Error('Redis connection failed'));
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle database errors during user lookup', async () => {
+      const validRefreshToken = 'valid-refresh-token-abc123';
+
+      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
+      vi.mocked(prisma.user.findUnique).mockRejectedValue(new Error('Database connection failed'));
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: validRefreshToken })
         .expect(500);
 
       expect(response.body.success).toBe(false);
