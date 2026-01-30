@@ -1086,7 +1086,8 @@
             "command": "cat package.json | grep -A5 'scripts' | grep test",
             "expected": "test scripts exist"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Added 'test' and 'test:coverage' tasks to turbo.json with proper dependencies on build tasks and configured outputs/inputs. Test scripts already existed in package.json (test, test:api, test:web, test:coverage, test:performance:scoring). Tests now properly configured for CI/CD pipeline execution via turbo."
         },
         {
           "id": "subtask-8-6",
