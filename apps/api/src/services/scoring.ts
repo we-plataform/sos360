@@ -552,3 +552,71 @@ function buildCriteriaDescription(config: ScoringConfig): string {
 
     return parts.join('; ');
 }
+
+/**
+ * Scoring service - provides high-level scoring operations
+ */
+export const scoringService = {
+    /**
+     * Batch score leads
+     * @param leadIds - Array of lead IDs to score
+     * @param trigger - What triggered this batch scoring (for logging)
+     * @returns Result with succeeded/failed counts
+     */
+    async batchScoreLeads(
+        leadIds: string[],
+        trigger: string
+    ): Promise<{
+        succeeded: number;
+        failed: number;
+        errors?: string[];
+    }> {
+        try {
+            // For now, we need to get workspaceId from the leads themselves
+            // In production, this should be passed as a parameter
+            if (leadIds.length === 0) {
+                return { succeeded: 0, failed: 0, errors: [] };
+            }
+
+            // Get the first lead's workspace as a reference
+            // Note: This assumes all leads in a batch are from the same workspace
+            const firstLead = await prisma.lead.findUnique({
+                where: { id: leadIds[0] },
+                select: { workspaceId: true },
+            });
+
+            if (!firstLead) {
+                return {
+                    succeeded: 0,
+                    failed: leadIds.length,
+                    errors: ['First lead not found'],
+                };
+            }
+
+            const results = await batchCalculateLeadScores(leadIds, firstLead.workspaceId);
+
+            const succeeded = results.filter((r) => !r.error).length;
+            const failed = results.filter((r) => r.error).length;
+            const errors = results.filter((r) => r.error).map((r) => r.error!);
+
+            logger.info(
+                {
+                    trigger,
+                    total: leadIds.length,
+                    succeeded,
+                    failed,
+                },
+                'Batch scoring completed'
+            );
+
+            return { succeeded, failed, errors };
+        } catch (error) {
+            logger.error({ error, trigger }, 'Batch scoring failed');
+            return {
+                succeeded: 0,
+                failed: leadIds.length,
+                errors: [error instanceof Error ? error.message : 'Unknown error'],
+            };
+        }
+    },
+};

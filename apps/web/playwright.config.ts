@@ -47,10 +47,22 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
     },
   ],
-  // webServer: {
-  //   command: 'cd ../.. && npm run web:dev',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120000,
-  // },
+  // Note: Web server and API server must be started manually before running tests:
+  // Terminal 1: cd ../.. && npm run api:dev
+  // Terminal 2: cd ../.. && npm run web:dev
+  //
+  // webServer: [
+  //   {
+  //     command: 'cd ../.. && npm run api:dev',
+  //     url: 'http://localhost:3001',
+  //     reuseExistingServer: !process.env.CI,
+  //     timeout: 120000,
+  //   },
+  //   {
+  //     command: 'cd ../.. && npm run web:dev',
+  //     url: 'http://localhost:3000',
+  //     reuseExistingServer: !process.env.CI,
+  //     timeout: 120000,
+  //   },
+  // ],
 });

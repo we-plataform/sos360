@@ -350,10 +350,19 @@ export async function takeScreenshotOnFailure(page: Page, testName: string) {
  * @param page - Playwright Page object
  */
 export async function clearStorage(page: Page) {
-  await page.evaluate(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-  });
+  try {
+    await page.evaluate(() => {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.clear();
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.clear();
+      }
+    });
+  } catch (error) {
+    // localStorage might not be accessible on certain pages (about:blank, data URLs, etc.)
+    // This is fine - context.clearCookies() will handle most cleanup
+  }
 }
 
 /**
