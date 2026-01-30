@@ -34,9 +34,11 @@ vi.mock('@lia360/database', () => ({
     companyMember: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     workspaceMember: {
       create: vi.fn(),
+      findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -54,6 +56,17 @@ vi.mock('jsonwebtoken', () => ({
     sign: vi.fn(() => 'mock-jwt-token'),
     verify: vi.fn(),
   },
+}));
+
+vi.mock('../lib/jwt.js', () => ({
+  signAccessToken: vi.fn(() => 'mock-access-token'),
+  signRefreshToken: vi.fn(() => 'mock-refresh-token'),
+  signSelectionToken: vi.fn(() => 'mock-selection-token'),
+  verifyAccessToken: vi.fn(),
+  verifyRefreshToken: vi.fn(),
+  verifySelectionToken: vi.fn(),
+  getTokenExpiresIn: vi.fn(() => 900),
+  getRefreshTokenTTL: vi.fn(() => 604800),
 }));
 
 vi.mock('../lib/redis.js', () => ({
@@ -84,6 +97,7 @@ const { prisma } = await import('@lia360/database');
 const bcrypt = await import('bcrypt');
 const jwt = await import('jsonwebtoken');
 const { storage } = await import('../lib/redis.js');
+const { verifySelectionToken, verifyRefreshToken, signAccessToken, signRefreshToken, getTokenExpiresIn, getRefreshTokenTTL } = await import('../lib/jwt.js');
 const { errorHandler } = await import('../middleware/error-handler.js');
 
 // Create test app
@@ -882,7 +896,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset JWT verify mock to default implementation
-    vi.mocked(jwt.default.verify).mockReset();
+    vi.mocked(verifyRefreshToken).mockReset();
     // Reset prisma mocks
     vi.mocked(prisma.user.findUnique).mockReset();
     vi.mocked(storage.get).mockReset();
@@ -917,7 +931,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
 
       const validRefreshToken = 'valid-refresh-token-abc123';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         ...mockUser,
         companies: [mockCompanyMember as any],
@@ -983,7 +997,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
 
       const validRefreshToken = 'valid-refresh-token-xyz789';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         ...mockUser,
         companies: [mockCompanyMember as any],
@@ -1008,7 +1022,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
       const invalidToken = 'invalid-token';
 
       // Mock JWT verification to fail
-      vi.mocked(jwt.default.verify).mockImplementation(() => {
+      vi.mocked(verifyRefreshToken).mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
@@ -1026,7 +1040,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
       const validRefreshToken = 'valid-refresh-token-abc123';
       const differentToken = 'different-refresh-token-xyz789';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
 
       // Token exists in storage but doesn't match
       vi.mocked(storage.get).mockResolvedValue(differentToken);
@@ -1044,7 +1058,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
     it('should return 401 when user not found', async () => {
       const validRefreshToken = 'valid-refresh-token-abc123';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
@@ -1060,7 +1074,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
     it('should return 401 when user has no company memberships', async () => {
       const validRefreshToken = 'valid-refresh-token-abc123';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: 'user-123',
@@ -1099,7 +1113,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
         },
       };
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: 'user-123',
@@ -1121,7 +1135,7 @@ describe('Auth API Routes - POST /auth/refresh', () => {
     it('should handle storage errors during token verification', async () => {
       const validRefreshToken = 'valid-refresh-token-abc123';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(storage.get).mockRejectedValue(new Error('Redis connection failed'));
 
       const response = await request(app)
@@ -1135,13 +1149,452 @@ describe('Auth API Routes - POST /auth/refresh', () => {
     it('should handle database errors during user lookup', async () => {
       const validRefreshToken = 'valid-refresh-token-abc123';
 
-      vi.mocked(jwt.default.verify).mockReturnValue({ sub: 'user-123', type: 'refresh' });
+      vi.mocked(verifyRefreshToken).mockReturnValue({ sub: 'user-123', type: 'refresh' });
       vi.mocked(storage.get).mockResolvedValue(validRefreshToken);
       vi.mocked(prisma.user.findUnique).mockRejectedValue(new Error('Database connection failed'));
 
       const response = await request(app)
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: validRefreshToken })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+});
+
+describe('Auth API Routes - POST /auth/select-context', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('successful context selection', () => {
+    it('should select context with valid selection token and credentials', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: 'test@example.com',
+        fullName: 'Test User',
+        avatarUrl: null,
+      };
+
+      const mockCompany = {
+        id: 'company-123',
+        name: 'Test Company',
+        slug: 'test-company',
+        plan: 'free',
+      };
+
+      const mockWorkspace = {
+        id: 'workspace-123',
+        name: 'Sales',
+        companyId: 'company-123',
+      };
+
+      const mockCompanyMember = {
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: mockCompany,
+      };
+
+      const mockWorkspaceMember = {
+        userId: 'user-123',
+        workspaceId: 'workspace-123',
+        role: 'manager',
+        workspace: mockWorkspace,
+      };
+
+      const selectionToken = 'valid-selection-token-abc123';
+
+      // Mock JWT verification
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      // Mock JWT sign functions
+      vi.mocked(signAccessToken).mockReturnValue('mock-access-token');
+      vi.mocked(signRefreshToken).mockReturnValue('mock-refresh-token');
+      vi.mocked(getTokenExpiresIn).mockReturnValue(900);
+      vi.mocked(getRefreshTokenTTL).mockReturnValue(604800);
+
+      // Mock company membership check
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce(mockCompanyMember as any);
+
+      // Mock workspace membership check
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce(mockWorkspaceMember as any);
+
+      // Mock user lookup
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(mockUser as any);
+
+      // Mock storage.set for refresh token
+      vi.mocked(storage.set).mockResolvedValueOnce('OK');
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken,
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.user).toBeDefined();
+      expect(response.body.data.user.id).toBe('user-123');
+      expect(response.body.data.user.email).toBe('test@example.com');
+      expect(response.body.data.context).toBeDefined();
+      expect(response.body.data.context.company.id).toBe('company-123');
+      expect(response.body.data.context.company.name).toBe('Test Company');
+      expect(response.body.data.context.company.role).toBe('admin');
+      expect(response.body.data.context.workspace.id).toBe('workspace-123');
+      expect(response.body.data.context.workspace.name).toBe('Sales');
+      expect(response.body.data.context.workspace.role).toBe('manager');
+      expect(response.body.data.accessToken).toBeDefined();
+      expect(response.body.data.refreshToken).toBeDefined();
+      expect(response.body.data.expiresIn).toBeDefined();
+
+      expect(verifySelectionToken).toHaveBeenCalledWith(selectionToken);
+      expect(prisma.companyMember.findUnique).toHaveBeenCalledWith({
+        where: {
+          userId_companyId: { userId: 'user-123', companyId: 'company-123' },
+        },
+        include: { company: true },
+      });
+      expect(prisma.workspaceMember.findUnique).toHaveBeenCalledWith({
+        where: {
+          userId_workspaceId: { userId: 'user-123', workspaceId: 'workspace-123' },
+        },
+        include: { workspace: true },
+      });
+      expect(storage.set).toHaveBeenCalled();
+    });
+
+    it('should select context with owner role', async () => {
+      const mockUser = {
+        id: 'user-456',
+        email: 'owner@example.com',
+        fullName: 'Owner User',
+        avatarUrl: null,
+      };
+
+      const mockCompanyMember = {
+        userId: 'user-456',
+        companyId: 'company-456',
+        role: 'owner',
+        company: {
+          id: 'company-456',
+          name: 'Owner Company',
+          slug: 'owner-company',
+          plan: 'pro',
+        },
+      };
+
+      const mockWorkspaceMember = {
+        userId: 'user-456',
+        workspaceId: 'workspace-456',
+        role: 'owner',
+        workspace: {
+          id: 'workspace-456',
+          name: 'Main',
+          companyId: 'company-456',
+        },
+      };
+
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-456', type: 'selection' });
+      vi.mocked(signAccessToken).mockReturnValue('mock-access-token');
+      vi.mocked(signRefreshToken).mockReturnValue('mock-refresh-token');
+      vi.mocked(getTokenExpiresIn).mockReturnValue(900);
+      vi.mocked(getRefreshTokenTTL).mockReturnValue(604800);
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce(mockCompanyMember as any);
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce(mockWorkspaceMember as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(mockUser as any);
+      vi.mocked(storage.set).mockResolvedValueOnce('OK');
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'selection-token-owner',
+          companyId: 'company-456',
+          workspaceId: 'workspace-456',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.context.company.role).toBe('owner');
+      expect(response.body.data.context.workspace.role).toBe('owner');
+    });
+  });
+
+  describe('authentication failures', () => {
+    it('should return 401 when selection token is invalid', async () => {
+      vi.mocked(verifySelectionToken).mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'invalid-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+      expect(prisma.companyMember.findUnique).not.toHaveBeenCalled();
+      expect(prisma.workspaceMember.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when selection token is expired', async () => {
+      vi.mocked(verifySelectionToken).mockImplementation(() => {
+        const error = new Error('Token expired');
+        error.name = 'TokenExpiredError';
+        throw error;
+      });
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'expired-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+  });
+
+  describe('authorization failures', () => {
+    it('should return 403 when user is not a member of the company', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      // Company membership not found
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce(null);
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('forbidden');
+      expect(prisma.workspaceMember.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when user is not a member of the workspace', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      // Company membership exists
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+        },
+      } as any);
+
+      // Workspace membership not found
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce(null);
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('forbidden');
+    });
+
+    it('should return 403 when workspace does not belong to the company', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      // Company membership exists
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+        },
+      } as any);
+
+      // Workspace membership exists but workspace belongs to different company
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        workspaceId: 'workspace-123',
+        role: 'manager',
+        workspace: {
+          id: 'workspace-123',
+          name: 'Sales',
+          companyId: 'company-456', // Different company!
+        },
+      } as any);
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.type).toBe('forbidden');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle database errors during company membership check', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      vi.mocked(prisma.companyMember.findUnique).mockRejectedValueOnce(
+        new Error('Database connection failed')
+      );
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle database errors during workspace membership check', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+        },
+      } as any);
+
+      vi.mocked(prisma.workspaceMember.findUnique).mockRejectedValueOnce(
+        new Error('Database connection failed')
+      );
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle database errors during user lookup', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+        },
+      } as any);
+
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        workspaceId: 'workspace-123',
+        role: 'manager',
+        workspace: {
+          id: 'workspace-123',
+          name: 'Sales',
+          companyId: 'company-123',
+        },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockRejectedValueOnce(
+        new Error('Database connection failed')
+      );
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle storage errors during refresh token storage', async () => {
+      vi.mocked(verifySelectionToken).mockReturnValue({ sub: 'user-123', type: 'selection' });
+
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        companyId: 'company-123',
+        role: 'admin',
+        company: {
+          id: 'company-123',
+          name: 'Test Company',
+          slug: 'test-company',
+          plan: 'free',
+        },
+      } as any);
+
+      vi.mocked(prisma.workspaceMember.findUnique).mockResolvedValueOnce({
+        userId: 'user-123',
+        workspaceId: 'workspace-123',
+        role: 'manager',
+        workspace: {
+          id: 'workspace-123',
+          name: 'Sales',
+          companyId: 'company-123',
+        },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+        id: 'user-123',
+        email: 'test@example.com',
+        fullName: 'Test User',
+        avatarUrl: null,
+      } as any);
+
+      vi.mocked(storage.set).mockRejectedValueOnce(new Error('Redis connection failed'));
+
+      const response = await request(app)
+        .post('/api/v1/auth/select-context')
+        .send({
+          selectionToken: 'valid-selection-token',
+          companyId: 'company-123',
+          workspaceId: 'workspace-123',
+        })
         .expect(500);
 
       expect(response.body.success).toBe(false);
