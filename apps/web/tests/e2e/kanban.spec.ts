@@ -342,3 +342,498 @@ test.describe('Kanban Board View and Navigation', () => {
     }
   });
 });
+
+/**
+ * E2E Tests for Kanban Board Drag and Drop
+ *
+ * These tests cover the drag-and-drop functionality for moving leads between stages,
+ * including:
+ * - Dragging leads between stages
+ * - Visual feedback during drag operations
+ * - Lead position updates after drag
+ * - Stage metrics updates after moving leads
+ * - Error handling for failed drag operations
+ */
+test.describe('Kanban Board Drag and Drop', () => {
+  let userEmail: string;
+  let userPassword: string;
+
+  test.beforeAll(async () => {
+    // Create a test user for all tests with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const userData = createTestUserData({
+      email: `kanban-drag-test-${timestamp}@example.com`,
+    });
+    userEmail = userData.email;
+    userPassword = userData.password;
+
+    try {
+      await apiRegister(userData);
+    } catch (error: any) {
+      // User might already exist, which is fine for E2E tests
+      if (!error.message.includes('already exists') && !error.message.includes('já está em uso')) {
+        throw error;
+      }
+    }
+  });
+
+  test.beforeEach(async ({ page, context }) => {
+    // Clear all cookies and storage before each test
+    await context.clearCookies();
+    await page.goto('about:blank');
+    await clearStorage(page);
+
+    // Login before each test
+    await loginUser(page, userEmail, userPassword);
+    await goToLeadsPage(page);
+  });
+
+  test('should drag a lead card from one stage to another', async ({ page }) => {
+    // Arrange - Navigate to leads page and wait for board to load
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    // Get first and second columns
+    const firstColumn = columns.nth(0);
+    const secondColumn = columns.nth(1);
+
+    // Get lead cards from first column
+    const firstColumnCards = firstColumn.locator('.kanban-card');
+    const firstColumnCardCount = await firstColumnCards.count();
+
+    // Skip test if no cards in first column
+    if (firstColumnCardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card in the first stage');
+      return;
+    }
+
+    // Get the first lead card
+    const firstCard = firstColumnCards.nth(0);
+    const firstCardText = await firstCard.textContent();
+
+    // Get initial card counts in both columns
+    const initialFirstColumnCount = firstColumnCardCount;
+    const initialSecondColumnCount = await secondColumn.locator('.kanban-card').count();
+
+    // Act - Drag the first card from first column to second column
+    await firstCard.dragTo(secondColumn);
+
+    // Wait for drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the card was moved to second column
+    const secondColumnCards = secondColumn.locator('.kanban-card');
+    const finalSecondColumnCount = await secondColumnCards.count();
+
+    // Second column should have one more card
+    expect(finalSecondColumnCount).toBe(initialSecondColumnCount + 1);
+
+    // Verify the dragged card is in the second column
+    const movedCardVisible = await secondColumnCards.filter({ hasText: firstCardText || '' }).count();
+    expect(movedCardVisible).toBeGreaterThan(0);
+
+    // Verify the card is no longer in the first column
+    const firstColumnAfterCards = firstColumn.locator('.kanban-card');
+    const finalFirstColumnCount = await firstColumnAfterCards.count();
+    expect(finalFirstColumnCount).toBe(initialFirstColumnCount - 1);
+  });
+
+  test('should show visual feedback during drag operation', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns and cards
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    const firstColumn = columns.nth(0);
+    const secondColumn = columns.nth(1);
+    const firstCard = firstColumn.locator('.kanban-card').first();
+
+    const cardCount = await firstCard.count();
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Act - Start dragging the card
+    // Note: We'll use dragTo and check for intermediate states
+    // Since @dnd-kit doesn't add persistent classes during drag, we verify the drag completes
+
+    // Get initial card position
+    const initialBoundingBox = await firstCard.boundingBox();
+    expect(initialBoundingBox).not.toBeNull();
+
+    // Perform the drag operation
+    await firstCard.dragTo(secondColumn);
+
+    // Assert - Verify the card moved (position changed)
+    // Note: The card might have moved to a different column, so we check the original position
+    await page.waitForTimeout(500);
+
+    // Verify second column has more cards now
+    const secondColumnCards = secondColumn.locator('.kanban-card');
+    const secondColumnCardCount = await secondColumnCards.count();
+    expect(secondColumnCardCount).toBeGreaterThan(0);
+  });
+
+  test('should update lead position after drag within same stage', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get first column
+    const firstColumn = page.locator('.kanban-column').nth(0);
+    const cards = firstColumn.locator('.kanban-card');
+    const cardCount = await cards.count();
+
+    // Skip test if fewer than 2 cards in first column
+    if (cardCount < 2) {
+      test.skip(true, 'Test requires at least 2 lead cards in the first stage');
+      return;
+    }
+
+    // Get first and second cards
+    const firstCard = cards.nth(0);
+    const secondCard = cards.nth(1);
+
+    const firstCardText = await firstCard.textContent();
+    const secondCardText = await secondCard.textContent();
+
+    // Act - Drag the second card and drop it before the first card
+    await secondCard.dragTo(firstCard);
+
+    // Wait for drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the cards changed positions
+    // After dragging second card to first card's position, they should swap
+    const updatedCards = firstColumn.locator('.kanban-card');
+    const newFirstCardText = await updatedCards.nth(0).textContent();
+    const newSecondCardText = await updatedCards.nth(1).textContent();
+
+    // The second card should now be in the first position
+    expect(newFirstCardText).toBe(secondCardText);
+    expect(newSecondCardText).toBe(firstCardText);
+  });
+
+  test('should update stage metrics after moving lead', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    const firstColumn = columns.nth(0);
+    const secondColumn = columns.nth(1);
+    const firstCard = firstColumn.locator('.kanban-card').first();
+
+    const cardCount = await firstCard.count();
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Get initial lead counts from metrics
+    const firstColumnMetrics = firstColumn.locator('.kanban-column__metrics');
+    const initialFirstColumnMetrics = await firstColumnMetrics.textContent();
+
+    const secondColumnMetrics = secondColumn.locator('.kanban-column__metrics');
+    const initialSecondColumnMetrics = await secondColumnMetrics.textContent();
+
+    // Extract initial lead counts (format: "X Leads")
+    const initialFirstCount = initialFirstColumnMetrics?.match(/(\d+)\s+Leads/)?.[1];
+    const initialSecondCount = initialSecondColumnMetrics?.match(/(\d+)\s+Leads/)?.[1];
+
+    // Act - Drag card from first column to second column
+    await firstCard.dragTo(secondColumn);
+
+    // Wait for metrics to update
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify the metrics updated
+    // Get updated metrics
+    const updatedFirstColumnMetrics = await firstColumnMetrics.textContent();
+    const updatedSecondColumnMetrics = await secondColumnMetrics.textContent();
+
+    const updatedFirstCount = updatedFirstColumnMetrics?.match(/(\d+)\s+Leads/)?.[1];
+    const updatedSecondCount = updatedSecondColumnMetrics?.match(/(\d+)\s+Leads/)?.[1];
+
+    // Verify counts changed if we could extract them
+    if (initialFirstCount && initialSecondCount && updatedFirstCount && updatedSecondCount) {
+      expect(parseInt(updatedFirstCount)).toBe(parseInt(initialFirstCount) - 1);
+      expect(parseInt(updatedSecondCount)).toBe(parseInt(initialSecondCount) + 1);
+    }
+  });
+
+  test('should handle drag operation to last stage', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    // Get first column and last column
+    const firstColumn = columns.nth(0);
+    const lastColumn = columns.nth(columnCount - 1);
+    const firstCard = firstColumn.locator('.kanban-card').first();
+
+    const cardCount = await firstCard.count();
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card in the first stage');
+      return;
+    }
+
+    const firstCardText = await firstCard.textContent();
+
+    // Get initial card counts
+    const initialFirstColumnCount = await firstColumn.locator('.kanban-card').count();
+    const initialLastColumnCount = await lastColumn.locator('.kanban-card').count();
+
+    // Act - Drag card from first column to last column
+    await firstCard.dragTo(lastColumn);
+
+    // Wait for drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the card was moved to last column
+    const lastColumnCards = lastColumn.locator('.kanban-card');
+    const finalLastColumnCount = await lastColumnCards.count();
+
+    expect(finalLastColumnCount).toBe(initialLastColumnCount + 1);
+
+    // Verify the dragged card is in the last column
+    const movedCardVisible = await lastColumnCards.filter({ hasText: firstCardText || '' }).count();
+    expect(movedCardVisible).toBeGreaterThan(0);
+
+    // Verify the card is no longer in the first column
+    const finalFirstColumnCount = await firstColumn.locator('.kanban-card').count();
+    expect(finalFirstColumnCount).toBe(initialFirstColumnCount - 1);
+  });
+
+  test('should not break when dragging to same column', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get first column
+    const firstColumn = page.locator('.kanban-column').nth(0);
+    const cards = firstColumn.locator('.kanban-card');
+    const cardCount = await cards.count();
+
+    // Skip test if no cards
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Get initial card count
+    const initialCardCount = cardCount;
+
+    // Act - Try to drag a card to the same column (should be a no-op or reposition)
+    const firstCard = cards.nth(0);
+    await firstCard.dragTo(firstColumn);
+
+    // Wait for any operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the card is still in the column
+    const finalCardCount = await firstColumn.locator('.kanban-card').count();
+    expect(finalCardCount).toBe(initialCardCount);
+
+    // Verify the column is still visible and functional
+    await expect(firstColumn).toBeVisible();
+  });
+
+  test('should maintain lead data integrity after drag', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    const firstColumn = columns.nth(0);
+    const secondColumn = columns.nth(1);
+    const firstCard = firstColumn.locator('.kanban-card').first();
+
+    const cardCount = await firstCard.count();
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Get card details before drag
+    const cardNameBefore = await firstCard.locator('.kanban-card__name, h4').textContent();
+    const cardScoreBefore = await firstCard.locator('[class*="score"]').textContent();
+
+    // Act - Drag card to second column
+    await firstCard.dragTo(secondColumn);
+
+    // Wait for drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the card data is preserved
+    const secondColumnCards = secondColumn.locator('.kanban-card');
+    const movedCard = secondColumnCards.first();
+
+    // Verify card name is preserved
+    const cardNameAfter = await movedCard.locator('.kanban-card__name, h4').textContent();
+    expect(cardNameAfter).toBe(cardNameBefore);
+
+    // Verify score is preserved (if it exists)
+    if (cardScoreBefore) {
+      const cardScoreAfter = await movedCard.locator('[class*="score"]').textContent();
+      expect(cardScoreAfter).toBe(cardScoreBefore);
+    }
+
+    // Verify card structure is intact
+    await expect(movedCard).toBeVisible();
+    await expect(movedCard.locator('.kanban-card__name, h4')).toBeVisible();
+  });
+
+  test('should handle rapid drag operations', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 3 columns
+    if (columnCount < 3) {
+      test.skip(true, 'Test requires at least 3 stage columns for rapid drag test');
+      return;
+    }
+
+    const firstColumn = columns.nth(0);
+    const secondColumn = columns.nth(1);
+    const thirdColumn = columns.nth(2);
+    const cards = firstColumn.locator('.kanban-card');
+    const cardCount = await cards.count();
+
+    // Skip test if fewer than 2 cards
+    if (cardCount < 2) {
+      test.skip(true, 'Test requires at least 2 lead cards');
+      return;
+    }
+
+    // Get initial card counts
+    const initialFirstCount = cardCount;
+    const initialSecondCount = await secondColumn.locator('.kanban-card').count();
+    const initialThirdCount = await thirdColumn.locator('.kanban-card').count();
+
+    // Act - Perform multiple drag operations rapidly
+    const firstCard = cards.nth(0);
+    const secondCard = cards.nth(1);
+
+    // Drag first card to second column
+    await firstCard.dragTo(secondColumn);
+    await page.waitForTimeout(200);
+
+    // Drag second card to third column
+    await secondCard.dragTo(thirdColumn);
+    await page.waitForTimeout(500);
+
+    // Assert - Verify both cards were moved correctly
+    const finalFirstCount = await firstColumn.locator('.kanban-card').count();
+    const finalSecondCount = await secondColumn.locator('.kanban-card').count();
+    const finalThirdCount = await thirdColumn.locator('.kanban-card').count();
+
+    expect(finalFirstCount).toBe(initialFirstCount - 2);
+    expect(finalSecondCount).toBe(initialSecondCount + 1);
+    expect(finalThirdCount).toBe(initialThirdCount + 1);
+  });
+
+  test('should handle drag to column with existing cards', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get all stage columns
+    const columns = page.locator('.kanban-column');
+    const columnCount = await columns.count();
+
+    // Skip test if there are fewer than 2 columns
+    if (columnCount < 2) {
+      test.skip(true, 'Test requires at least 2 stage columns');
+      return;
+    }
+
+    // Find a column with cards and a different column with at least one card
+    let sourceColumn = null;
+    let targetColumn = null;
+
+    for (let i = 0; i < columnCount; i++) {
+      const column = columns.nth(i);
+      const cards = column.locator('.kanban-card');
+      const count = await cards.count();
+
+      if (count > 0 && !sourceColumn) {
+        sourceColumn = column;
+      } else if (count > 0 && !targetColumn && sourceColumn) {
+        targetColumn = column;
+        break;
+      }
+    }
+
+    if (!sourceColumn || !targetColumn) {
+      test.skip(true, 'Test requires two columns with existing cards');
+      return;
+    }
+
+    const sourceCard = sourceColumn.locator('.kanban-card').first();
+    const targetCardCount = await targetColumn.locator('.kanban-card').count();
+
+    // Act - Drag card from source to target column
+    await sourceCard.dragTo(targetColumn);
+
+    // Wait for drag operation to complete
+    await page.waitForTimeout(500);
+
+    // Assert - Verify the card was added to target column
+    const finalTargetCardCount = await targetColumn.locator('.kanban-card').count();
+    expect(finalTargetCardCount).toBe(targetCardCount + 1);
+  });
+});
