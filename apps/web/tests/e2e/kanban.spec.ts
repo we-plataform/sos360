@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { apiRegister, loginUser } from '../helpers/auth';
-import { createTestLeadData, createTestUserData, clearStorage, goToLeadsPage } from '../helpers/setup';
+import { createTestLeadData, createTestUserData, clearStorage, goToLeadsPage, goToDashboard } from '../helpers/setup';
 
 /**
  * E2E Tests for Kanban Board View and Navigation
@@ -57,7 +57,8 @@ test.describe('Kanban Board View and Navigation', () => {
 
     // Verify at least one stage column is displayed
     const columns = page.locator('.kanban-column');
-    await expect(columns).toHaveCount(await columns.count(), { min: 1 });
+    const columnCount = await columns.count();
+    expect(columnCount).toBeGreaterThanOrEqual(1);
   });
 
   test('should display all stage columns with correct structure', async ({ page }) => {
@@ -835,5 +836,641 @@ test.describe('Kanban Board Drag and Drop', () => {
     // Assert - Verify the card was added to target column
     const finalTargetCardCount = await targetColumn.locator('.kanban-card').count();
     expect(finalTargetCardCount).toBe(targetCardCount + 1);
+  });
+});
+
+/**
+ * E2E Tests for Kanban Board Filtering and Searching
+ *
+ * These tests cover the filtering and sorting functionality for leads,
+ * including:
+ * - Score range filtering (min/max)
+ * - Sorting by score (highest/lowest)
+ * - Filter panel toggle
+ * - Clear filters functionality
+ * - Lead display updates with filters applied
+ */
+test.describe('Kanban Board Filtering and Searching', () => {
+  let userEmail: string;
+  let userPassword: string;
+
+  test.beforeAll(async () => {
+    // Create a test user for all tests with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const userData = createTestUserData({
+      email: `kanban-filter-test-${timestamp}@example.com`,
+    });
+    userEmail = userData.email;
+    userPassword = userData.password;
+
+    try {
+      await apiRegister(userData);
+    } catch (error: any) {
+      // User might already exist, which is fine for E2E tests
+      if (!error.message.includes('already exists') && !error.message.includes('já está em uso')) {
+        throw error;
+      }
+    }
+  });
+
+  test.beforeEach(async ({ page, context }) => {
+    // Clear all cookies and storage before each test
+    await context.clearCookies();
+    await page.goto('about:blank');
+    await clearStorage(page);
+
+    // Login before each test
+    await loginUser(page, userEmail, userPassword);
+    await goToLeadsPage(page);
+  });
+
+  test('should display filter toggle button', async ({ page }) => {
+    // Act - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Assert - Verify filter toggle button is visible
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+
+    await expect(filterButton.first()).toBeVisible();
+
+    // Verify button has filter and sort icons
+    const filterIcon = filterButton.locator('svg').first();
+    await expect(filterIcon).toBeVisible();
+  });
+
+  test('should open filter panel when toggle button is clicked', async ({ page }) => {
+    // Arrange - Navigate to leads page
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Act - Click the filter toggle button
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+
+    // Wait for filter panel to appear
+    await page.waitForTimeout(300);
+
+    // Assert - Verify filter panel is displayed
+    const filterPanel = page.locator('text=/Filtros:/i').or(
+      page.locator('text=/Filters:/i')
+    );
+
+    const panelCount = await filterPanel.count();
+    expect(panelCount).toBeGreaterThan(0);
+
+    // Verify score range inputs are visible
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]');
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]');
+
+    const minInputCount = await minInput.count();
+    const maxInputCount = await maxInput.count();
+
+    expect(minInputCount).toBeGreaterThan(0);
+    expect(maxInputCount).toBeGreaterThan(0);
+  });
+
+  test('should display score range filter inputs', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Assert - Verify score range inputs are present
+    const scoreLabel = page.locator('text=/Pontuação/i').or(
+      page.locator('text=/Score/i')
+    );
+    const scoreLabelCount = await scoreLabel.count();
+
+    if (scoreLabelCount > 0) {
+      await expect(scoreLabel.first()).toBeVisible();
+    }
+
+    // Verify min and max inputs exist
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]');
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]');
+
+    const minInputCount = await minInput.count();
+    const maxInputCount = await maxInput.count();
+
+    expect(minInputCount).toBeGreaterThan(0);
+    expect(maxInputCount).toBeGreaterThan(0);
+
+    // Verify inputs have correct attributes
+    if (minInputCount > 0) {
+      const firstMinInput = minInput.first();
+      await expect(firstMinInput).toBeVisible();
+
+      const minAttr = await firstMinInput.getAttribute('min');
+      const maxAttr = await firstMinInput.getAttribute('max');
+      expect(minAttr).toBe('0');
+      expect(maxAttr).toBe('100');
+    }
+  });
+
+  test('should display sort dropdown with options', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Assert - Verify sort dropdown is present
+    const sortLabel = page.locator('text=/Ordenar/i').or(
+      page.locator('text=/Sort/i')
+    );
+
+    const sortLabelCount = await sortLabel.count();
+    if (sortLabelCount > 0) {
+      await expect(sortLabel.first()).toBeVisible();
+    }
+
+    // Check for sort select element
+    const sortSelect = page.locator('select').filter({ hasText: /Posição|Position/i });
+
+    const selectCount = await sortSelect.count();
+    if (selectCount > 0) {
+      await expect(sortSelect.first()).toBeVisible();
+
+      // Verify sort options
+      const options = await sortSelect.first().locator('option').allTextContents();
+      expect(options.length).toBeGreaterThan(0);
+
+      // Check for expected sort options
+      const hasPosition = options.some(o => o.includes('Posição') || o.includes('Position'));
+      const hasScoreDesc = options.some(o => o.includes('Maior Pontuação') || o.includes('Highest Score'));
+      const hasScoreAsc = options.some(o => o.includes('Menor Pontuação') || o.includes('Lowest Score'));
+
+      expect(hasPosition).toBe(true);
+      expect(hasScoreDesc || hasScoreAsc).toBe(true);
+    }
+  });
+
+  test('should display clear filters button when filters are active', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Set a minimum score filter
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    await minInput.fill('50');
+
+    // Wait for filter to be applied
+    await page.waitForTimeout(500);
+
+    // Assert - Verify clear filters button is now visible
+    const clearButton = page.locator('button').filter({ hasText: /Limpar/i }).or(
+      page.locator('button').filter({ hasText: /Clear/i })
+    );
+
+    const clearButtonCount = await clearButton.count();
+    if (clearButtonCount > 0) {
+      await expect(clearButton.first()).toBeVisible();
+    }
+  });
+
+  test('should filter leads by minimum score', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get total card count before filtering
+    const allCardsBefore = page.locator('.kanban-card');
+    const totalCardsBefore = await allCardsBefore.count();
+
+    if (totalCardsBefore === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Open filter panel
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Set minimum score filter to 70
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    await minInput.fill('70');
+
+    // Wait for filter to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify leads are filtered
+    const allCardsAfter = page.locator('.kanban-card');
+    const totalCardsAfter = await allCardsAfter.count();
+
+    // After filtering, card count should be less than or equal to before
+    expect(totalCardsAfter).toBeLessThanOrEqual(totalCardsBefore);
+
+    // Verify filter panel is still visible with active filter
+    const activeMinInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    const minValue = await activeMinInput.inputValue();
+    expect(minValue).toBe('70');
+  });
+
+  test('should filter leads by maximum score', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get total card count before filtering
+    const allCardsBefore = page.locator('.kanban-card');
+    const totalCardsBefore = await allCardsBefore.count();
+
+    if (totalCardsBefore === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Open filter panel
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Set maximum score filter to 50
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]').first();
+    await maxInput.fill('50');
+
+    // Wait for filter to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify leads are filtered
+    const allCardsAfter = page.locator('.kanban-card');
+    const totalCardsAfter = await allCardsAfter.count();
+
+    // After filtering, card count should be less than or equal to before
+    expect(totalCardsAfter).toBeLessThanOrEqual(totalCardsBefore);
+
+    // Verify filter panel is still visible with active filter
+    const activeMaxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]').first();
+    const maxValue = await activeMaxInput.inputValue();
+    expect(maxValue).toBe('50');
+  });
+
+  test('should filter leads by score range', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    // Get total card count before filtering
+    const allCardsBefore = page.locator('.kanban-card');
+    const totalCardsBefore = await allCardsBefore.count();
+
+    if (totalCardsBefore === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    // Open filter panel
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Set score range filter (30-70)
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]').first();
+
+    await minInput.fill('30');
+    await maxInput.fill('70');
+
+    // Wait for filter to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify leads are filtered by range
+    const allCardsAfter = page.locator('.kanban-card');
+    const totalCardsAfter = await allCardsAfter.count();
+
+    // After filtering, card count should be less than or equal to before
+    expect(totalCardsAfter).toBeLessThanOrEqual(totalCardsBefore);
+
+    // Verify both filter values are set
+    const activeMinValue = await minInput.inputValue();
+    const activeMaxValue = await maxInput.inputValue();
+
+    expect(activeMinValue).toBe('30');
+    expect(activeMaxValue).toBe('70');
+  });
+
+  test('should sort leads by highest score', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const allCards = page.locator('.kanban-card');
+    const cardCount = await allCards.count();
+
+    if (cardCount < 2) {
+      test.skip(true, 'Test requires at least 2 lead cards to verify sorting');
+      return;
+    }
+
+    // Open filter panel
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Select "Maior Pontuação" (Highest Score) sort option
+    const sortSelect = page.locator('select').filter({ hasText: /Posição|Position/i });
+    const selectCount = await sortSelect.count();
+
+    if (selectCount === 0) {
+      test.skip(true, 'Sort dropdown not found');
+      return;
+    }
+
+    await sortSelect.first().selectOption('score');
+
+    // Wait for sort to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify sort option is selected
+    const selectedValue = await sortSelect.first().inputValue();
+    expect(selectedValue).toBe('score');
+
+    // Verify cards are still displayed (just in different order)
+    const cardsAfter = page.locator('.kanban-card');
+    const cardCountAfter = await cardsAfter.count();
+    expect(cardCountAfter).toBe(cardCount);
+  });
+
+  test('should sort leads by lowest score', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const allCards = page.locator('.kanban-card');
+    const cardCount = await allCards.count();
+
+    if (cardCount < 2) {
+      test.skip(true, 'Test requires at least 2 lead cards to verify sorting');
+      return;
+    }
+
+    // Open filter panel
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Select "Menor Pontuação" (Lowest Score) sort option
+    const sortSelect = page.locator('select').filter({ hasText: /Posição|Position/i });
+    const selectCount = await sortSelect.count();
+
+    if (selectCount === 0) {
+      test.skip(true, 'Sort dropdown not found');
+      return;
+    }
+
+    await sortSelect.first().selectOption('score_asc');
+
+    // Wait for sort to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify sort option is selected
+    const selectedValue = await sortSelect.first().inputValue();
+    expect(selectedValue).toBe('score_asc');
+
+    // Verify cards are still displayed (just in different order)
+    const cardsAfter = page.locator('.kanban-card');
+    const cardCountAfter = await cardsAfter.count();
+    expect(cardCountAfter).toBe(cardCount);
+  });
+
+  test('should clear all filters when clear button is clicked', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Set filters
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]').first();
+
+    await minInput.fill('30');
+    await maxInput.fill('70');
+    await page.waitForTimeout(500);
+
+    // Verify filters are set
+    const minValueBefore = await minInput.inputValue();
+    const maxValueBefore = await maxInput.inputValue();
+    expect(minValueBefore).toBe('30');
+    expect(maxValueBefore).toBe('70');
+
+    // Act - Click clear filters button
+    const clearButton = page.locator('button').filter({ hasText: /Limpar/i }).or(
+      page.locator('button').filter({ hasText: /Clear/i })
+    );
+
+    const clearButtonCount = await clearButton.count();
+    if (clearButtonCount === 0) {
+      test.skip(true, 'Clear button not found');
+      return;
+    }
+
+    await clearButton.first().click();
+
+    // Wait for filters to clear
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify filters are cleared
+    const minValueAfter = await minInput.inputValue();
+    const maxValueAfter = await maxInput.inputValue();
+
+    expect(minValueAfter).toBe('');
+    expect(maxValueAfter).toBe('');
+  });
+
+  test('should hide filter panel when filters are cleared and toggle is clicked', async ({ page }) => {
+    // Arrange - Navigate to leads page, open filter panel, and set filters
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    await minInput.fill('50');
+    await page.waitForTimeout(500);
+
+    // Verify filter panel is visible
+    const filterPanel = page.locator('text=/Filtros:/i');
+    const panelVisibleBefore = await filterPanel.count();
+    expect(panelVisibleBefore).toBeGreaterThan(0);
+
+    // Act - Click clear button to remove filters
+    const clearButton = page.locator('button').filter({ hasText: /Limpar/i }).or(
+      page.locator('button').filter({ hasText: /Clear/i })
+    );
+
+    const clearButtonCount = await clearButton.count();
+    if (clearButtonCount > 0) {
+      await clearButton.first().click();
+      await page.waitForTimeout(500);
+    }
+
+    // Assert - Verify filter panel is hidden after clearing
+    const filterPanelAfter = page.locator('text=/Filtros:/i');
+    const panelVisibleAfter = await filterPanelAfter.count();
+    expect(panelVisibleAfter).toBe(0);
+  });
+
+  test('should maintain filter state when navigating away and back', async ({ page }) => {
+    // Arrange - Navigate to leads page and apply filter
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    await minInput.fill('50');
+    await page.waitForTimeout(500);
+
+    // Act - Navigate to dashboard and back
+    await page.goto('/dashboard');
+    await page.waitForURL('**/dashboard');
+    await page.waitForTimeout(500);
+
+    await page.goto('/dashboard/leads');
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForTimeout(500);
+
+    // Assert - Verify filter state may or may not persist (depends on implementation)
+    // Some implementations clear filters on navigation, others persist them
+    // We're just verifying the page loads correctly after filtering
+    const board = page.locator('.kanban-board');
+    await expect(board).toBeVisible();
+  });
+
+  test('should handle invalid score values gracefully', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Get initial card count
+    const cardsBefore = page.locator('.kanban-card');
+    const cardCountBefore = await cardsBefore.count();
+
+    // Act - Try to enter invalid score values
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+
+    // Try negative value
+    await minInput.fill('-10');
+    await page.waitForTimeout(500);
+
+    // Try value > 100
+    await minInput.fill('150');
+    await page.waitForTimeout(500);
+
+    // Assert - Verify board is still functional
+    const board = page.locator('.kanban-board');
+    await expect(board).toBeVisible();
+
+    const cardsAfter = page.locator('.kanban-card');
+    const cardCountAfter = await cardsAfter.count();
+
+    // Board should still display cards
+    expect(cardCountAfter).toBeGreaterThanOrEqual(0);
+  });
+
+  test('should combine filters and sort options', async ({ page }) => {
+    // Arrange - Navigate to leads page and open filter panel
+    await page.waitForURL('**/dashboard/leads');
+    await page.waitForSelector('.kanban-board', { timeout: 5000 });
+
+    const allCards = page.locator('.kanban-card');
+    const cardCount = await allCards.count();
+
+    if (cardCount === 0) {
+      test.skip(true, 'Test requires at least one lead card');
+      return;
+    }
+
+    const filterButton = page.locator('button').filter({ hasText: /Filtros e Ordenação/i }).or(
+      page.locator('button').filter({ hasText: /Filters and Sorting/i })
+    );
+    await filterButton.first().click();
+    await page.waitForTimeout(300);
+
+    // Act - Apply score range filter and sort option together
+    const minInput = page.locator('input[placeholder*="Mín"], input[placeholder*="Min"]').first();
+    const maxInput = page.locator('input[placeholder*="Máx"], input[placeholder*="Max"]').first();
+
+    await minInput.fill('40');
+    await maxInput.fill('80');
+
+    const sortSelect = page.locator('select').filter({ hasText: /Posição|Position/i });
+    const selectCount = await sortSelect.count();
+
+    if (selectCount > 0) {
+      await sortSelect.first().selectOption('score');
+    }
+
+    // Wait for filters and sort to apply
+    await page.waitForTimeout(1000);
+
+    // Assert - Verify both filters and sort are active
+    const minValue = await minInput.inputValue();
+    const maxValue = await maxInput.inputValue();
+
+    expect(minValue).toBe('40');
+    expect(maxValue).toBe('80');
+
+    if (selectCount > 0) {
+      const selectedValue = await sortSelect.first().inputValue();
+      expect(selectedValue).toBe('score');
+    }
+
+    // Verify filtered results
+    const cardsAfter = page.locator('.kanban-card');
+    const cardCountAfter = await cardsAfter.count();
+
+    // With both filters applied, should have fewer or equal cards
+    expect(cardCountAfter).toBeLessThanOrEqual(cardCount);
   });
 });

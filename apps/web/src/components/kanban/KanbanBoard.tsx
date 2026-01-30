@@ -194,7 +194,7 @@ export function KanbanBoard({ pipeline, onMoveLead, onLeadClick, onUpdateLead }:
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
         >
-            <div className="kanban-board">
+            <div className="kanban-board" data-testid="kanban-board">
                 {stages.map((stage, index) => (
                     <KanbanColumn
                         key={stage.id}
