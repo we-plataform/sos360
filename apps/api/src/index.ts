@@ -16,6 +16,10 @@ import { setupSocket } from "./socket/index.js";
 import { batchScoringScheduler } from "./services/batch-scoring.js";
 
 // Log startup information
+<<<<<<< HEAD
+console.error("[DEBUG] Starting API...");
+=======
+>>>>>>> origin/main
 logger.info("=== Lia360 API Starting ===");
 logger.debug(`Node version: ${process.version}`);
 logger.debug(`Environment: ${process.env.NODE_ENV || "not set"}`);
@@ -40,6 +44,10 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 // Initialize Express app and HTTP server
+<<<<<<< HEAD
+console.error("[DEBUG] Initializing Express...");
+=======
+>>>>>>> origin/main
 logger.debug("Initializing Express...");
 const app = express();
 
@@ -181,9 +189,17 @@ app.get("/", (_, res) => {
 });
 
 // API Routes
+<<<<<<< HEAD
+console.error("[DEBUG] Setting up routes...");
 logger.debug("Setting up routes...");
 try {
   setupRoutes(app);
+  console.error("[DEBUG] Routes setup completed");
+=======
+logger.debug("Setting up routes...");
+try {
+  setupRoutes(app);
+>>>>>>> origin/main
   logger.debug("Routes setup completed");
 } catch (error) {
   console.error("FATAL: Failed to setup routes:", error);
@@ -214,6 +230,10 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
 const HOST = "0.0.0.0"; // Always use 0.0.0.0 for Railway
 
 logger.info(`Starting server on ${HOST}:${PORT}...`);
+<<<<<<< HEAD
+console.error(`[DEBUG] About to listen on ${HOST}:${PORT}...`);
+=======
+>>>>>>> origin/main
 
 httpServer.listen(PORT, HOST, () => {
   logger.info(`=== Server running on ${HOST}:${PORT} ===`);
@@ -223,12 +243,20 @@ httpServer.listen(PORT, HOST, () => {
   logger.info(`CORS origins: ${env.CORS_ORIGINS.join(", ")}`);
 
   // Start batch scoring scheduler
+<<<<<<< HEAD
+  /*
+=======
+>>>>>>> origin/main
   try {
     batchScoringScheduler.start(24 * 60 * 60 * 1000); // Run daily
     logger.info("Batch scoring scheduler started");
   } catch (error) {
     logger.error({ err: error }, "Failed to start batch scoring scheduler");
   }
+<<<<<<< HEAD
+  */
+=======
+>>>>>>> origin/main
 });
 
 httpServer.on("error", (error: NodeJS.ErrnoException) => {

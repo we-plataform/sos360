@@ -416,6 +416,391 @@ async function apiRequest(endpoint, options = {}, isRetry = false) {
 }
 
 
+// --- CLOUD LEAD NAVIGATOR (Skyvern-based automation) ---
+
+/**
+ * CloudLeadNavigator uses the Skyvern Cloud Browser API for all navigation,
+ * clicking, and data extraction. This approach is more resilient to DOM changes
+ * and provides human-like interaction to avoid detection.
+ */
+class CloudLeadNavigator {
+  constructor() {
+    this.state = {
+      status: 'IDLE', // IDLE, CREATING_SESSION, SEARCHING, SCRAPING, ANALYZING, STOPPED
+      sessionId: null,
+      keywords: [],
+      criteria: '',
+      currentKeywordIndex: 0,
+      pendingTasks: [],
+      processedProfiles: new Set(),
+    };
+
+    this.config = {
+      maxLeadsPerKeyword: 10,
+      pollIntervalMs: 5000, // Check task status every 5 seconds
+      maxWaitTimeMs: 300000, // Max 5 minutes per task
+    };
+
+    this.loadState().catch(err => console.error('[Lia 360] CloudLeadNavigator loadState failed:', err));
+  }
+
+  async loadState() {
+    const stored = await chrome.storage.local.get(['cloudModeState', 'cloudProcessedProfiles']);
+    if (stored.cloudProcessedProfiles) {
+      this.state.processedProfiles = new Set(stored.cloudProcessedProfiles);
+    }
+  }
+
+  async saveState() {
+    let progress = 0;
+    let detailedStatus = '';
+
+    switch (this.state.status) {
+      case 'IDLE':
+        progress = 0;
+        detailedStatus = 'Aguardando comando.';
+        break;
+      case 'CREATING_SESSION':
+        progress = 5;
+        detailedStatus = 'Criando sessão Cloud Browser...';
+        break;
+      case 'SEARCHING':
+        progress = 20;
+        detailedStatus = `Buscando leads por "${this.state.keywords[this.state.currentKeywordIndex]}"...`;
+        break;
+      case 'SCRAPING':
+        progress = 50;
+        detailedStatus = 'Extraindo dados do perfil via Cloud Browser...';
+        break;
+      case 'ANALYZING':
+        progress = 80;
+        detailedStatus = 'Analisando qualificação com IA...';
+        break;
+      case 'STOPPED':
+        progress = 100;
+        detailedStatus = 'Parado pelo usuário.';
+        break;
+      default:
+        progress = 0;
+        detailedStatus = '';
+    }
+
+    const stateData = {
+      status: this.state.status,
+      message: this.getStatusMessage(),
+      progress: Math.min(Math.round(progress), 100),
+      detailedStatus,
+      mode: 'cloud', // Indicate this is cloud mode
+    };
+
+    await chrome.storage.local.set({
+      cloudModeState: stateData,
+      cloudProcessedProfiles: Array.from(this.state.processedProfiles),
+    });
+
+    // Broadcast status update to popup
+    chrome.runtime.sendMessage({
+      action: 'autoModeUpdate',
+      state: stateData
+    }).catch(() => { }); // Ignore error if popup is closed
+
+    // Broadcast status update to content scripts (specific target tab)
+    if (this.state.targetTabId) {
+      chrome.tabs.sendMessage(this.state.targetTabId, {
+        action: 'autoModeUpdate',
+        state: stateData
+      }).catch((err) => {
+        // Fallback to active tab if target tab is gone/errored
+        console.warn('[CloudLeadNavigator] Primary tab broadcast failed, trying active tab...', err);
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs.length > 0) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'autoModeUpdate',
+              state: stateData
+            }).catch(() => { });
+          }
+        });
+      });
+    } else {
+      // Fallback for when no target tab is set (legacy behavior)
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'autoModeUpdate',
+            state: stateData
+          }).catch(() => { });
+        }
+      });
+    }
+  }
+
+  getStatusMessage() {
+    switch (this.state.status) {
+      case 'IDLE': return 'Cloud Browser pronto.';
+      case 'CREATING_SESSION': return 'Iniciando sessão...';
+      case 'SEARCHING': return `Buscando "${this.state.keywords[this.state.currentKeywordIndex]}"...`;
+      case 'SCRAPING': return 'Extraindo perfil via Skyvern...';
+      case 'ANALYZING': return 'Analisando com IA...';
+      case 'STOPPED': return 'Parado.';
+      default: return '';
+    }
+  }
+
+  async start(keywords, criteria = '', platform = 'linkedin', targetTabId = null) {
+    console.log('[CloudLeadNavigator] ========== START CALLED ==========');
+    console.log('[CloudLeadNavigator] Keywords:', keywords);
+    console.log('[CloudLeadNavigator] Criteria:', criteria);
+    console.log('[CloudLeadNavigator] Platform:', platform);
+    console.log('[CloudLeadNavigator] Target Tab ID:', targetTabId);
+    console.log('[CloudLeadNavigator] Current status:', this.state.status);
+
+    if (this.state.status !== 'IDLE' && this.state.status !== 'STOPPED') {
+      console.log('[CloudLeadNavigator] Already running, aborting');
+      return;
+    }
+
+    this.state.keywords = keywords;
+    this.state.criteria = criteria;
+    this.state.currentKeywordIndex = 0;
+    this.state.targetTabId = targetTabId; // Store target tab ID
+
+    try {
+      // Step 1: Create Cloud Browser session
+      this.state.status = 'CREATING_SESSION';
+      await this.saveState();
+      console.log('[CloudLeadNavigator] Status set to CREATING_SESSION');
+
+      console.log('[CloudLeadNavigator] Calling API: POST /api/v1/cloud-browser/sessions');
+      const sessionResponse = await apiRequest('/api/v1/cloud-browser/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ platform }),
+      });
+      console.log('[CloudLeadNavigator] Session API response:', JSON.stringify(sessionResponse));
+
+      if (!sessionResponse.success) {
+        throw new Error(sessionResponse.error || 'Failed to create session');
+      }
+
+      this.state.sessionId = sessionResponse.data.id;
+      console.log('[CloudLeadNavigator] ✅ Session created:', this.state.sessionId);
+
+      // Step 2: Start processing keywords
+      console.log('[CloudLeadNavigator] Calling processNextKeyword()...');
+      await this.processNextKeyword();
+    } catch (error) {
+      console.error('[CloudLeadNavigator] ❌ Start FAILED:', error.message);
+      console.error('[CloudLeadNavigator] Full error:', error);
+      this.state.status = 'STOPPED';
+      await this.saveState();
+    }
+  }
+
+  async stop() {
+    this.state.status = 'STOPPED';
+    await this.saveState();
+
+    // Revoke session if exists
+    if (this.state.sessionId) {
+      try {
+        await apiRequest(`/api/v1/cloud-browser/sessions/${this.state.sessionId}`, {
+          method: 'DELETE',
+        });
+      } catch (e) {
+        console.warn('[CloudLeadNavigator] Failed to revoke session:', e);
+      }
+      this.state.sessionId = null;
+    }
+  }
+
+  async processNextKeyword() {
+    console.log('[CloudLeadNavigator] processNextKeyword() called');
+    console.log('[CloudLeadNavigator] Current status:', this.state.status);
+    console.log('[CloudLeadNavigator] Keyword index:', this.state.currentKeywordIndex, '/', this.state.keywords.length);
+
+    if (this.state.status === 'STOPPED') {
+      console.log('[CloudLeadNavigator] Status is STOPPED, aborting');
+      return;
+    }
+
+    if (this.state.currentKeywordIndex >= this.state.keywords.length) {
+      console.log('[CloudLeadNavigator] ✅ All keywords processed');
+      await this.stop();
+      return;
+    }
+
+    const keyword = this.state.keywords[this.state.currentKeywordIndex];
+    console.log('[CloudLeadNavigator] Processing keyword:', keyword);
+    this.state.status = 'SEARCHING';
+    await this.saveState();
+
+    try {
+      // Create search task via Cloud Browser API
+      console.log('[CloudLeadNavigator] Calling API: POST /api/v1/cloud-browser/linkedin/search');
+      const searchResponse = await apiRequest('/api/v1/cloud-browser/linkedin/search', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionId: this.state.sessionId,
+          searchQuery: keyword,
+          maxResults: this.config.maxLeadsPerKeyword,
+        }),
+      });
+      console.log('[CloudLeadNavigator] Search API response:', JSON.stringify(searchResponse));
+
+      if (!searchResponse.success) {
+        throw new Error(searchResponse.error || 'Search failed');
+      }
+
+      const taskId = searchResponse.data.taskId;
+      console.log('[CloudLeadNavigator] Search task created:', taskId);
+
+      // Poll for task completion
+      const result = await this.waitForTaskCompletion(taskId);
+
+      if (result && result.result && Array.isArray(result.result)) {
+        // Process each lead found
+        for (const lead of result.result) {
+          if (this.state.status === 'STOPPED') break;
+
+          if (!this.state.processedProfiles.has(lead.profileUrl)) {
+            await this.processLead(lead);
+            this.state.processedProfiles.add(lead.profileUrl);
+          }
+        }
+      }
+
+      // Move to next keyword
+      this.state.currentKeywordIndex++;
+      await this.processNextKeyword();
+    } catch (error) {
+      console.error('[CloudLeadNavigator] Search failed:', error);
+      this.state.currentKeywordIndex++;
+      await this.processNextKeyword();
+    }
+  }
+
+  async processLead(lead) {
+    this.state.status = 'SCRAPING';
+    await this.saveState();
+
+    try {
+      // Scrape full profile data
+      const scrapeResponse = await apiRequest('/api/v1/cloud-browser/linkedin/scrape', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionId: this.state.sessionId,
+          profileUrl: lead.profileUrl,
+        }),
+      });
+
+      if (!scrapeResponse.success) {
+        throw new Error(scrapeResponse.error || 'Scrape failed');
+      }
+
+      const taskId = scrapeResponse.data.taskId;
+      const result = await this.waitForTaskCompletion(taskId);
+
+      if (result && result.result) {
+        // Merge scraped data with basic lead info
+        const fullLead = {
+          ...lead,
+          ...result.result,
+          platform: 'linkedin',
+          source: 'cloud_browser',
+        };
+
+        // Analyze if criteria provided
+        if (this.state.criteria) {
+          this.state.status = 'ANALYZING';
+          await this.saveState();
+
+          try {
+            const analysis = await apiRequest('/api/v1/leads/analyze', {
+              method: 'POST',
+              body: JSON.stringify({ profile: fullLead, criteria: this.state.criteria }),
+            });
+
+            if (analysis.data) {
+              fullLead.score = analysis.data.score;
+              fullLead.analysisReason = analysis.data.reason;
+              console.log(`[CloudLeadNavigator] Analyzed ${lead.fullName}: Score=${fullLead.score}`);
+            }
+          } catch (e) {
+            console.warn('[CloudLeadNavigator] Analysis failed:', e);
+          }
+        }
+
+        // Save lead
+        await this.saveLead(fullLead);
+      }
+    } catch (error) {
+      console.error('[CloudLeadNavigator] Lead processing failed:', error);
+    }
+  }
+
+  async waitForTaskCompletion(taskId) {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < this.config.maxWaitTimeMs) {
+      if (this.state.status === 'STOPPED') return null;
+
+      try {
+        // Poll status endpoint instead of result endpoint to avoid execution errors
+        const response = await apiRequest(`/api/v1/cloud-browser/tasks/${taskId}`);
+
+        if (response.success && response.data) {
+          const task = response.data;
+          console.log(`[CloudLeadNavigator] Task ${taskId} status: ${task.status}`);
+
+          if (task.status === 'completed') {
+            return { result: task.result };
+          }
+
+          if (task.status === 'failed' || task.status === 'cancelled') {
+            console.warn(`[CloudLeadNavigator] Task failed: ${task.error}`);
+            throw new Error(task.error || 'Task failed');
+          }
+        }
+      } catch (e) {
+        console.warn('[CloudLeadNavigator] Poll error:', e);
+      }
+
+      await sleep(this.config.pollIntervalMs);
+    }
+
+    console.warn('[CloudLeadNavigator] Task timeout:', taskId);
+    return null;
+  }
+
+  async saveLead(lead) {
+    try {
+      await apiRequest('/api/v1/leads/import', {
+        method: 'POST',
+        body: JSON.stringify({
+          source: 'cloud_browser',
+          platform: 'linkedin',
+          sourceUrl: lead.profileUrl,
+          leads: [lead],
+        }),
+      });
+
+      // Update local stats
+      const stats = await chrome.storage.local.get(['leadsToday', 'leadsMonth']);
+      await chrome.storage.local.set({
+        leadsToday: (stats.leadsToday || 0) + 1,
+        leadsMonth: (stats.leadsMonth || 0) + 1,
+      });
+
+      console.log('[CloudLeadNavigator] Lead saved:', lead.fullName);
+    } catch (e) {
+      console.error('[CloudLeadNavigator] Failed to save lead:', e);
+    }
+  }
+}
+
+// Create global instance
+const cloudLeadNavigator = new CloudLeadNavigator();
+
+
 // --- LEAD NAVIGATOR (Autonomous Agent) ---
 
 class LeadNavigator {
@@ -1505,6 +1890,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         case 'startAutoMode': {
+          // Safety check: Prevent legacy mode on LinkedIn if Cloud Mode is intended
+          const { keywords } = request;
+          // Legacy check: If we're on LinkedIn keywords are passed.
+          // We can't easily check the TAB URL here without async tabs.query, 
+          // but popup should have sent startCloudMode.
+          // However, we can simply log it.
+          console.log('[Lia 360 Legacy] startAutoMode called via:', request);
           navigator.start(request.keywords, request.criteria);
           sendResponse({ success: true });
           break;
@@ -1647,6 +2039,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
 
+        // --- Cloud Browser Mode Handlers ---
+        case 'startCloudMode': {
+          const { keywords, criteria, platform } = request.data || {};
+          if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+            sendResponse({ success: false, error: 'Keywords array is required' });
+            break;
+          }
+          // Pass target tab ID for UI updates
+          const targetTabId = sender?.tab?.id;
+          // Do NOT await start() as it runs the entire mining process.
+          // allowing it to run in background so we can respond to the UI immediately.
+          cloudLeadNavigator.start(keywords, criteria, platform || 'linkedin', targetTabId)
+            .catch(err => console.error('[Background] Cloud start error:', err));
+
+          sendResponse({ success: true, message: 'Cloud mode started' });
+          break;
+        }
+
+        case 'stopCloudMode': {
+          await cloudLeadNavigator.stop();
+          sendResponse({ success: true, message: 'Cloud mode stopped' });
+          break;
+        }
+
+        case 'getCloudModeStatus': {
+          const status = {
+            ...cloudLeadNavigator.state,
+            processedProfiles: cloudLeadNavigator.state.processedProfiles.size,
+          };
+          sendResponse({ success: true, data: status });
+          break;
+        }
+
+        case 'getCurrentTabId': {
+          // Return the tab ID of the sender (content script)
+          sendResponse({ tabId: sender?.tab?.id || null });
+          break;
+        }
+
+        case 'getWindowId': {
+          // Return the window ID of the sender tab
+          sendResponse({ windowId: sender?.tab?.windowId || null });
+          break;
+        }
+
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1707,6 +2144,7 @@ class AutomationExecutor {
     this.pollInterval = 10000; // 10 seconds
     this.isStopping = false; // Flag to prevent race conditions during stop
     this.finishedJobIds = new Set(); // Track finished jobs to prevent restart
+    this.extensionId = null; // Unique identifier for this extension instance
 
     // Initialize asynchronously
     this.initialize();
@@ -1719,10 +2157,27 @@ class AutomationExecutor {
   }
 
   async initialize() {
+    // Get or create unique extension ID
+    this.extensionId = await this.getOrCreateExtensionId();
+    console.log('[Lia 360] Extension ID:', this.extensionId);
+
     // Load finished job IDs FIRST
     await this.loadFinishedJobs();
     // Then restore state
     await this.restoreState();
+  }
+
+  async getOrCreateExtensionId() {
+    let { extensionId } = await chrome.storage.local.get(['extensionId']);
+    if (!extensionId) {
+      // Generate unique ID using crypto.randomUUID or fallback
+      extensionId = crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).substr(2);
+      await chrome.storage.local.set({ extensionId });
+      console.log('[Lia 360] Generated new extension ID:', extensionId);
+    }
+    return extensionId;
   }
 
   async loadFinishedJobs() {
@@ -1818,19 +2273,18 @@ class AutomationExecutor {
     console.log('[Lia 360] Polling for jobs at:', apiUrl);
 
     try {
-      const response = await apiRequest('/api/v1/automations/jobs', { method: 'GET' });
+      // Use new /claim endpoint with extensionId
+      const response = await apiRequest('/api/v1/automations/jobs/claim', {
+        method: 'POST',
+        body: JSON.stringify({ extensionId: this.extensionId })
+      });
       console.log('[Lia 360] Poll response:', response);
 
       if (response && response.success && response.data && response.data.length > 0) {
-        // Find first job that hasn't been finished locally
-        const job = response.data.find(j => !this.finishedJobIds.has(j.id));
+        // Job is already locked and marked as running by the API
+        const job = response.data[0];
 
-        if (!job) {
-          console.log('[Lia 360] All pending jobs were already finished locally');
-          return;
-        }
-
-        console.log('[Lia 360] Found pending job:', job.id, 'with', job.result?.leadsToProcess?.length || 0, 'leads');
+        console.log('[Lia 360] Claimed job:', job.id, 'with', job.result?.leadsToProcess?.length || 0, 'leads');
 
         // Notify user that automation is starting
         chrome.notifications.create({
@@ -1903,19 +2357,8 @@ class AutomationExecutor {
 
     await this.saveState();
 
-    // Update API status
-    try {
-      await apiRequest(`/api/v1/automations/jobs/${job.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'running' })
-      });
-      console.log('[Lia 360] Job status updated to running');
-    } catch (e) {
-      console.error('[Lia 360] Failed to update job status to RUNNING. Aborting job to prevent loop:', e);
-      this.state = null;
-      await this.saveState();
-      return; // CRITICAL: Do not proceed if we can't lock the job
-    }
+    // Job is already marked as "running" by the /claim endpoint
+    // No need to update status again
 
     chrome.notifications.create({
       type: 'basic',
@@ -1984,6 +2427,13 @@ class AutomationExecutor {
         }
       } else {
         console.log('[Lia 360] No existing tab, creating new window for:', lead.profileUrl);
+
+        // Set pendingTabCreation flag BEFORE creating window
+        // This prevents the content script from showing ProfileImportMenu during the race condition
+        this.state.pendingTabCreation = true;
+        await this.saveState();
+        console.log('[Lia 360] Set pendingTabCreation=true before window creation');
+
         const win = await chrome.windows.create({
           url: lead.profileUrl,
           focused: true,
@@ -2003,6 +2453,9 @@ class AutomationExecutor {
           this.state.tabId = win.tabs[0].id;
         }
 
+        // Clear pendingTabCreation flag now that we have the real tabId
+        this.state.pendingTabCreation = false;
+
         console.log('[Lia 360] Window created successfully:', { windowId: win.id, tabId: this.state.tabId });
       }
 
@@ -2020,12 +2473,23 @@ class AutomationExecutor {
   async onTabUpdated(tabId, changeInfo, tab) {
     if (!this.state || this.state.status !== 'RUNNING' || tabId !== this.state.tabId) return;
 
+    // Prevent duplicate processing of the same URL
+    const currentUrl = tab.url;
+    if (this.state._lastProcessedUrl === currentUrl && changeInfo.status === 'complete') {
+      console.log('[Lia 360] Same URL already processed, skipping duplicate event');
+      return;
+    }
+
     if (changeInfo.status === 'complete') {
+      // Mark URL as processed to prevent duplicates
+      this.state._lastProcessedUrl = currentUrl;
+      await this.saveState();
+
       console.log('[Lia 360] Tab loaded, injecting overlay...');
 
-      // 1. Show Overlay with full lead info
+      // 1. Show Overlay with full lead info - with retry for content script readiness
       const lead = this.state.currentLead;
-      await chrome.tabs.sendMessage(tabId, {
+      const overlayMessage = {
         action: 'SHOW_OVERLAY',
         state: {
           total: this.state.leads.length,
@@ -2037,7 +2501,29 @@ class AutomationExecutor {
           },
           status: 'Sending connection request...'
         }
-      }).catch(() => console.log('Content script not ready yet'));
+      };
+
+      // Retry sending SHOW_OVERLAY up to 5 times with exponential backoff
+      // This ensures content script has time to initialize
+      let overlayShown = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const result = await chrome.tabs.sendMessage(tabId, overlayMessage);
+          if (result && result.success) {
+            console.log('[Lia 360] SHOW_OVERLAY sent successfully on attempt', attempt + 1);
+            overlayShown = true;
+            break;
+          }
+        } catch (e) {
+          console.log(`[Lia 360] SHOW_OVERLAY attempt ${attempt + 1} failed:`, e.message);
+        }
+        // Wait before retry: 500ms, 1000ms, 1500ms, 2000ms, 2500ms
+        await this.sleep(500 * (attempt + 1));
+      }
+
+      if (!overlayShown) {
+        console.warn('[Lia 360] Failed to show overlay after 5 attempts, proceeding anyway');
+      }
 
       // 2. Perform Actions
       await this.executeActionsInTab(tabId);

@@ -1,40 +1,29 @@
-import { z } from "zod";
-import {
-  PLATFORMS,
-  LEAD_STATUSES,
-  COMPANY_ROLES,
-  WORKSPACE_ROLES,
-  USER_ROLES,
-} from "../constants";
+import { z } from 'zod';
+import { PLATFORMS, LEAD_STATUSES, COMPANY_ROLES, WORKSPACE_ROLES, USER_ROLES } from '../constants';
 
 // Auth schemas
 export const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 });
 
 export const registerSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().email('Email inválido'),
   password: z
     .string()
-    .min(8, "Senha deve ter pelo menos 8 caracteres")
-    .regex(/[A-Z]/, "Senha deve conter pelo menos uma letra maiúscula")
-    .regex(/[a-z]/, "Senha deve conter pelo menos uma letra minúscula")
-    .regex(/[0-9]/, "Senha deve conter pelo menos um número"),
-  fullName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  companyName: z
-    .string()
-    .min(2, "Nome da empresa deve ter pelo menos 2 caracteres"),
-  workspaceName: z
-    .string()
-    .min(2, "Nome do workspace deve ter pelo menos 2 caracteres")
-    .optional(),
+    .min(8, 'Senha deve ter pelo menos 8 caracteres')
+    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiúscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um número'),
+  fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  companyName: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres'),
+  workspaceName: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres').optional(),
 });
 
 export const selectContextSchema = z.object({
-  selectionToken: z.string().min(1, "Token de seleção é obrigatório"),
-  companyId: z.string().min(1, "ID da empresa é obrigatório"),
-  workspaceId: z.string().min(1, "ID do workspace é obrigatório"),
+  selectionToken: z.string().min(1, 'Token de seleção é obrigatório'),
+  companyId: z.string().min(1, 'ID da empresa é obrigatório'),
+  workspaceId: z.string().min(1, 'ID do workspace é obrigatório'),
 });
 
 // Company schemas
@@ -42,10 +31,7 @@ export const companyRoleSchema = z.enum(COMPANY_ROLES);
 export const workspaceRoleSchema = z.enum(WORKSPACE_ROLES);
 
 export const createCompanySchema = z.object({
-  name: z
-    .string()
-    .min(2, "Nome da empresa deve ter pelo menos 2 caracteres")
-    .max(100),
+  name: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres').max(100),
   workspaceName: z.string().min(2).max(100).optional(),
 });
 
@@ -55,24 +41,17 @@ export const updateCompanySchema = z.object({
 });
 
 export const inviteToCompanySchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().email('Email inválido'),
   role: companyRoleSchema.optional(),
-  workspaceAccess: z
-    .array(
-      z.object({
-        workspaceId: z.string().min(1),
-        role: workspaceRoleSchema,
-      }),
-    )
-    .optional(),
+  workspaceAccess: z.array(z.object({
+    workspaceId: z.string().min(1),
+    role: workspaceRoleSchema,
+  })).optional(),
 });
 
 // Workspace management schemas
 export const createWorkspaceSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Nome do workspace deve ter pelo menos 2 caracteres")
-    .max(100),
+  name: z.string().min(2, 'Nome do workspace deve ter pelo menos 2 caracteres').max(100),
 });
 
 export const updateWorkspaceSchema = z.object({
@@ -81,7 +60,7 @@ export const updateWorkspaceSchema = z.object({
 });
 
 export const addWorkspaceMemberSchema = z.object({
-  userId: z.string().min(1, "ID do usuário é obrigatório"),
+  userId: z.string().min(1, 'ID do usuário é obrigatório'),
   role: workspaceRoleSchema,
 });
 
@@ -90,7 +69,7 @@ export const updateWorkspaceMemberSchema = z.object({
 });
 
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token é obrigatório"),
+  refreshToken: z.string().min(1, 'Refresh token é obrigatório'),
 });
 
 // Lead schemas
@@ -98,17 +77,11 @@ export const platformSchema = z.enum(PLATFORMS);
 export const leadStatusSchema = z.enum(LEAD_STATUSES);
 
 // New lead enum schemas
-export const leadGenderSchema = z.enum(["male", "female", "other", "unknown"]);
-export const leadPrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
+export const leadGenderSchema = z.enum(['male', 'female', 'other', 'unknown']);
+export const leadPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 export const companySizeSchema = z.enum([
-  "SIZE_1_10",
-  "SIZE_11_50",
-  "SIZE_51_200",
-  "SIZE_201_500",
-  "SIZE_501_1000",
-  "SIZE_1001_5000",
-  "SIZE_5001_10000",
-  "SIZE_10001_PLUS",
+  'SIZE_1_10', 'SIZE_11_50', 'SIZE_51_200', 'SIZE_201_500',
+  'SIZE_501_1000', 'SIZE_1001_5000', 'SIZE_5001_10000', 'SIZE_10001_PLUS'
 ]);
 
 // Lead address schema
@@ -161,120 +134,72 @@ export const updateLeadSchema = z.object({
 });
 
 // Helper to validate URL, empty string, or null
-const urlOrEmpty = z
-  .union([z.string().url(), z.literal(""), z.null(), z.undefined()])
-  .transform((val) =>
-    val === "" || val === null || val === undefined ? null : val,
-  );
+const urlOrEmpty = z.union([
+  z.string().url(),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]).transform((val) => (val === '' || val === null || val === undefined ? null : val));
 
 // More lenient URL validation for avatar URLs (Instagram CDN URLs can be complex)
-const avatarUrlOrEmpty = z
-  .union([
-    z
-      .string()
-      .min(1)
-      .refine(
-        (val) => val.startsWith("http://") || val.startsWith("https://"),
-        {
-          message: "Avatar URL must start with http:// or https://",
-        },
-      ),
-    z.literal(""),
-    z.null(),
-    z.undefined(),
-  ])
-  .transform((val) =>
-    val === "" || val === null || val === undefined ? null : val,
-  );
+const avatarUrlOrEmpty = z.union([
+  z.string().min(1).refine((val) => val.startsWith('http://') || val.startsWith('https://'), {
+    message: 'Avatar URL must start with http:// or https://'
+  }),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]).transform((val) => (val === '' || val === null || val === undefined ? null : val));
 
 // Helper to validate email, empty string, or null
-const emailOrEmpty = z
-  .union([z.string().email(), z.literal(""), z.null(), z.undefined()])
-  .transform((val) =>
-    val === "" || val === null || val === undefined ? null : val,
-  );
+const emailOrEmpty = z.union([
+  z.string().email(),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]).transform((val) => (val === '' || val === null || val === undefined ? null : val));
 
 export const importLeadDataSchema = z.object({
-  username: z
-    .union([z.string().max(100), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
-  fullName: z
-    .union([z.string().max(200), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
+  username: z.union([z.string().max(100), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  fullName: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   profileUrl: urlOrEmpty.optional(),
   avatarUrl: avatarUrlOrEmpty.optional(),
-  bio: z
-    .union([z.string().max(1000), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
+  bio: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   email: emailOrEmpty.optional(),
-  phone: z
-    .union([z.string().max(50), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
-  followersCount: z
-    .union([z.number().int().min(0), z.null(), z.undefined()])
-    .optional(),
-  followingCount: z
-    .union([z.number().int().min(0), z.null(), z.undefined()])
-    .optional(),
-  postsCount: z
-    .union([z.number().int().min(0), z.null(), z.undefined()])
-    .optional(),
+  phone: z.union([z.string().max(50), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  followersCount: z.union([z.number().int().min(0), z.null(), z.undefined()]).optional(),
+  followingCount: z.union([z.number().int().min(0), z.null(), z.undefined()]).optional(),
+  postsCount: z.union([z.number().int().min(0), z.null(), z.undefined()]).optional(),
   verified: z.union([z.boolean(), z.null(), z.undefined()]).optional(),
-  location: z
-    .union([z.string().max(200), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
+  location: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   website: urlOrEmpty.optional(),
   // LinkedIn-specific fields
-  headline: z
-    .union([z.string().max(500), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
-  company: z
-    .union([z.string().max(200), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
-  industry: z
-    .union([z.string().max(200), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
-  connectionCount: z
-    .union([z.number().int().min(0), z.null(), z.undefined()])
-    .optional(),
+  headline: z.union([z.string().max(500), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  company: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  industry: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
+  connectionCount: z.union([z.number().int().min(0), z.null(), z.undefined()]).optional(),
   // Score and analysis fields (from AI)
-  score: z
-    .union([z.number().int().min(0).max(100), z.null(), z.undefined()])
-    .optional(),
-  analysisReason: z
-    .union([z.string().max(1000), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
+  score: z.union([z.number().int().min(0).max(100), z.null(), z.undefined()]).optional(),
+  analysisReason: z.union([z.string().max(1000), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   // Enrichment data (LinkedIn deep extraction)
   enrichment: z.any().optional(), // Will be validated by linkedInEnrichmentPayloadSchema when present
   // New fields for expanded lead data
   gender: z.union([leadGenderSchema, z.null(), z.undefined()]).optional(),
   priority: z.union([leadPrioritySchema, z.null(), z.undefined()]).optional(),
-  jobTitle: z
-    .union([z.string().max(200), z.literal(""), z.null(), z.undefined()])
-    .transform((val) => (val === "" ? null : val))
-    .optional(),
+  jobTitle: z.union([z.string().max(200), z.literal(''), z.null(), z.undefined()]).transform((val) => (val === '' ? null : val)).optional(),
   companySize: z.union([companySizeSchema, z.null(), z.undefined()]).optional(),
   address: leadAddressSchema.nullable().optional(),
 });
 
 export const importLeadsSchema = z.object({
-  source: z.enum(["extension", "csv", "manual"]),
+  source: z.enum(['extension', 'csv', 'manual']),
   platform: platformSchema,
-  sourceUrl: z
-    .union([z.string().url(), z.literal(""), z.null(), z.undefined()])
-    .transform((val) =>
-      val === "" || val === null || val === undefined ? null : val,
-    )
-    .optional(),
+  sourceUrl: z.union([
+    z.string().url(),
+    z.literal(''),
+    z.null(),
+    z.undefined(),
+  ]).transform((val) => (val === '' || val === null || val === undefined ? null : val)).optional(),
   leads: z.array(importLeadDataSchema).min(1).max(1000),
   tags: z.array(z.string()).optional(),
   autoAssign: z.boolean().optional(),
@@ -297,7 +222,7 @@ export const instagramPostDataSchema = z.object({
 
 // Import Post schema - for importing post data only (not the lead itself)
 export const importPostSchema = z.object({
-  platform: z.literal("instagram"),
+  platform: z.literal('instagram'),
   postData: instagramPostDataSchema,
   tags: z.array(z.string()).optional(),
   pipelineStageId: z.string().optional(),
@@ -323,9 +248,7 @@ export const updateTagSchema = z.object({
 // Conversation schemas
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
-  messageType: z
-    .enum(["text", "image", "video", "audio", "document", "template"])
-    .optional(),
+  messageType: z.enum(['text', 'image', 'video', 'audio', 'document', 'template']).optional(),
 });
 
 // Template schemas
@@ -345,7 +268,7 @@ export const updateTemplateSchema = z.object({
 
 // User schemas
 export const inviteUserSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().email('Email inválido'),
   role: z.enum(USER_ROLES).optional(),
 });
 
@@ -374,14 +297,16 @@ export const leadFiltersSchema = paginationSchema.extend({
 
 // Conversation filters
 export const conversationFiltersSchema = paginationSchema.extend({
-  status: z.enum(["active", "archived"]).optional(),
+  status: z.enum(['active', 'archived']).optional(),
   unread: z.coerce.boolean().optional(),
   platform: platformSchema.optional(),
   assignedTo: z.string().optional(),
 });
 
-export * from "./agents";
-export * from "./automations";
-export * from "./enrichment";
-export * from "./posts";
-export * from "./scoring";
+export * from './agents';
+export * from './automations';
+export * from './enrichment';
+export * from './onboarding';
+export * from './posts';
+export * from './scoring';
+export * from './cloud-browser';

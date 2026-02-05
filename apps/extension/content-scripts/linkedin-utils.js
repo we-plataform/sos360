@@ -43,12 +43,31 @@
             if (criteria.countries && criteria.countries.length > 0) {
                 const leadCountry = this.extractCountry(leadData);
                 if (!leadCountry) {
+<<<<<<< HEAD
+                    if (criteria.ignoreCountryIfUnknown === false) return false;
+=======
                     if (!criteria.ignoreCountryIfUnknown) return false;
+>>>>>>> origin/main
                 } else if (!criteria.countries.includes(leadCountry)) {
                     return false;
                 }
             }
 
+<<<<<<< HEAD
+            // Gender filter
+            if (criteria.gender && criteria.gender.length > 0 && window.LiaGender) {
+                const gender = window.LiaGender.predict(leadData.fullName);
+                if (!gender) {
+                    // Unknown gender
+                    if (criteria.ignoreGenderIfUnknown === false) return false;
+                } else {
+                    // Known gender - check if allowed (e.g. ['male'] or ['female'])
+                    if (!criteria.gender.includes(gender)) return false;
+                }
+            }
+
+=======
+>>>>>>> origin/main
             // Job title filter
             if (criteria.jobTitleInclude && criteria.jobTitleInclude.length > 0) {
                 const headline = (leadData.headline || '').toLowerCase();

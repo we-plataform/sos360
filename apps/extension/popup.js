@@ -242,8 +242,13 @@ async function loadStats() {
 
 // Auto Mode Logic
 async function loadAutoCheck() {
-  const result = await chrome.storage.local.get(['autoModeState', 'autoKeywords', 'autoCriteria']);
-  const state = result.autoModeState || { status: 'IDLE', message: '' };
+  const result = await chrome.storage.local.get(['autoModeState', 'cloudModeState', 'autoKeywords', 'autoCriteria']);
+
+  // Prioritize Cloud Mode state if it's active
+  let state = result.autoModeState || { status: 'IDLE', message: '' };
+  if (result.cloudModeState && result.cloudModeState.status !== 'IDLE' && result.cloudModeState.status !== 'STOPPED') {
+    state = result.cloudModeState;
+  }
 
   if (result.autoKeywords) {
     autoKeywordsInput.value = result.autoKeywords;
@@ -488,17 +493,34 @@ startAutoBtn.addEventListener('click', async () => {
 
   await chrome.storage.local.set({ autoKeywords: keywords, autoCriteria: criteria });
 
+  console.log('[Lia 360] Start Auto clicked. Platform:', currentPlatform);
+
+  // Force check if currentPlatform is null but tab URL contains linkedin
+  if (currentTab && currentTab.url && currentTab.url.includes('linkedin.com')) {
+    currentPlatform = 'linkedin';
+  }
+
+  const action = currentPlatform === 'linkedin' ? 'startCloudMode' : 'startAutoMode';
+  console.log('[Lia 360] Action determined:', action);
+
   chrome.runtime.sendMessage({
-    action: 'startAutoMode',
+    action: action,
+    data: { // Wrap in data object to match startCloudMode expectation
+      keywords: keywords.split('\n').map(k => k.trim()).filter(Boolean),
+      criteria: criteria,
+      platform: currentPlatform
+    },
+    // Legacy support for startAutoMode which expects top-level props
     keywords: keywords.split('\n').map(k => k.trim()).filter(Boolean),
     criteria: criteria
   });
 
-  updateAutoUI({ status: 'STARTING', message: 'Iniciando...' });
+  updateAutoUI({ status: 'STARTING', message: action === 'startCloudMode' ? 'Iniciando Cloud Browser...' : 'Iniciando automação local...' });
 });
 
 stopAutoBtn.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'stopAutoMode' });
+  const action = currentPlatform === 'linkedin' ? 'stopCloudMode' : 'stopAutoMode';
+  chrome.runtime.sendMessage({ action: action });
   updateAutoUI({ status: 'IDLE', message: 'Parando...' });
 });
 

@@ -587,3 +587,58 @@ function buildCriteriaDescription(config: ScoringConfig): string {
 
   return parts.join("; ");
 }
+<<<<<<< HEAD
+
+// Scoring service object for batch operations
+export const scoringService = {
+  async batchScoreLeads(
+    leadIds: string[],
+    reason: string,
+  ): Promise<{ succeeded: number; failed: number; errors: string[] }> {
+    try {
+      const succeeded: number[] = [];
+      const errors: string[] = [];
+
+      for (const leadId of leadIds) {
+        try {
+          // Get workspace ID from lead
+          const lead = await prisma.lead.findUnique({
+            where: { id: leadId },
+            select: { id: true, pipelineStage: { select: { pipelineId: true } } },
+          });
+
+          if (!lead?.pipelineStage?.pipelineId) {
+            errors.push(`Lead ${leadId}: no pipeline found`);
+            continue;
+          }
+
+          // Score the lead
+          await calculateLeadScore(leadId, lead.pipelineStage.pipelineId);
+          succeeded.push(leadId);
+        } catch (error) {
+          errors.push(`Lead ${leadId}: ${error instanceof Error ? error.message : "unknown error"}`);
+        }
+      }
+
+      return {
+        succeeded: succeeded.length,
+        failed: errors.length,
+        errors,
+      };
+    } catch (error) {
+      return {
+        succeeded: 0,
+        failed: leadIds.length,
+        errors: [`Failed to batch score: ${error instanceof Error ? error.message : "unknown error"}`],
+      };
+    }
+  },
+
+  async getScoringModel(pipelineId: string) {
+    return prisma.scoringModel.findUnique({
+      where: { pipelineId },
+    });
+  },
+};
+=======
+>>>>>>> origin/main

@@ -107,14 +107,13 @@ model Workspace {
   socialProfiles SocialProfile[]
   tags        Tag[]
   templates   Template[]
-  agents      Agent[]
   automations Automation[]
   webhooks    Webhook[]
   importJobs  ImportJob[]
   pipelines   Pipeline[]
   audiences   Audience[]
   posts       Post[]
-  scoringConfig ScoringConfig?
+  agents      Agent[]
 
   @@index([companyId])
   @@map("workspaces")
@@ -167,6 +166,9 @@ model User {
   createdAutomations    Automation[]   @relation("CreatedAutomations")
   activities            Activity[]     @relation("UserActivities")
 
+  // Onboarding relation
+  onboarding OnboardingProgress?
+
   @@index([email])
   @@map("users")
 }
@@ -187,6 +189,69 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+// ============================================
+// ONBOARDING
+// ============================================
+
+model OnboardingProgress {
+  id          String             @id @default(cuid())
+  userId      String             @unique
+  persona     OnboardingPersona?
+  status      OnboardingStatus   @default(not_started)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps OnboardingStep[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("onboarding_progress")
+}
+
+model OnboardingStep {
+  id          String             @id @default(cuid())
+  progressId  String
+  stepType    OnboardingStepType
+  isCompleted Boolean            @default(false)
+  completedAt DateTime?
+  metadata    Json               @default("{}")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  progress OnboardingProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+
+  @@unique([progressId, stepType])
+  @@index([progressId])
+  @@index([stepType])
+  @@map("onboarding_steps")
+}
+
+enum OnboardingPersona {
+  sales
+  marketing
+  management
+}
+
+enum OnboardingStatus {
+  not_started
+  in_progress
+  completed
+  skipped
+}
+
+enum OnboardingStepType {
+  install_extension
+  create_pipeline
+  capture_lead
+  send_message
+  create_automation
+  create_audience
+  import_leads
+  setup_workspace
 }
 
 // ============================================
@@ -507,36 +572,6 @@ model Template {
 }
 
 // ============================================
-// AGENTS
-// ============================================
-
-enum AgentType {
-  SOCIAL_SELLER
-  SDR
-  CLOSER
-}
-
-model Agent {
-  id           String     @id @default(cuid())
-  name         String
-  type         AgentType
-  systemPrompt String
-  temperature  Float      @default(0.7)
-  maxTokens    Int        @default(500)
-  model        String     @default("gpt-4o-mini")
-  enabled      Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, enabled])
-  @@index([workspaceId, type])
-  @@map("agents")
-}
-
-// ============================================
 // AUTOMATIONS
 // ============================================
 
@@ -580,6 +615,8 @@ model AutomationLog {
   startedAt       DateTime            @default(now())
   completedAt     DateTime?
   executedAt      DateTime            @default(now()) // Keep for backward compat or remove? Let's keep.
+  lockedAt        DateTime?           // Timestamp when job was locked by a worker
+  lockedBy        String?             // Identificador do worker (extensionId)
 
   automationId String
   automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
@@ -588,6 +625,7 @@ model AutomationLog {
   lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([automationId, startedAt])
+  @@index([lockedAt])
   @@map("automation_logs")
 }
 
@@ -780,40 +818,6 @@ model Audience {
   @@unique([workspaceId, name])
   @@index([workspaceId])
   @@map("audiences")
-}
-
-// ============================================
-// LEAD SCORING
-// ============================================
-
-model ScoringConfig {
-  id          String   @id @default(cuid())
-
-  // Scoring weights (0-100, should sum to 100)
-  jobTitleWeight            Int @default(25)  // Weight for job title match
-  companyWeight             Int @default(20)  // Weight for company relevance
-  profileCompletenessWeight Int @default(15)  // Weight for profile completeness
-  activityWeight            Int @default(20)  // Weight for activity signals
-  enrichmentWeight          Int @default(20)  // Weight for enrichment data quality
-
-  // Target criteria (ICP - Ideal Customer Profile)
-  targetJobTitles       String[]      @default([])  // e.g., ["CEO", "CTO", "VP of Engineering"]
-  targetCompanySizes    CompanySize[] @default([])  // e.g., [SIZE_51_200, SIZE_201_500]
-  targetIndustries      String[]      @default([])  // e.g., ["Technology", "Software"]
-  minProfileCompleteness Int          @default(50)  // Minimum profile completeness score (0-100)
-
-  // Additional settings
-  autoScoreOnImport Boolean @default(true)  // Automatically score new leads
-  autoScoreOnUpdate Boolean @default(true)  // Automatically rescore when lead data changes
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  workspaceId String    @unique  // One config per workspace
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@map("scoring_configs")
 }
 
 // ============================================
@@ -1230,4 +1234,90 @@ model PostTag {
 
   @@id([postId, tagId])
   @@map("post_tags")
+}
+
+// ============================================
+// CLOUD BROWSER (Skyvern / Manus)
+// ============================================
+
+model CloudBrowserSession {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  platform        String   // linkedin, instagram, etc
+  manusSessionId  String?  // External session ID (Skyvern/Manus)
+  status          SessionStatus @default(active)
+  lastUsedAt      DateTime @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tasks           CloudBrowserTask[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@map("cloud_browser_sessions")
+}
+
+enum SessionStatus {
+  active
+  expired
+  revoked
+}
+
+model CloudBrowserTask {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         CloudBrowserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  manusTaskId     String?  // External task ID (Skyvern run_id)
+  prompt          String   // Goal/Prompt
+  status          TaskStatus @default(pending)
+  result          Json?    // Extracted data
+  error           String?
+  cost            Int?     // Step count or credits
+  
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([status])
+  @@map("cloud_browser_tasks")
+}
+
+enum TaskStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+// ============================================
+// AGENTS (AI Personas)
+// ============================================
+
+model Agent {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String   // SOCIAL_SELLER, SDR, CLOSER
+  systemPrompt String   @db.Text // System prompt / persona definition
+  model       String   @default("gpt-4o-mini") // LLM model identifier
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(500)
+  
+  enabled     Boolean  @default(true)
+  avatarUrl   String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Future relations can be added here (e.g., specific tools, knowledge bases)
+
+  @@index([workspaceId])
+  @@map("agents")
 }

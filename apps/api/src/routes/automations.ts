@@ -13,6 +13,30 @@ import { upsertAutomationSchema, generateMessageSchema } from "@lia360/shared";
 // All routes require authentication
 automationsRouter.use(authenticate);
 
+// Middleware to clean up expired locks (runs ~10% of the time)
+automationsRouter.use(async (req, res, next) => {
+  if (Math.random() < 0.1) {
+    try {
+      await prisma.automationLog.updateMany({
+        where: {
+          status: "running",
+          lockedAt: { lt: new Date(Date.now() - 15 * 60 * 1000) }, // 15 min timeout
+        },
+        data: {
+          status: "failed",
+          lockedAt: null,
+          lockedBy: null,
+          errorMessage: "Job timeout - lock expired",
+        },
+      });
+    } catch (error) {
+      // Log but don't block requests
+      console.error("[Automations] Failed to cleanup expired locks:", error);
+    }
+  }
+  next();
+});
+
 // POST /automations - Create or Update Automation for a Stage
 automationsRouter.post(
   "/",
@@ -203,6 +227,73 @@ automationsRouter.get(
       next(error);
     }
   },
+<<<<<<< HEAD
+);
+
+// POST /automations/jobs/claim - Claim a pending job with atomic locking
+automationsRouter.post(
+  "/jobs/claim",
+  authorize("owner", "admin", "manager", "agent"),
+  async (req, res, next) => {
+    try {
+      const { workspaceId } = req.user!;
+      const { extensionId } = req.body;
+
+      if (!extensionId) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            type: "validation_error",
+            title: "Missing extension ID",
+            detail: "extensionId is required for job claiming",
+          },
+        });
+      }
+
+      // Find and lock a job atomically using transaction
+      const job = await prisma.$transaction(async (tx) => {
+        // Find a pending job that is not locked OR lock has expired (> 5 minutes)
+        const candidate = await tx.automationLog.findFirst({
+          where: {
+            status: "pending",
+            automation: { workspaceId },
+            OR: [
+              { lockedAt: null },
+              { lockedAt: { lt: new Date(Date.now() - 5 * 60 * 1000) }, }, // Lock expired (> 5 min)
+            ],
+          },
+          include: { automation: true },
+          orderBy: { startedAt: "asc" },
+        });
+
+        if (!candidate) {
+          return null;
+        }
+
+        // Lock the job atomically
+        const locked = await tx.automationLog.update({
+          where: { id: candidate.id },
+          data: {
+            lockedAt: new Date(),
+            lockedBy: extensionId,
+            status: "running",
+          },
+        });
+
+        return locked;
+      });
+
+      if (!job) {
+        return res.json({ success: true, data: [] });
+      }
+
+      res.json({ success: true, data: [job] });
+    } catch (error) {
+      next(error);
+    }
+  },
+=======
+>>>>>>> origin/main
 );
 
 // PATCH /automations/jobs/:id - Update job status
@@ -231,6 +322,12 @@ automationsRouter.patch(
             dbStatus === "success" || dbStatus === "failed"
               ? new Date()
               : undefined,
+<<<<<<< HEAD
+          // Clear lock when job is completed/failed
+          lockedAt: dbStatus === "success" || dbStatus === "failed" ? null : undefined,
+          lockedBy: dbStatus === "success" || dbStatus === "failed" ? null : undefined,
+=======
+>>>>>>> origin/main
         },
       });
 

@@ -21,6 +21,10 @@ const entryPoints = [
   'content-scripts/linkedin-utils.js',
   'content-scripts/linkedin-dom.js',
   'content-scripts/linkedin-state.js',
+<<<<<<< HEAD
+  'content-scripts/linkedin-gender.js',
+=======
+>>>>>>> origin/main
   'content-scripts/linkedin-core.js',
   'content-scripts/linkedin-selectors.js',
   'content-scripts/dashboard-sync.js',
@@ -33,7 +37,12 @@ const entryPoints = [
   'content-scripts/instagram/profile-import.js',
   'content-scripts/instagram/utils.js',
   'content-scripts/overlay.js',
+<<<<<<< HEAD
+  'content-scripts/settings-manager.js',
+  'content-scripts/twitter.js'
+=======
   'content-scripts/settings-manager.js'
+>>>>>>> origin/main
 ];
 
 // Copy static files (manifest, HTML, CSS, images)
@@ -88,7 +97,11 @@ async function build() {
   // Build JavaScript files
   const context = await esbuild.context({
     entryPoints,
+<<<<<<< HEAD
+    bundle: true, // Enable bundling to include automation dependencies
+=======
     bundle: false, // Keep files separate (Chrome extension requirement)
+>>>>>>> origin/main
     minify: true,
     sourcemap: true,
     target: 'es2020',

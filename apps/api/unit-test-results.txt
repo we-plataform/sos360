@@ -1,0 +1,160 @@
+
+> @lia360/api@0.0.1 test
+> vitest leads.test.ts
+
+
+ DEV  v1.6.1 /Users/farinelli/Documents/Projects/lia360-web/.auto-claude/worktrees/tasks/006-recalculate-score-on-lead-update-import/apps/api
+
+ ❯ src/routes/leads.test.ts  (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/routes/leads.test.ts [ src/routes/leads.test.ts ]
+Error: Failed to resolve entry for package "@lia360/database". The package may have incorrect main/module/exports specified in its package.json.
+ ❯ packageEntryFailure ../../node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46638:15
+ ❯ resolvePackageEntry ../../node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46635:3
+ ❯ tryNodeResolve ../../node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46451:16
+ ❯ ResolveIdContext.resolveId ../../node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46201:19
+ ❯ PluginContainer.resolveId ../../node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49018:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  21:23:57
+   Duration  279ms (transform 64ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 57ms)
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+[3Jc
+ RERUN  src/routes/leads.test.ts x1
+
+ ❯ src/routes/leads.test.ts  (12 tests | 2 failed) 52ms
+   ❯ src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should successfully update existing lead and recalculate score end-to-end
+     → expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+   ❯ src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should emit socket event with updated lead data
+     → expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should successfully update existing lead and recalculate score end-to-end
+AssertionError: expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/routes/leads.test.ts:1006:55
+    1004|       });
+    1005|       expect(mockIo.to).toHaveBeenCalledWith('workspace:workspace-1');
+    1006|       expect(mockIo.to('workspace:workspace-1').emit).toHaveBeenCalled…
+       |                                                       ^
+    1007|     });
+    1008| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should emit socket event with updated lead data
+AssertionError: expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/routes/leads.test.ts:1082:55
+    1080|       // Assert
+    1081|       expect(mockIo.to).toHaveBeenCalledWith('workspace:workspace-1');
+    1082|       expect(mockIo.to('workspace:workspace-1').emit).toHaveBeenCalled…
+       |                                                       ^
+    1083|         id: 'lead-1',
+    1084|         score: 70,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 10 passed (12)
+   Start at  21:34:37
+   Duration  575ms
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x1
+[2K[1A[2K[G[3Jc
+ RERUN  src/routes/leads.test.ts x2
+
+ ❯ src/routes/leads.test.ts  (12 tests | 1 failed) 46ms
+   ❯ src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should emit socket event with updated lead data
+     → expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/routes/leads.test.ts > Lead Score Recalculation - Integration Tests > POST /leads - Integration > should emit socket event with updated lead data
+AssertionError: expected "spy" to be called with arguments: [ 'lead:updated', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/routes/leads.test.ts:1084:55
+    1082|       // Assert
+    1083|       expect(mockIo.to).toHaveBeenCalledWith('workspace:workspace-1');
+    1084|       expect(mockIo.to('workspace:workspace-1').emit).toHaveBeenCalled…
+       |                                                       ^
+    1085|         id: 'lead-1',
+    1086|         score: 70,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  21:35:49
+   Duration  239ms
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+       rerun x2
+[2K[1A[2K[G[3Jc
+ RERUN  src/routes/leads.test.ts x3
+
+ ✓ src/routes/leads.test.ts  (12 tests) 38ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  21:36:01
+   Duration  294ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+       rerun x3
+[2K[1A[2K[G

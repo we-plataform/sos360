@@ -8,18 +8,31 @@ import {
   Users,
   Target,
   MessageSquare,
+<<<<<<< HEAD
+  Bot,
+=======
+>>>>>>> origin/main
   Settings,
   LogOut,
   FileText,
   ChevronLeft,
   ChevronRight,
   AppWindow,
+<<<<<<< HEAD
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { Avatar } from '@/components/ui/avatar';
+import { ContextSelector } from '@/components/dashboard/context-selector';
+import { Button } from '@/components/ui/button';
+=======
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { Avatar } from "@/components/ui/avatar";
 import { ContextSelector } from "@/components/dashboard/context-selector";
 import { Button } from "@/components/ui/button";
+>>>>>>> origin/main
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +44,31 @@ const navigation = [
   {
     title: null,
     items: [
+<<<<<<< HEAD
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
+    title: 'CRM',
+    items: [
+      { name: 'Leads', href: '/dashboard/leads', icon: Users, exact: false },
+      { name: 'Audiências', href: '/dashboard/audiences', icon: Target, exact: false },
+      { name: 'Agentes', href: '/dashboard/agents', icon: Bot, exact: false },
+    ],
+  },
+  {
+    title: 'CONTEÚDO',
+    items: [
+      { name: 'Posts', href: '/dashboard/posts', icon: FileText, exact: false },
+      { name: 'Inbox', href: '/dashboard/inbox', icon: MessageSquare, exact: false },
+    ],
+  },
+  {
+    title: 'SISTEMA',
+    items: [
+      { name: 'Apps', href: '/dashboard/apps', icon: AppWindow, exact: false },
+      { name: 'Configurações', href: '/dashboard/settings', icon: Settings, exact: false },
+=======
       {
         name: "Dashboard",
         href: "/dashboard",
@@ -73,6 +111,7 @@ const navigation = [
         icon: Settings,
         exact: false,
       },
+>>>>>>> origin/main
     ],
   },
 ];
@@ -160,7 +199,11 @@ export function Sidebar() {
                 const isActive = item.exact
                   ? pathname === item.href
                   : pathname === item.href ||
+<<<<<<< HEAD
+                  pathname.startsWith(item.href + "/");
+=======
                     pathname.startsWith(item.href + "/");
+>>>>>>> origin/main
 
                 if (isCollapsed) {
                   return (

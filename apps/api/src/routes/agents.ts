@@ -43,6 +43,11 @@ agentsRouter.post(
       const workspaceId = req.user!.workspaceId;
       const {
         name,
+<<<<<<< HEAD
+        description,
+        avatarUrl,
+=======
+>>>>>>> origin/main
         type,
         systemPrompt,
         temperature,
@@ -54,6 +59,11 @@ agentsRouter.post(
       const agent = await prisma.agent.create({
         data: {
           name,
+<<<<<<< HEAD
+          description,
+          avatarUrl,
+=======
+>>>>>>> origin/main
           type,
           systemPrompt,
           temperature: temperature ?? 0.7,

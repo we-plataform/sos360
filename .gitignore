@@ -50,6 +50,12 @@ yarn-error.log*
 Thumbs.db
 # Agent
 <<<<<<< HEAD
+.agent/
+
+# Auto Claude generated files
+.auto-claude/
+=======
+<<<<<<< HEAD
 
 
 # Auto Claude data directory
@@ -88,6 +94,7 @@ node_modules/
 >>>>>>> auto-claude/004-add-rate-limiting-to-ai-analysis-and-enrichment-en
 
 # Auto Claude generated files
+>>>>>>> origin/main
 .auto-claude-security.json
 .auto-claude-status
 .claude_settings.json

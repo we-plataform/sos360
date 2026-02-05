@@ -82,6 +82,10 @@ export const RATE_LIMITS = {
   auth: { max: 10, windowMs: 60000 },
   import: { max: 5, windowMs: 60000 },
   messages: { max: 60, windowMs: 60000 },
+  analyze: { max: 20, windowMs: 60000 },
+  analyzeBatch: { max: 5, windowMs: 60000 },
+  analyzeDeep: { max: 5, windowMs: 60000 },
+  enrich: { max: 10, windowMs: 60000 },
   default: { max: 100, windowMs: 60000 },
 };
 

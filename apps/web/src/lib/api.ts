@@ -656,6 +656,46 @@ class ApiClient {
     return this.request(`/api/v1/scoring/calculate/batch`, {
       method: "POST",
       body: JSON.stringify({ leadIds, forceRecalculate }),
+<<<<<<< HEAD
+    });
+  }
+  // Agents
+  async getAgents(params?: { type?: string; enabled?: boolean }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/v1/agents${query ? `?${query}` : ""}`);
+  }
+
+  async getAgent(id: string) {
+    return this.request(`/api/v1/agents/${id}`);
+  }
+
+  async createAgent(data: Record<string, unknown>) {
+    return this.request("/api/v1/agents", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAgent(id: string, data: Record<string, unknown>) {
+    return this.request(`/api/v1/agents/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAgent(id: string) {
+    return this.request(`/api/v1/agents/${id}`, {
+      method: "DELETE",
+=======
+>>>>>>> origin/main
     });
   }
 }

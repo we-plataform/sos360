@@ -8,7 +8,13 @@ import {
   ChevronDown,
   User,
   LogOut,
+<<<<<<< HEAD
+  Download,
 } from "lucide-react";
+import { ExtensionInstallDialog } from "@/components/ExtensionInstallDialog";
+=======
+} from "lucide-react";
+>>>>>>> origin/main
 import { Button } from "@/components/ui/button";
 import { GlobalSearchDialog } from "@/components/search/global-search-dialog";
 import {
@@ -55,6 +61,18 @@ export function Header() {
       <header className="sticky top-0 z-40 h-16 w-full border-b border-border/40 bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         {/* Right: Actions */}
         <div className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-3">
+<<<<<<< HEAD
+          <ExtensionInstallDialog>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mr-2 hidden gap-2 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 sm:flex"
+            >
+              <Download className="h-4 w-4" />
+              Instalar Extensão
+            </Button>
+          </ExtensionInstallDialog>
+
           <Button
             variant="ghost"
             size="icon"
@@ -65,6 +83,18 @@ export function Header() {
             <span className="sr-only">Notificações</span>
           </Button>
 
+=======
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative text-muted-foreground hover:text-foreground"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-indigo-600" />
+            <span className="sr-only">Notificações</span>
+          </Button>
+
+>>>>>>> origin/main
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

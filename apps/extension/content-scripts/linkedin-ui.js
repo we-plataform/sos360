@@ -602,13 +602,26 @@
                         option.textContent = audience.name;
                         select.appendChild(option);
                     });
+<<<<<<< HEAD
+
+                    // Restore selection if exists in state
+                    const state = window.LiaState.get();
+                    if (state.selectedAudience && state.selectedAudience.id) {
+                        select.value = state.selectedAudience.id;
+                    }
+=======
+>>>>>>> origin/main
                 }
             } catch (error) {
                 console.error('[Lia 360] Error loading audiences:', error);
             }
         },
 
+<<<<<<< HEAD
+        updateScrollStatus: function (message, progress = null) {
+=======
         updateScrollStatus: function(message, progress = null) {
+>>>>>>> origin/main
             const overlay = document.getElementById(UI_ID);
             if (!overlay) return;
 
@@ -626,6 +639,668 @@
             if (progress !== null) {
                 statusEl.textContent = `${message} (${progress}%)`;
             }
+<<<<<<< HEAD
+        },
+
+        // --- Automation Overlay Functions ---
+
+        // Automation overlay state
+        _automationLogs: [],
+        _countdownInterval: null,
+        _isCountingDown: false,
+        _lastNextStepTime: 0,
+        _NEXT_STEP_DEBOUNCE_MS: 5000,
+
+        isAutomationActive: function() {
+            const overlay = document.getElementById(AUTOMATION_OVERLAY_ID);
+            return overlay && overlay.style.display !== 'none';
+        },
+
+        createAutomationOverlay: function() {
+            if (document.getElementById(AUTOMATION_OVERLAY_ID)) return;
+
+            const overlay = document.createElement('div');
+            overlay.id = AUTOMATION_OVERLAY_ID;
+            overlay.innerHTML = `
+              <div class="sos-auto-header">
+                <span class="sos-auto-title">Automation in progress</span>
+                <button id="sos-auto-minimize" class="sos-auto-minimize-btn" title="Minimize">─</button>
+              </div>
+
+              <div class="sos-auto-body" id="sos-auto-body">
+                <div class="sos-auto-progress-section">
+                  <div class="sos-auto-progress-header">
+                    <span class="sos-auto-spinner"></span>
+                    <span id="sos-auto-progress-text">Progress: 0 of 0 Leads</span>
+                  </div>
+                  <div class="sos-auto-progress-bar-container">
+                    <div class="sos-auto-progress-bar" id="sos-auto-progress-bar"></div>
+                  </div>
+                  <div class="sos-auto-progress-percent" id="sos-auto-progress-percent">0%</div>
+                  <div class="sos-auto-time-left" id="sos-auto-time-left">Estimated time left: calculating...</div>
+                </div>
+
+                <div class="sos-auto-current-lead" id="sos-auto-current-lead">
+                  <div class="sos-auto-lead-placeholder">Aguardando...</div>
+                </div>
+
+                <div class="sos-auto-actions">
+                  <button id="sos-auto-logs-btn" class="sos-auto-btn sos-auto-btn-secondary">
+                    📋 Open Detailed Log
+                  </button>
+                  <button id="sos-auto-stop-btn" class="sos-auto-btn sos-auto-btn-danger">
+                    ⏹ Stop Automation
+                  </button>
+                </div>
+
+                <div class="sos-auto-warnings">
+                  <div class="sos-auto-warning">
+                    ⚠️ Keep this page open and visible until the task is completed.
+                  </div>
+                  <div class="sos-auto-warning">
+                    Don't resize the window to avoid switching to mobile layout.
+                  </div>
+                  <div class="sos-auto-warning">
+                    Don't close or minimize the window, or the automation will cancel.
+                  </div>
+                </div>
+
+                <div class="sos-auto-logs-panel" id="sos-auto-logs-panel" style="display: none;">
+                  <div class="sos-auto-logs-header">
+                    <span>Detailed Logs</span>
+                    <button id="sos-auto-logs-close" class="sos-auto-close-btn">×</button>
+                  </div>
+                  <div class="sos-auto-logs-content" id="sos-auto-logs-content">
+                    <div class="sos-auto-log-empty">No logs yet...</div>
+                  </div>
+                </div>
+              </div>
+
+              <style>
+                #${AUTOMATION_OVERLAY_ID} {
+                  position: fixed;
+                  top: 80px;
+                  right: 20px;
+                  width: 320px;
+                  background: #1f2937;
+                  color: #fff;
+                  border-radius: 12px;
+                  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                  z-index: 2147483647;
+                  font-family: -apple-system, system-ui, sans-serif;
+                  overflow: hidden;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-header {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  padding: 12px 16px;
+                  background: #374151;
+                  border-bottom: 1px solid #4b5563;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-title {
+                  font-weight: 600;
+                  font-size: 14px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-minimize-btn {
+                  background: none;
+                  border: none;
+                  color: #9ca3af;
+                  font-size: 16px;
+                  cursor: pointer;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-minimize-btn:hover {
+                  background: #4b5563;
+                  color: #fff;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-body {
+                  padding: 16px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-progress-section {
+                  margin-bottom: 16px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-progress-header {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-spinner {
+                  width: 16px;
+                  height: 16px;
+                  border: 2px solid #4b5563;
+                  border-top-color: #3b82f6;
+                  border-radius: 50%;
+                  animation: sos-spin 1s linear infinite;
+                }
+
+                @keyframes sos-spin {
+                  to { transform: rotate(360deg); }
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-progress-bar-container {
+                  height: 8px;
+                  background: #374151;
+                  border-radius: 4px;
+                  overflow: hidden;
+                  margin-bottom: 4px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-progress-bar {
+                  height: 100%;
+                  width: 0%;
+                  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+                  border-radius: 4px;
+                  transition: width 0.3s ease;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-progress-percent {
+                  font-size: 12px;
+                  color: #9ca3af;
+                  text-align: right;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-time-left {
+                  font-size: 11px;
+                  color: #6b7280;
+                  margin-top: 4px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-current-lead {
+                  background: #374151;
+                  border-radius: 8px;
+                  padding: 12px;
+                  margin-bottom: 16px;
+                  min-height: 60px;
+                  display: flex;
+                  align-items: center;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-info {
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  width: 100%;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-avatar {
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: #4b5563;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 16px;
+                  font-weight: 600;
+                  flex-shrink: 0;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-avatar img {
+                  width: 100%;
+                  height: 100%;
+                  border-radius: 50%;
+                  object-fit: cover;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-details {
+                  flex: 1;
+                  overflow: hidden;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-name {
+                  font-weight: 600;
+                  font-size: 14px;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-headline {
+                  font-size: 11px;
+                  color: #9ca3af;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-lead-placeholder {
+                  color: #6b7280;
+                  font-size: 13px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-actions {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                  margin-bottom: 16px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-btn {
+                  width: 100%;
+                  padding: 10px 16px;
+                  border: none;
+                  border-radius: 6px;
+                  font-size: 13px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                  transition: all 0.2s;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-btn-secondary {
+                  background: #374151;
+                  color: #fff;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-btn-secondary:hover {
+                  background: #4b5563;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-btn-danger {
+                  background: #dc2626;
+                  color: #fff;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-btn-danger:hover {
+                  background: #b91c1c;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-warnings {
+                  background: #fef2f2;
+                  border-radius: 8px;
+                  padding: 12px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-warning {
+                  color: #991b1b;
+                  font-size: 11px;
+                  line-height: 1.4;
+                  margin-bottom: 6px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-warning:last-child {
+                  margin-bottom: 0;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-logs-panel {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
+                  background: #1f2937;
+                  z-index: 10;
+                  display: flex;
+                  flex-direction: column;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-logs-header {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  padding: 12px 16px;
+                  background: #374151;
+                  border-bottom: 1px solid #4b5563;
+                  font-weight: 600;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-close-btn {
+                  background: none;
+                  border: none;
+                  color: #9ca3af;
+                  font-size: 20px;
+                  cursor: pointer;
+                  padding: 0;
+                  line-height: 1;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-close-btn:hover {
+                  color: #fff;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-logs-content {
+                  flex: 1;
+                  padding: 12px;
+                  overflow-y: auto;
+                  font-family: monospace;
+                  font-size: 11px;
+                  line-height: 1.6;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-entry {
+                  padding: 4px 0;
+                  border-bottom: 1px solid #374151;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-time {
+                  color: #6b7280;
+                  margin-right: 8px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-success {
+                  color: #10b981;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-error {
+                  color: #ef4444;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-info {
+                  color: #9ca3af;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-warning {
+                  color: #f59e0b;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-log-empty {
+                  color: #6b7280;
+                  text-align: center;
+                  padding: 20px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID}.minimized .sos-auto-body {
+                  display: none;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-countdown {
+                  background: #1e40af;
+                  color: #fff;
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  text-align: center;
+                  margin-top: 8px;
+                  font-size: 12px;
+                }
+
+                #${AUTOMATION_OVERLAY_ID} .sos-auto-countdown-time {
+                  font-size: 18px;
+                  font-weight: 700;
+                  display: block;
+                  margin-top: 4px;
+                }
+              </style>
+            `;
+
+            document.body.appendChild(overlay);
+            console.log('[Lia 360] Automation overlay created');
+
+            const self = this;
+
+            // Event Listeners
+            document.getElementById('sos-auto-minimize').addEventListener('click', () => {
+                overlay.classList.toggle('minimized');
+            });
+
+            document.getElementById('sos-auto-stop-btn').addEventListener('click', async () => {
+                const stopBtn = document.getElementById('sos-auto-stop-btn');
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏳ Stopping...';
+                stopBtn.style.opacity = '0.6';
+
+                self.addLog('Stop requested by user', 'info');
+
+                try {
+                    if (!chrome.runtime?.id) {
+                        throw new Error('Extension context lost');
+                    }
+
+                    chrome.runtime.sendMessage({ action: 'STOP_AUTOMATION' }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('[Lia 360] Stop error:', chrome.runtime.lastError.message);
+                            self.addLog('Extension disconnected - closing overlay', 'warning');
+                            self.hideAutomationOverlay();
+                            return;
+                        }
+
+                        console.log('[Lia 360] Stop response:', response);
+                        self.addLog('Automation stopped successfully', 'success');
+
+                        setTimeout(() => {
+                            self.hideAutomationOverlay();
+                        }, 1500);
+                    });
+                } catch (error) {
+                    console.error('[Lia 360] Failed to send stop message:', error);
+                    self.addLog('Extension context lost - hiding overlay', 'error');
+                    setTimeout(() => {
+                        self.hideAutomationOverlay();
+                    }, 1000);
+                }
+            });
+
+            document.getElementById('sos-auto-logs-btn').addEventListener('click', () => {
+                document.getElementById('sos-auto-logs-panel').style.display = 'flex';
+                self.renderLogs();
+            });
+
+            document.getElementById('sos-auto-logs-close').addEventListener('click', () => {
+                document.getElementById('sos-auto-logs-panel').style.display = 'none';
+            });
+        },
+
+        showAutomationOverlay: function(state) {
+            console.log('[Lia 360] SHOW_OVERLAY received', state);
+            this.createAutomationOverlay();
+
+            const overlay = document.getElementById(AUTOMATION_OVERLAY_ID);
+            if (!overlay) return;
+
+            overlay.style.display = 'block';
+            overlay.classList.remove('minimized');
+            console.log('[Lia 360] Automation overlay shown');
+
+            // Update progress
+            const { total, current, lead, status } = state;
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+
+            const progressText = document.getElementById('sos-auto-progress-text');
+            const progressBar = document.getElementById('sos-auto-progress-bar');
+            const progressPercent = document.getElementById('sos-auto-progress-percent');
+            const timeLeft = document.getElementById('sos-auto-time-left');
+
+            if (progressText) progressText.textContent = `Progress: ${current} of ${total} Leads`;
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (progressPercent) progressPercent.textContent = `${percent}%`;
+
+            // Estimate time left (assuming ~90 seconds per lead average)
+            const remaining = total - current;
+            const avgTime = 90; // seconds
+            const timeRemaining = remaining * avgTime;
+            if (timeLeft) {
+                if (remaining > 0) {
+                    const mins = Math.floor(timeRemaining / 60);
+                    const secs = timeRemaining % 60;
+                    timeLeft.textContent = `Estimated time left: ${mins}m ${secs}s`;
+                } else {
+                    timeLeft.textContent = 'Completing...';
+                }
+            }
+
+            // Update current lead
+            const leadContainer = document.getElementById('sos-auto-current-lead');
+            if (leadContainer && lead) {
+                const initials = lead.name ? lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?';
+                const avatarContent = lead.avatar
+                    ? `<img src="${lead.avatar}" alt="${lead.name}" />`
+                    : initials;
+
+                leadContainer.innerHTML = `
+                  <div class="sos-auto-lead-info">
+                    <div class="sos-auto-lead-avatar">${avatarContent}</div>
+                    <div class="sos-auto-lead-details">
+                      <div class="sos-auto-lead-name">${lead.name || 'Unknown'}</div>
+                      <div class="sos-auto-lead-headline">${lead.headline || status || 'Processing...'}</div>
+                    </div>
+                  </div>
+                `;
+            }
+
+            // Add log entry
+            if (lead && lead.name) {
+                this.addLog(`Processing: ${lead.name}`, 'info');
+            }
+        },
+
+        hideAutomationOverlay: function() {
+            console.log('[Lia 360] HIDE_OVERLAY received');
+            const overlay = document.getElementById(AUTOMATION_OVERLAY_ID);
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+
+            // Clear countdown state
+            if (this._countdownInterval) {
+                clearInterval(this._countdownInterval);
+                this._countdownInterval = null;
+            }
+
+            // Reset countdown flags
+            this._isCountingDown = false;
+            this._lastNextStepTime = 0;
+
+            // Clear logs for next automation
+            this._automationLogs = [];
+        },
+
+        startWaitCountdown: function(durationSeconds) {
+            console.log('[Lia 360] START_WAIT received:', durationSeconds);
+
+            // Prevent multiple countdowns
+            if (this._isCountingDown) {
+                console.log('[Lia 360] Countdown already running, ignoring duplicate request');
+                return;
+            }
+            this._isCountingDown = true;
+
+            const leadContainer = document.getElementById('sos-auto-current-lead');
+            if (!leadContainer) {
+                this._isCountingDown = false;
+                return;
+            }
+
+            // Clear existing countdown interval if any
+            if (this._countdownInterval) {
+                clearInterval(this._countdownInterval);
+                this._countdownInterval = null;
+            }
+
+            let remaining = durationSeconds;
+            const self = this;
+
+            // Add countdown UI
+            let countdownEl = document.getElementById('sos-auto-countdown-display');
+            if (!countdownEl) {
+                countdownEl = document.createElement('div');
+                countdownEl.id = 'sos-auto-countdown-display';
+                countdownEl.className = 'sos-auto-countdown';
+                leadContainer.parentNode.insertBefore(countdownEl, leadContainer.nextSibling);
+            }
+
+            const updateCountdown = () => {
+                if (remaining <= 0) {
+                    // Clear countdown state
+                    clearInterval(self._countdownInterval);
+                    self._countdownInterval = null;
+                    self._isCountingDown = false;
+                    if (countdownEl) countdownEl.remove();
+
+                    // Debounce NEXT_STEP to prevent duplicate messages
+                    const now = Date.now();
+                    if (now - self._lastNextStepTime < self._NEXT_STEP_DEBOUNCE_MS) {
+                        console.log('[Lia 360] NEXT_STEP debounced, ignoring duplicate within', self._NEXT_STEP_DEBOUNCE_MS, 'ms');
+                        return;
+                    }
+                    self._lastNextStepTime = now;
+
+                    // Signal to continue with error handling
+                    try {
+                        if (!chrome.runtime?.id) {
+                            console.error('[Lia 360] Extension context lost during countdown');
+                            self.hideAutomationOverlay();
+                            return;
+                        }
+
+                        chrome.runtime.sendMessage({ action: 'NEXT_STEP' }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error('[Lia 360] NEXT_STEP error:', chrome.runtime.lastError.message);
+                                self.addLog('Extension disconnected', 'error');
+                                self.hideAutomationOverlay();
+                            } else {
+                                console.log('[Lia 360] NEXT_STEP sent successfully');
+                            }
+                        });
+                    } catch (error) {
+                        console.error('[Lia 360] Failed to send NEXT_STEP:', error);
+                        self.hideAutomationOverlay();
+                    }
+                    return;
+                }
+
+                countdownEl.innerHTML = `
+                  Waiting before next action...
+                  <span class="sos-auto-countdown-time">${remaining}s</span>
+                `;
+                remaining--;
+            };
+
+            updateCountdown();
+            this._countdownInterval = setInterval(updateCountdown, 1000);
+
+            this.addLog(`Waiting ${durationSeconds}s before next action`, 'info');
+        },
+
+        addLog: function(message, type = 'info') {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            this._automationLogs.push({ time: timeStr, message, type });
+
+            // Keep only last 100 logs
+            if (this._automationLogs.length > 100) {
+                this._automationLogs = this._automationLogs.slice(-100);
+            }
+
+            // Update logs panel if visible
+            const logsPanel = document.getElementById('sos-auto-logs-panel');
+            if (logsPanel && logsPanel.style.display !== 'none') {
+                this.renderLogs();
+            }
+        },
+
+        renderLogs: function() {
+            const logsContent = document.getElementById('sos-auto-logs-content');
+            if (!logsContent) return;
+
+            if (this._automationLogs.length === 0) {
+                logsContent.innerHTML = '<div class="sos-auto-log-empty">No logs yet...</div>';
+                return;
+            }
+
+            logsContent.innerHTML = this._automationLogs.map(log => `
+              <div class="sos-auto-log-entry">
+                <span class="sos-auto-log-time">[${log.time}]</span>
+                <span class="sos-auto-log-${log.type}">${log.message}</span>
+              </div>
+            `).join('');
+
+            // Scroll to bottom
+            logsContent.scrollTop = logsContent.scrollHeight;
+=======
+>>>>>>> origin/main
         }
     };
 

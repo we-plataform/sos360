@@ -10,11 +10,19 @@ import { templatesRouter } from "./templates.js";
 import { automationsRouter } from "./automations.js";
 import { analyticsRouter } from "./analytics.js";
 import { usersRouter } from "./users.js";
+<<<<<<< HEAD
+import { onboardingRouter } from "./onboarding.js";
+=======
+>>>>>>> origin/main
 import { healthRouter } from "./health.js";
 import { audiencesRouter } from "./audiences.js";
 import { postsRouter } from "./posts.js";
 import { scoringRouter } from "./scoring.js";
 import { agentsRouter } from "./agents.js";
+<<<<<<< HEAD
+import { cloudBrowserRouter } from "./cloud-browser.js";
+=======
+>>>>>>> origin/main
 import { defaultRateLimit } from "../middleware/rate-limit.js";
 
 export function setupRoutes(app: Express): void {
@@ -36,10 +44,18 @@ export function setupRoutes(app: Express): void {
   app.use("/api/v1/automations", automationsRouter);
   app.use("/api/v1/analytics", analyticsRouter);
   app.use("/api/v1/users", usersRouter);
+<<<<<<< HEAD
+  app.use("/api/v1/onboarding", onboardingRouter);
+=======
+>>>>>>> origin/main
   app.use("/api/v1/audiences", audiencesRouter);
   app.use("/api/v1/posts", postsRouter);
   app.use("/api/v1/scoring", scoringRouter);
   app.use("/api/v1/agents", agentsRouter);
+<<<<<<< HEAD
+  app.use("/api/v1/cloud-browser", cloudBrowserRouter);
+=======
+>>>>>>> origin/main
 
   // 404 handler for API routes
   app.use("/api", (_req, res) => {

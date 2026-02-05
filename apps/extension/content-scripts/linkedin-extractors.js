@@ -399,7 +399,11 @@
         /**
          * Extract lead data from a connection card element
          */
+<<<<<<< HEAD
+        extractLeadFromCard: function (card) {
+=======
         extractLeadFromCard: function(card) {
+>>>>>>> origin/main
             try {
                 const linkEl = card.querySelector('a[href*="/in/"]');
                 if (!linkEl) return null;
@@ -408,8 +412,18 @@
                 const username = Utils.parseLinkedInUrl(profileUrl);
                 if (!username) return null;
 
+<<<<<<< HEAD
+                const nameEl = card.querySelector('.entity-result__title-text a span[aria-hidden="true"], .mn-connection-card__name, .entity-result__title-text');
+                let fullName = Utils.getTextContent(nameEl) || Utils.formatUsernameAsName(username);
+
+                // Cleanup: Remove "View profile" pollution if present (common in entity-result__title-text)
+                if (fullName) {
+                    fullName = fullName.replace(/View profile|Visualizar perfil|See full profile|Ver perfil completo/gi, '').trim();
+                }
+=======
                 const nameEl = card.querySelector('.entity-result__title-text, .mn-connection-card__name, span[aria-hidden="true"]');
                 const fullName = Utils.getTextContent(nameEl) || Utils.formatUsernameAsName(username);
+>>>>>>> origin/main
 
                 const headlineEl = card.querySelector('.entity-result__primary-subtitle, .mn-connection-card__occupation');
                 const headline = Utils.getTextContent(headlineEl) || '';
